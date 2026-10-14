@@ -19,7 +19,7 @@ from langchain_core.exceptions import ModelRateLimitError
 RATE_LIMIT_ERRORS = (groq.RateLimitError, openai.RateLimitError, ModelRateLimitError)
 
 DEFAULTS = {
-    "GEMINI_MODEL": "gemini-2.5-flash",
+    "GEMINI_MODEL": "gemini-3.7-flash",
     "GROQ_MODEL": "llama-3.3-70b-versatile",
     "OPENROUTER_MODEL": "google/gemma-4-31b-it:free",
 }
@@ -38,9 +38,10 @@ def available_models(env: Mapping[str, str]) -> list[tuple[str, object]]:
             from langchain_google_genai import ChatGoogleGenerativeAI
 
             label = "gemini" + var[len("GOOGLE_API_KEY"):].lower()
-            # max_retries=0: on a 429 move straight to the next key instead of retrying
+            # max_retries=2: enough for a passing 503 overload, short enough that a
+            # spent quota (429) moves on to the next key quickly
             out.append((label, ChatGoogleGenerativeAI(
-                model=name("GEMINI_MODEL"), google_api_key=env[var], temperature=0, max_retries=0)))
+                model=name("GEMINI_MODEL"), google_api_key=env[var], temperature=0, max_retries=2)))
     if env.get("GROQ_API_KEY"):
         from langchain_groq import ChatGroq
 

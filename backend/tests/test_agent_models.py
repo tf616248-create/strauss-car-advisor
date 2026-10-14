@@ -105,7 +105,7 @@ def test_extra_gemini_key_without_the_first_still_counts():
     assert [name for name, _ in available_models(env)] == ["gemini_2"]
 
 
-def test_gemini_fails_fast_to_the_next_key():
-    """No long internal retry on a 429 - the next key/model takes over."""
+def test_gemini_retries_briefly_then_next_key():
+    """A couple of retries survive a passing 503 overload; then a 429 moves on to the next key."""
     gemini = dict(available_models(dict(ALL_KEYS, GOOGLE_API_KEY_2="g2")))["gemini"]
-    assert gemini.max_retries == 0
+    assert 1 <= gemini.max_retries <= 2
