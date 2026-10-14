@@ -1,11 +1,11 @@
 """Monthly net-salary engine. Pure functions: same input -> same output.
 
-Every rate, bracket and threshold is read from strauss-rules.json (netMethod)
-or config/calc-assumptions.json. The order of the steps lives here.
+Every rate, bracket, threshold and calculation detail is read from
+strauss-rules.json (v2, netMethod). The order of the steps lives here.
+A rule value the engine does not know raises ValueError - never a guess.
 """
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, replace
 
 
@@ -53,13 +53,23 @@ def _two_tier(amount: float, spec: dict) -> float:
     return low * spec["lowRate"] + high * spec["highRate"]
 
 
-def _components(emp, names: list[str]) -> float:
-    values = {"base": emp.base, "commission": emp.commission, "bonus": emp.bonus}
-    return sum(values[n] for n in names)
+def _require(value, supported: str, name: str):
+    if value != supported:
+        raise ValueError(f"unsupported rule value {name}={value!r} (engine supports {supported!r})")
 
 
-def _calc(emp, scenario, rules: dict, assumptions: dict, electric_gross: float) -> NetBreakdown:
+def _pension_credit(spec: dict, pension_base: float, contribution: float) -> float:
+    """Credit on the actual contribution, capped at maxContributionRate of the
+    qualifying income (itself capped at incomeCeiling)."""
+    cap = spec["maxContributionRate"] * min(pension_base, spec["incomeCeiling"])
+    return spec["rate"] * min(contribution, cap)
+
+
+def _calc(emp, scenario, rules: dict, electric_gross: float) -> NetBreakdown:
     nm = rules["netMethod"]
+    _require(nm["contributionsBase"], "gross", "netMethod.contributionsBase")
+    _require(nm["participation"]["treatment"], "net_deduction", "netMethod.participation.treatment")
+
     salary = emp.base + emp.commission + emp.bonus
     maintenance = scenario.maintenance
     cash = salary + maintenance + electric_gross
@@ -67,24 +77,22 @@ def _calc(emp, scenario, rules: dict, assumptions: dict, electric_gross: float) 
     taxable = cash + scenario.value_of_use
     if not rules["waiver"]["maintenanceIsTaxable"]:
         taxable -= maintenance
-    if assumptions["participationReducesTaxable"]:
+    if nm["participation"]["reducesValueOfUse"]:
         taxable -= scenario.participation
 
-    pension_base = _components(emp, assumptions["pensionBaseComponents"])
-    keren_base = _components(emp, assumptions["kerenBaseComponents"])
+    pension_base = keren_base = salary  # contributionsBase: gross
     if rules["waiver"]["maintenanceIsPensionable"]:
         pension_base += maintenance
+    pension = pension_base * emp.pension_pct / 100
+    keren = keren_base * emp.keren_pct / 100
 
     tax_before = _bracket_tax(taxable, nm["brackets"])
     points_value = emp.credit_points * nm["creditPointValue"]
-    pc = nm["pensionCredit"]
-    pension_credit = pc["rate"] * assumptions["pensionCreditPct"] * min(pension_base, pc["incomeCeiling"])
+    pension_credit = _pension_credit(nm["pensionCredit"], pension_base, pension)
     tax = max(0.0, tax_before - points_value - pension_credit)
 
     ni = _two_tier(taxable, nm["nationalInsurance"])
     health = _two_tier(taxable, nm["health"])
-    pension = pension_base * emp.pension_pct / 100
-    keren = keren_base * emp.keren_pct / 100
 
     net = cash - tax - ni - health - pension - keren - scenario.participation - scenario.family_share
     return NetBreakdown(
@@ -108,26 +116,25 @@ def _calc(emp, scenario, rules: dict, assumptions: dict, electric_gross: float) 
     )
 
 
-def electric_gross_up(emp, scenario, rules: dict, assumptions: dict) -> float:
-    """Smallest gross amount that raises net by exactly netBonus (bisection), then rounded."""
+def electric_gross_up(emp, scenario, rules: dict) -> float:
+    """Gross amount that raises net by exactly netBonus (bisection).
+
+    Not rounded: rules v2 round only for display (netMethod.rounding).
+    """
+    _require(rules["netMethod"]["rounding"]["during"], "none", "netMethod.rounding.during")
     target = rules["electric"]["netBonus"]
     base_scenario = replace(scenario, electric=False)
-    base_net = _calc(emp, base_scenario, rules, assumptions, 0.0).net
+    base_net = _calc(emp, base_scenario, rules, 0.0).net
     lo, hi = 0.0, target * 10.0
     for _ in range(100):
         mid = (lo + hi) / 2
-        if _calc(emp, base_scenario, rules, assumptions, mid).net - base_net < target:
+        if _calc(emp, base_scenario, rules, mid).net - base_net < target:
             lo = mid
         else:
             hi = mid
-    rounding = assumptions.get("electricGrossUpRounding", "none")
-    if rounding == "ceil":
-        return float(math.ceil(hi - 1e-9))
-    if rounding == "round":
-        return float(math.floor(hi + 0.5))
     return hi
 
 
-def compute_net(emp, scenario, rules: dict, assumptions: dict) -> NetBreakdown:
-    gross = electric_gross_up(emp, scenario, rules, assumptions) if scenario.electric else 0.0
-    return _calc(emp, scenario, rules, assumptions, gross)
+def compute_net(emp, scenario, rules: dict) -> NetBreakdown:
+    gross = electric_gross_up(emp, scenario, rules) if scenario.electric else 0.0
+    return _calc(emp, scenario, rules, gross)

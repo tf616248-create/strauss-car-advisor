@@ -44,8 +44,8 @@ def run(data, emp_id):
     alt = build_scenario(emp, alt_choice, data)
     assert today.eligible and not today.missing, today
     assert alt.eligible and not alt.missing, alt
-    net_today = compute_net(emp, today.scenario, data.rules, data.assumptions)
-    net_alt = compute_net(emp, alt.scenario, data.rules, data.assumptions)
+    net_today = compute_net(emp, today.scenario, data.rules)
+    net_alt = compute_net(emp, alt.scenario, data.rules)
     return net_today, net_alt, alt
 
 
@@ -96,15 +96,15 @@ def test_electric_gross_up(data, emp_id):
 
 @pytest.mark.parametrize("emp_id", IDS)
 def test_electric_adds_250_net(data, emp_id):
-    """After rounding the gross-up to whole shekels, the employee sees +250 net (±0.5)."""
+    """No rounding during the calculation (rules v2), so the employee sees exactly +250 net."""
     emp = employee_input(data.employees[emp_id])
     _, alt_choice = CASES[emp_id]
     alt = build_scenario(emp, alt_choice, data)
     if not alt.scenario.electric:
         pytest.skip("not an electric alternative")
-    with_bonus = compute_net(emp, alt.scenario, data.rules, data.assumptions)
-    without = compute_net(emp, alt.scenario.without_electric(), data.rules, data.assumptions)
-    assert abs(with_bonus.net - without.net - data.rules["electric"]["netBonus"]) <= 0.5
+    with_bonus = compute_net(emp, alt.scenario, data.rules)
+    without = compute_net(emp, alt.scenario.without_electric(), data.rules)
+    assert abs(with_bonus.net - without.net - data.rules["electric"]["netBonus"]) <= 0.01
 
 
 @pytest.mark.parametrize("emp_id", IDS)

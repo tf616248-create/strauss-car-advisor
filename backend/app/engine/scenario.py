@@ -97,7 +97,7 @@ def _waiver(emp: EmployeeInput, choice: Choice, data, is_current: bool) -> Scena
 def _car(emp: EmployeeInput, choice: Choice, data, is_current: bool) -> ScenarioResult:
     rules = data.rules
     excel = data.excel_values
-    family_group = excel["familyGroup"]
+    family_cars = rules["familyTrack"]["cars"]
 
     car = data.find_car(choice.car_ref or "")
     if car is None:
@@ -105,7 +105,7 @@ def _car(emp: EmployeeInput, choice: Choice, data, is_current: bool) -> Scenario
             eligible=False, reason_code="car_not_in_catalog", missing=["car"], details={"car": choice.car_ref}
         )
 
-    is_family_car = car["group"] == family_group
+    is_family_car = car["id"] in family_cars
     details = {"carGroup": car["group"], "employeeGroup": emp.group}
 
     if not is_current:

@@ -1,9 +1,8 @@
 """Loads the challenge data files exactly as delivered (read-only).
 
-- data/strauss-rules.json      challenge rules (budgets, tracks, tax tables)
+- data/strauss-rules.json      challenge rules v2 (budgets, tracks, tax tables, calc details)
 - data/strauss-data.xlsx       catalog, occupations, sample employees, reference results
 - data/vehicle-values-2026.csv Tax Authority value-of-use file
-- config/calc-assumptions.json details used by the reference sheet but not in the rules file
 - config/column-map.json       Hebrew headers -> code field names
 
 Everything is loaded once at startup and kept in memory.
@@ -88,7 +87,6 @@ class VehicleIndex:
 @dataclass
 class Data:
     rules: dict
-    assumptions: dict
     column_map: dict
     catalog: dict[str, dict]
     occupations: dict[str, dict]
@@ -107,6 +105,22 @@ class Data:
     @property
     def excel_values(self) -> dict:
         return self.column_map["excel"]
+
+
+def check_family_track(rules: dict, catalog: dict[str, dict], family_group: str) -> None:
+    """The family-track car list in the rules must match the catalog's family group.
+
+    The rules list decides; a mismatch stops the server instead of guessing.
+    """
+    listed = set(rules["familyTrack"]["cars"])
+    in_catalog = {cid for cid, c in catalog.items() if c["group"] == family_group}
+    problems = []
+    if listed - in_catalog:
+        problems.append(f"listed in rules but not a family car in the catalog: {sorted(listed - in_catalog)}")
+    if in_catalog - listed:
+        problems.append(f"family car in the catalog but not listed in rules: {sorted(in_catalog - listed)}")
+    if problems:
+        raise ValueError("familyTrack.cars mismatch - " + "; ".join(problems))
 
 
 def _read_json(path: Path) -> dict:
@@ -198,9 +212,9 @@ def load_all(base_dir: Path) -> Data:
     catalog, occupations, employees, reference = _load_excel(
         base_dir / "data" / "strauss-data.xlsx", cmap
     )
+    check_family_track(rules, catalog, cmap["excel"]["familyGroup"])
     return Data(
         rules=rules,
-        assumptions=_read_json(base_dir / "config" / "calc-assumptions.json"),
         column_map=cmap,
         catalog=catalog,
         occupations=occupations,
