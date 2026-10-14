@@ -1,2 +1,9 @@
 openpyxl>=3.1
 pytest>=8
+# agent (stage 6). create_react_agent is removed in LangGraph 2.0 - keep <2.
+langgraph>=1.0,<2
+langchain-core>=1.0,<2
+langchain-google-genai>=4.0
+langchain-groq>=1.0
+langchain-openai>=1.0
+python-dotenv>=1.0

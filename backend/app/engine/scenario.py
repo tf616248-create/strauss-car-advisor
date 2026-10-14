@@ -28,6 +28,9 @@ class Choice:
     car_ref: Optional[str] = None  # catalog id or commercial name
     participation: Optional[float] = None  # stated / approved amount, else catalog default
     maintenance: Optional[float] = None  # waiver only, else occupation table
+    # A car outside the catalog, assembled from the Tax Authority file + rep answers.
+    # Same fields as a catalog row; id is None.
+    car_record: Optional[dict] = None
 
     @classmethod
     def car(cls, name, participation=None):
@@ -99,7 +102,7 @@ def _car(emp: EmployeeInput, choice: Choice, data, is_current: bool) -> Scenario
     excel = data.excel_values
     family_cars = rules["familyTrack"]["cars"]
 
-    car = data.find_car(choice.car_ref or "")
+    car = choice.car_record or data.find_car(choice.car_ref or "")
     if car is None:
         return ScenarioResult(
             eligible=False, reason_code="car_not_in_catalog", missing=["car"], details={"car": choice.car_ref}

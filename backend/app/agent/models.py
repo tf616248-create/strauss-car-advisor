@@ -1,0 +1,60 @@
+"""Model chain: Gemini Flash first, then Groq, then OpenRouter, switching on a 429.
+
+Keys and model names come only from the environment (.env) - see .env.example.
+A provider without a key is skipped.
+"""
+from __future__ import annotations
+
+import os
+from typing import Mapping, Optional
+
+import groq
+import openai
+from langchain_core.exceptions import ModelRateLimitError
+
+# langchain-google-genai raises GoogleRateLimitError (a ModelRateLimitError);
+# Groq and OpenAI-compatible clients raise their own RateLimitError.
+RATE_LIMIT_ERRORS = (groq.RateLimitError, openai.RateLimitError, ModelRateLimitError)
+
+DEFAULTS = {
+    "GEMINI_MODEL": "gemini-2.5-flash",
+    "GROQ_MODEL": "llama-3.3-70b-versatile",
+    "OPENROUTER_MODEL": "meta-llama/llama-3.3-70b-instruct:free",
+}
+
+
+def available_models(env: Mapping[str, str]) -> list[tuple[str, object]]:
+    def name(var):
+        return env.get(var) or DEFAULTS[var]
+
+    out = []
+    if env.get("GOOGLE_API_KEY"):
+        from langchain_google_genai import ChatGoogleGenerativeAI
+
+        out.append(("gemini", ChatGoogleGenerativeAI(
+            model=name("GEMINI_MODEL"), google_api_key=env["GOOGLE_API_KEY"], temperature=0)))
+    if env.get("GROQ_API_KEY"):
+        from langchain_groq import ChatGroq
+
+        out.append(("groq", ChatGroq(model=name("GROQ_MODEL"), api_key=env["GROQ_API_KEY"], temperature=0)))
+    if env.get("OPENROUTER_API_KEY"):
+        from langchain_openai import ChatOpenAI
+
+        out.append(("openrouter", ChatOpenAI(
+            model=name("OPENROUTER_MODEL"), api_key=env["OPENROUTER_API_KEY"],
+            base_url="https://openrouter.ai/api/v1", temperature=0)))
+    return out
+
+
+def with_fallbacks(models: list):
+    if len(models) == 1:
+        return models[0]
+    return models[0].with_fallbacks(models[1:], exceptions_to_handle=RATE_LIMIT_ERRORS)
+
+
+def build_model(env: Optional[Mapping[str, str]] = None):
+    models = [m for _, m in available_models(os.environ if env is None else env)]
+    if not models:
+        raise RuntimeError("No model key set. Fill GOOGLE_API_KEY (and backups GROQ_API_KEY, "
+                           "OPENROUTER_API_KEY) in backend/.env - see .env.example.")
+    return with_fallbacks(models)

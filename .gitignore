@@ -5,3 +5,6 @@ node_modules/
 .venv/
 venv/
 *.pyc
+*.env
+.env.*
+!.env.example

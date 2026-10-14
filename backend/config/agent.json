@@ -1,0 +1,39 @@
+{
+  "note": "Agent thresholds and employee-facing texts. Rules for when to ask the rep live in code (app/agent/advisor.py); the thresholds live here.",
+  "maxAttempts": 2,
+  "maxCandidates": 10,
+  "ranges": {
+    "base": [1, 500000],
+    "commission": [0, 500000],
+    "bonus": [0, 500000],
+    "pension_pct": [0, 10],
+    "keren_pct": [0, 10],
+    "credit_points": [0, 20],
+    "children": [0, 20],
+    "current_participation": [0, 10000]
+  },
+  "texts": {
+    "repSent": "שלחתי שאלה לנציג התחבורה, והחלופה תתעדכן",
+    "pending": "⏳ ממתין לנציג",
+    "sources": {
+      "employee": "עובד",
+      "catalog": "קטלוג",
+      "taxAuthority": "רשות המסים",
+      "rep": "נציג",
+      "rules": "כללים",
+      "occupation": "טבלת עיסוקים",
+      "calculation": "חישוב"
+    },
+    "reasons": {
+      "today": "המצב היום.",
+      "own_group_or_lower": "הרכב בקבוצה {carGroup}, בתוך הזכאות שלך (קבוצה {employeeGroup}).",
+      "family_track": "מסלול משפחתי: {children} ילדים עד גיל 23 (נדרשים לפחות {minChildren}).",
+      "waiver_allowed": "העיסוק שלך מאפשר לוותר על הרכב ולקבל אחזקת רכב.",
+      "group_too_high": "הרכב בקבוצה {carGroup}, מעל הזכאות שלך (קבוצה {employeeGroup}).",
+      "family_track_only": "הרכב הזה שייך רק למסלול המשפחתי.",
+      "not_family_track_car": "הרכב הזה לא במסלול המשפחתי.",
+      "not_enough_children": "המסלול המשפחתי מחייב לפחות {minChildren} ילדים עד גיל 23, וציינת {children}.",
+      "waiver_not_allowed": "בעיסוק {occupation} הרכב הוא חובה, ולכן אי אפשר לוותר עליו."
+    }
+  }
+}
