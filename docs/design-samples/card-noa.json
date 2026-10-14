@@ -1,0 +1,167 @@
+{
+  "status": "ok",
+  "card": {
+    "your_data": {
+      "occupation": {
+        "value": "מנהל/ת מוצר",
+        "source": "עובד"
+      },
+      "group": {
+        "value": "ג",
+        "source": "עובד"
+      },
+      "base": {
+        "value": 18500,
+        "source": "עובד"
+      },
+      "commission": {
+        "value": 0,
+        "source": "עובד"
+      },
+      "bonus": {
+        "value": 0,
+        "source": "עובד"
+      },
+      "pension_pct": {
+        "value": 6,
+        "source": "עובד"
+      },
+      "keren_pct": {
+        "value": 2.5,
+        "source": "עובד"
+      },
+      "credit_points": {
+        "value": 2.75,
+        "source": "עובד"
+      },
+      "children": {
+        "value": 2,
+        "source": "עובד"
+      },
+      "current_participation": {
+        "value": 300,
+        "source": "עובד"
+      },
+      "current": {
+        "value": "COROLLA CROSS (2025)",
+        "source": "עובד"
+      }
+    },
+    "today": {
+      "kind": "car",
+      "label": "COROLLA CROSS (2025)",
+      "reason": "המצב היום.",
+      "values": {
+        "value_of_use": {
+          "value": 4070,
+          "source": "קטלוג"
+        },
+        "participation": {
+          "value": 300,
+          "source": "עובד"
+        },
+        "electric_refund_net": {
+          "value": 0,
+          "source": "כללים"
+        },
+        "electric_refund_gross": {
+          "value": 0,
+          "source": "כללים"
+        },
+        "maintenance": {
+          "value": 0,
+          "source": "טבלת עיסוקים"
+        },
+        "family_share": {
+          "value": 0,
+          "source": "כללים"
+        },
+        "budget": {
+          "value": 4500,
+          "source": "כללים"
+        },
+        "car_cost": {
+          "value": 4300,
+          "source": "קטלוג"
+        },
+        "tax": {
+          "value": 3443,
+          "source": "חישוב"
+        },
+        "social": {
+          "value": 2153,
+          "source": "חישוב"
+        },
+        "net": {
+          "value": 11032,
+          "source": "חישוב"
+        }
+      }
+    },
+    "alternative": {
+      "kind": "car",
+      "label": "ATTO 3 (2025)",
+      "reason": "הרכב בקבוצה ג, בתוך הזכאות שלך (קבוצה ג).",
+      "values": {
+        "value_of_use": {
+          "value": 3130,
+          "source": "קטלוג"
+        },
+        "participation": {
+          "value": 300,
+          "source": "קטלוג"
+        },
+        "electric_refund_net": {
+          "value": 250,
+          "source": "כללים"
+        },
+        "electric_refund_gross": {
+          "value": 440,
+          "source": "כללים"
+        },
+        "maintenance": {
+          "value": 0,
+          "source": "טבלת עיסוקים"
+        },
+        "family_share": {
+          "value": 0,
+          "source": "כללים"
+        },
+        "budget": {
+          "value": 4500,
+          "source": "כללים"
+        },
+        "car_cost": {
+          "value": 4100,
+          "source": "קטלוג"
+        },
+        "tax": {
+          "value": 3283,
+          "source": "חישוב"
+        },
+        "social": {
+          "value": 2092,
+          "source": "חישוב"
+        },
+        "net": {
+          "value": 11693,
+          "source": "חישוב"
+        }
+      }
+    },
+    "diff": {
+      "value_of_use": -940,
+      "participation": 0,
+      "electric_refund_net": 250,
+      "maintenance": 0,
+      "family_share": 0,
+      "tax": -160,
+      "social": -61,
+      "net": 661
+    },
+    "explanation": [
+      "הרכב בקבוצה ג, בתוך הזכאות שלך (קבוצה ג).",
+      "הנטו המשוער עולה ב-661 ₪ בחודש."
+    ]
+  }
+}
