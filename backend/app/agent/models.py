@@ -1,4 +1,4 @@
-"""Model chain: Gemini Flash first, then Groq, then OpenRouter, switching on a 429.
+"""Model chain: Gemini Flash first, then Groq, then OpenRouter, switching on a 429 or 5xx.
 
 Keys and model names come only from the environment (.env) - see .env.example.
 A provider without a key is skipped. Gemini's free quota is per Google project,
@@ -12,11 +12,15 @@ from typing import Mapping, Optional
 
 import groq
 import openai
-from langchain_core.exceptions import ModelRateLimitError
+from langchain_core.exceptions import ModelAPIError, ModelRateLimitError
 
-# langchain-google-genai raises GoogleRateLimitError (a ModelRateLimitError);
-# Groq and OpenAI-compatible clients raise their own RateLimitError.
-RATE_LIMIT_ERRORS = (groq.RateLimitError, openai.RateLimitError, ModelRateLimitError)
+# Errors that move on to the next key/model: 429 (quota) and 5xx (e.g. 503 overload).
+# langchain-google-genai raises GoogleRateLimitError / GoogleAPIError (ModelRateLimitError /
+# ModelAPIError); Groq and OpenAI-compatible clients raise their own classes.
+RATE_LIMIT_ERRORS = (
+    groq.RateLimitError, openai.RateLimitError, ModelRateLimitError,
+    groq.InternalServerError, openai.InternalServerError, ModelAPIError,
+)
 
 DEFAULTS = {
     "GEMINI_MODEL": "gemini-3.7-flash",

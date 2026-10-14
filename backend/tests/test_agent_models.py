@@ -109,3 +109,27 @@ def test_gemini_retries_briefly_then_next_key():
     """A couple of retries survive a passing 503 overload; then a 429 moves on to the next key."""
     gemini = dict(available_models(dict(ALL_KEYS, GOOGLE_API_KEY_2="g2")))["gemini"]
     assert 1 <= gemini.max_retries <= 2
+
+
+class Overloaded(GenericFakeChatModel):
+    def _generate(self, *args, **kwargs):
+        from langchain_core.exceptions import ModelAPIError
+
+        raise ModelAPIError("503 UNAVAILABLE: high demand")
+
+    def bind_tools(self, tools, **kwargs) -> Runnable:
+        return self
+
+
+def test_falls_back_on_server_overload_503():
+    chain = with_fallbacks([Overloaded(messages=iter([])), Fake(messages=iter([AIMessage(content="גיבוי")]))])
+    assert chain.invoke("שלום").content == "גיבוי"
+
+
+def test_provider_server_errors_are_handled():
+    import groq
+    import openai
+    from langchain_core.exceptions import ModelAPIError
+
+    for cls in (groq.InternalServerError, openai.InternalServerError, ModelAPIError):
+        assert cls in RATE_LIMIT_ERRORS
