@@ -126,6 +126,8 @@ backend/
   app/agent/models.py     Gemini (כמה מפתחות) → Groq → OpenRouter, מעבר על 429, 5xx או שגיאת חיבור. מפתחות מ-.env
   app/agent/rep_queue.py  תור הנציג (בזיכרון; Supabase בשלב 7)
   app/agent/chat.py       צ'אט בקונסול לניסיון חי, כולל פקודות /rep למענה כנציג
+  app/api/main.py         FastAPI: POST /chat (SSE), שחזור שיחה, תשאול גיבוי, API של מסך הנציג. create_app = נקודת הכניסה
+  app/api/server.py       הפעלה עם הגדרות מ-.env: uvicorn app.api.server:app
   config/column-map.json
   config/agent.json       ספים (maxAttempts, טווחים) וטקסטים לעובד
   tests/                  בדיקות ייחוס (6 עובדים), זכאות, שליפה מה-CSV, כלים, גרף (מודל מזויף), מודלים
@@ -141,6 +143,7 @@ cd backend
 pip install -r requirements.txt
 python -m pytest -q
 python -m app.agent.chat     # ניסיון חי, דורש backend/.env
+python -m uvicorn app.api.server:app --reload --port 8000   # השרת
 ```
 
 ## מצב נוכחי

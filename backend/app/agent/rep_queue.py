@@ -31,6 +31,15 @@ class InMemoryRepQueue:
         self._requests.append(req)
         return req
 
+    def get(self, request_id: str) -> Optional[dict]:
+        return next((r for r in self._requests if r["id"] == request_id), None)
+
+    def all_pending(self) -> list[dict]:
+        return [r for r in self._requests if r["answer"] is None]
+
+    def answered_ids(self, thread_id: str) -> list[str]:
+        return [r["id"] for r in self._requests if r["thread_id"] == thread_id and r["answer"] is not None]
+
     def pending(self, thread_id: str) -> list[dict]:
         return [r for r in self._requests if r["thread_id"] == thread_id and r["answer"] is None]
 

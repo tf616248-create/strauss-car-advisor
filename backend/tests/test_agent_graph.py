@@ -1,9 +1,11 @@
 """Wiring of the LangGraph agent, with a scripted fake model (no API calls)."""
 import json
+import re
 
 import pytest
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
-from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, ToolMessage
+from langchain_core.outputs import ChatGenerationChunk
 
 from app.agent.advisor import load_agent_config
 from app.agent.graph import TOOL_NAMES, build_agent
@@ -14,10 +16,22 @@ from tests.test_agent_advisor import employee_args
 
 
 class ScriptedModel(GenericFakeChatModel):
-    """Replays fixed AI messages; tool binding is a no-op."""
+    """Replays fixed AI messages; tool binding is a no-op. Streams text word by word,
+    and a tool call as one chunk (the base fake can't stream tool calls)."""
 
     def bind_tools(self, tools, **kwargs):
         return self
+
+    def _stream(self, messages, stop=None, run_manager=None, **kwargs):
+        msg = self._generate(messages, stop, run_manager, **kwargs).generations[0].message
+        if msg.tool_calls:
+            chunks = [{"name": tc["name"], "args": json.dumps(tc["args"], ensure_ascii=False),
+                       "id": tc["id"], "index": i} for i, tc in enumerate(msg.tool_calls)]
+            yield ChatGenerationChunk(message=AIMessageChunk(content=msg.content, tool_call_chunks=chunks))
+            return
+        for part in re.split(r"(\s)", msg.content):
+            if part:
+                yield ChatGenerationChunk(message=AIMessageChunk(content=part))
 
 
 def call(name, args, idx=0):
