@@ -1,7 +1,9 @@
 """Model chain: Gemini Flash first, then Groq, then OpenRouter, switching on a 429.
 
 Keys and model names come only from the environment (.env) - see .env.example.
-A provider without a key is skipped.
+A provider without a key is skipped. Gemini's free quota is per Google project,
+so GOOGLE_API_KEY_2 .. _9 (keys from other projects) are tried in order after
+GOOGLE_API_KEY, before Groq.
 """
 from __future__ import annotations
 
@@ -23,16 +25,22 @@ DEFAULTS = {
 }
 
 
+GEMINI_KEY_VARS = ["GOOGLE_API_KEY"] + [f"GOOGLE_API_KEY_{i}" for i in range(2, 10)]
+
+
 def available_models(env: Mapping[str, str]) -> list[tuple[str, object]]:
     def name(var):
         return env.get(var) or DEFAULTS[var]
 
     out = []
-    if env.get("GOOGLE_API_KEY"):
-        from langchain_google_genai import ChatGoogleGenerativeAI
+    for var in GEMINI_KEY_VARS:
+        if env.get(var):
+            from langchain_google_genai import ChatGoogleGenerativeAI
 
-        out.append(("gemini", ChatGoogleGenerativeAI(
-            model=name("GEMINI_MODEL"), google_api_key=env["GOOGLE_API_KEY"], temperature=0)))
+            label = "gemini" + var[len("GOOGLE_API_KEY"):].lower()
+            # max_retries=0: on a 429 move straight to the next key instead of retrying
+            out.append((label, ChatGoogleGenerativeAI(
+                model=name("GEMINI_MODEL"), google_api_key=env[var], temperature=0, max_retries=0)))
     if env.get("GROQ_API_KEY"):
         from langchain_groq import ChatGroq
 

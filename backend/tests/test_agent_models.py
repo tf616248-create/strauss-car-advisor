@@ -92,3 +92,20 @@ def test_agent_falls_back_on_rate_limit(data):
                         InMemoryRepQueue(), load_agent_config(BACKEND_DIR))
     out = agent.invoke({"messages": [("user", "שלום")]}, {"configurable": {"thread_id": "t"}})
     assert out["messages"][-1].content == "מהגיבוי"
+
+
+def test_several_gemini_keys_are_tried_in_order():
+    """Free quota is per Google project: a key from another project continues after a 429."""
+    env = dict(ALL_KEYS, GOOGLE_API_KEY_2="g2", GOOGLE_API_KEY_3="g3")
+    assert [name for name, _ in available_models(env)] == ["gemini", "gemini_2", "gemini_3", "groq", "openrouter"]
+
+
+def test_extra_gemini_key_without_the_first_still_counts():
+    env = {"GOOGLE_API_KEY_2": "g2"}
+    assert [name for name, _ in available_models(env)] == ["gemini_2"]
+
+
+def test_gemini_fails_fast_to_the_next_key():
+    """No long internal retry on a 429 - the next key/model takes over."""
+    gemini = dict(available_models(dict(ALL_KEYS, GOOGLE_API_KEY_2="g2")))["gemini"]
+    assert gemini.max_retries == 0
