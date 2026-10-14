@@ -133,3 +133,29 @@ def test_provider_server_errors_are_handled():
 
     for cls in (groq.InternalServerError, openai.InternalServerError, ModelAPIError):
         assert cls in RATE_LIMIT_ERRORS
+
+
+def test_connection_errors_move_on_too():
+    """A provider that can't be reached (e.g. blocked by a network filter) must not stop the chain."""
+    import groq
+    import openai
+    from langchain_core.exceptions import ModelConnectionError
+
+    for cls in (groq.APIConnectionError, openai.APIConnectionError, ModelConnectionError):
+        assert cls in RATE_LIMIT_ERRORS
+
+
+class Unreachable(GenericFakeChatModel):
+    def _generate(self, *args, **kwargs):
+        import groq
+        import httpx
+
+        raise groq.APIConnectionError(request=httpx.Request("POST", "https://api.groq.com"))
+
+    def bind_tools(self, tools, **kwargs) -> Runnable:
+        return self
+
+
+def test_falls_back_when_provider_unreachable():
+    chain = with_fallbacks([Unreachable(messages=iter([])), Fake(messages=iter([AIMessage(content="גיבוי")]))])
+    assert chain.invoke("שלום").content == "גיבוי"
