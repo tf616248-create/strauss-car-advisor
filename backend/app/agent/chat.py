@@ -35,16 +35,17 @@ def _value(text: str):
         return text
 
 
-def _rep_command(queue: InMemoryRepQueue, parts: list[str]) -> None:
+def _rep_command(queue: InMemoryRepQueue, parts: list[str]) -> bool:
+    """Returns True when an answer was saved (the agent is then notified)."""
     if len(parts) == 1:
         for req in queue.pending(THREAD):
             print(f'  [{req["id"]}] {req["fields"]} car={req["car_key"]}: {req["question"]}')
         if not queue.pending(THREAD):
             print("  (אין שאלות פתוחות)")
-        return
+        return False
     values = dict(p.split("=", 1) for p in parts[2:])
     queue.answer(parts[1], {k: _value(v) for k, v in values.items()})
-    print("  נשמר. כתבו הודעה לעובד (למשל 'הנציג ענה') כדי שהאיג'נט יחשב מחדש.")
+    return True
 
 
 def main() -> None:
@@ -52,8 +53,9 @@ def main() -> None:
     load_dotenv(BACKEND_DIR / ".env")
     data = load_all(BACKEND_DIR)
     queue = InMemoryRepQueue()
-    agent = build_agent(build_model(), data, queue, load_agent_config(BACKEND_DIR))
     config = {"configurable": {"thread_id": THREAD}}
+    cfg = load_agent_config(BACKEND_DIR)
+    agent = build_agent(build_model(), data, queue, cfg)
     last_card = None
 
     while True:
@@ -66,8 +68,10 @@ def main() -> None:
         if text == "/exit":
             break
         if text.startswith("/rep"):
-            _rep_command(queue, text.split())
-            continue
+            if not _rep_command(queue, text.split()):
+                continue
+            text = cfg["texts"]["repAnswered"]  # in stage 7 Supabase Realtime sends this
+            print(f"  {text}")
         if text == "/card":
             print(json.dumps(last_card, ensure_ascii=False, indent=2) if last_card else "  (עוד אין כרטיס)")
             continue

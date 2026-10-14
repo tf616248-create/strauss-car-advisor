@@ -19,7 +19,7 @@ RATE_LIMIT_ERRORS = (groq.RateLimitError, openai.RateLimitError, ModelRateLimitE
 DEFAULTS = {
     "GEMINI_MODEL": "gemini-2.5-flash",
     "GROQ_MODEL": "llama-3.3-70b-versatile",
-    "OPENROUTER_MODEL": "meta-llama/llama-3.3-70b-instruct:free",
+    "OPENROUTER_MODEL": "google/gemma-4-31b-it:free",
 }
 
 

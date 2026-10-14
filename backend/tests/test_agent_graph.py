@@ -102,3 +102,16 @@ def test_prompt_lists_occupations(prompt, data):
 
 def test_prompt_has_rep_message(prompt, data):
     assert load_agent_config(BACKEND_DIR)["texts"]["repSent"] in prompt
+
+
+def test_prompt_lists_catalog_car_names(prompt, data):
+    """Employees write 'קורולה קרוס'; the tools need the catalog name (COROLLA CROSS)."""
+    for car in data.catalog.values():
+        assert car["name"] in prompt
+
+
+def test_prompt_rechecks_after_rep_answer(prompt):
+    """After the rep answers, the model must call a tool again - not answer from memory."""
+    note = load_agent_config(BACKEND_DIR)["texts"]["repAnswered"]
+    assert note in prompt
+    assert "אל תענה מהזיכרון" in prompt
