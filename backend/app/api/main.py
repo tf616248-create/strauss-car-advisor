@@ -1,6 +1,7 @@
 """HTTP API.
 
   POST /chat                       SSE: thread, step, token, card, done | error
+  POST /chat/{thread_id}/rep-answered   SSE: the rep answered - rerun with the system note
   GET  /chat/{thread_id}           restore a conversation (messages + cards)
   GET  /chat/{thread_id}/rep       polling fallback for rep answers
   GET  /rep/requests               rep screen: open questions (+ the employee's card)
@@ -93,15 +94,12 @@ def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Opt
     def health():
         return {"status": "ok"}
 
-    @app.post("/chat")
-    def chat(body: ChatIn):
-        thread_id = body.thread_id or str(uuid.uuid4())
-
+    def run(thread_id: str, message: str, new: bool) -> StreamingResponse:
         def stream():
-            if not body.thread_id:
+            if new:
                 yield _sse("thread", {"thread_id": thread_id})
             try:
-                for mode, chunk in agent.stream({"messages": [("user", body.message)]}, config(thread_id),
+                for mode, chunk in agent.stream({"messages": [("user", message)]}, config(thread_id),
                                                 stream_mode=["messages", "updates"]):
                     if mode == "messages":
                         msg, meta = chunk
@@ -124,6 +122,16 @@ def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Opt
         return StreamingResponse(stream(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
+    @app.post("/chat")
+    def chat(body: ChatIn):
+        return run(body.thread_id or str(uuid.uuid4()), body.message, new=not body.thread_id)
+
+    @app.post("/chat/{thread_id}/rep-answered")
+    def rep_answered(thread_id: str = Path(pattern=UUID_RE)):
+        if not messages_of(thread_id):
+            raise HTTPException(404, "unknown conversation")
+        return run(thread_id, texts["repAnswered"], new=False)
+
     @app.get("/chat/{thread_id}")
     def restore(thread_id: str = Path(pattern=UUID_RE)):
         msgs = messages_of(thread_id)
@@ -132,7 +140,8 @@ def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Opt
         shown = []
         for m in msgs:
             if m.type == "human":
-                shown.append({"role": "user", "text": _text(m.content)})
+                text = _text(m.content)
+                shown.append({"role": "system" if text == texts["repAnswered"] else "user", "text": text})
             elif m.type == "ai" and _text(m.content):
                 shown.append({"role": "assistant", "text": _text(m.content)})
         return {"thread_id": thread_id, "messages": shown, "cards": _cards(msgs)}

@@ -176,3 +176,22 @@ def test_answer_unknown_request_is_404(data, cfg):
     client, _, _ = make(data, cfg, script=[])
     r = client.post("/rep/requests/999/answer", headers={"X-Rep-Passcode": PASS}, json={"values": {"x": 1}})
     assert r.status_code == 404
+
+
+def test_rep_answered_reruns_the_agent_with_the_system_note(data, cfg):
+    args, script = rachel_script(data)
+    script += [call("calculate", args, 2), AIMessage(content="הנטו יורד")]
+    client, queue, _ = make(data, cfg, script=script)
+    tid = chat(client, "אם אקח Atto 2?")[0][1]["thread_id"]
+    rid = queue.pending(tid)[0]["id"]
+    client.post(f"/rep/requests/{rid}/answer", headers={"X-Rep-Passcode": PASS},
+                json={"values": {"carGroup": "ב", "companyCost": 3500, "participation": 250}})
+
+    r = client.post(f"/chat/{tid}/rep-answered")
+    evs = events(r)
+    card = next(d for k, d in evs if k == "card")
+    assert card["status"] == "ok"
+    assert evs[-1][0] == "done"
+
+    restored = client.get(f"/chat/{tid}").json()["messages"]
+    assert {"role": "system", "text": cfg["texts"]["repAnswered"]} in restored
