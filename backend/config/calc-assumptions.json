@@ -1,0 +1,9 @@
+{
+  "status": "VERIFY_WITH_STRAUSS",
+  "note": "Calculation details used by the challenge's reference sheet ('חישובים') but not written in strauss-rules.json. Kept separate so the challenge rules file stays untouched. Verify with Strauss payroll / Tax Authority before a pilot.",
+  "pensionBaseComponents": ["base", "commission", "bonus"],
+  "kerenBaseComponents": ["base", "commission", "bonus"],
+  "pensionCreditPct": 0.07,
+  "participationReducesTaxable": false,
+  "electricGrossUpRounding": "round"
+}

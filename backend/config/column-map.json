@@ -1,0 +1,90 @@
+{
+  "note": "Maps the original Hebrew column headers to code field names. The data files are never edited; if a header changes, only this file changes.",
+  "excel": {
+    "catalog": {
+      "sheet": "קטלוג רכבים",
+      "columns": {
+        "מזהה": "id",
+        "קבוצה": "group",
+        "תוצר": "manufacturer",
+        "קוד תוצר": "manufacturerCode",
+        "דגם (כינוי מסחרי)": "name",
+        "קוד דגם": "modelCode",
+        "תאור דגם": "modelDescription",
+        "שנת רישום": "registrationYear",
+        "הנעה": "drive",
+        "מחיר מחירון": "listPrice",
+        "שווי שימוש חודשי": "valueOfUse",
+        "עלות חודשית לחברה (דמה)": "companyCost",
+        "השתתפות עובד ברירת מחדל (דמה)": "defaultParticipation"
+      }
+    },
+    "occupations": {
+      "sheet": "עיסוקים",
+      "columns": {
+        "עיסוק": "name",
+        "קבוצת זכאות": "group",
+        "רכב חובה": "carMandatory",
+        "מותר לוותר": "waiverAllowed",
+        "אחזקת רכב בוויתור (₪)": "maintenance"
+      }
+    },
+    "employees": {
+      "sheet": "עובדים לדוגמה",
+      "columns": {
+        "מזהה": "id",
+        "שם": "name",
+        "עיסוק": "occupation",
+        "קבוצה": "group",
+        "שכר בסיס": "base",
+        "עמלות": "commission",
+        "בונוס": "bonus",
+        "פנסיה עובד %": "pensionPct",
+        "קרן השתלמות עובד %": "kerenPct",
+        "נקודות זיכוי": "creditPoints",
+        "ילדים עד 23": "children",
+        "רכב היום": "currentCar",
+        "השתתפות היום": "currentParticipation",
+        "השאלה": "question"
+      }
+    },
+    "reference": {
+      "sheet": "חישובים",
+      "columns": {
+        "מזהה": "id",
+        "היום": "today",
+        "החלופה": "alternative",
+        "נטו היום": "netToday",
+        "נטו בחלופה": "netAlt",
+        "הפרש": "diff",
+        "מס היום": "taxToday",
+        "מס בחלופה": "taxAlt",
+        "ביטוח לאומי+בריאות היום": "socialToday",
+        "ביטוח לאומי+בריאות בחלופה": "socialAlt",
+        "החזר חשמל ברוטו": "electricGross",
+        "חלק העובד במסלול המשפחתי": "familyShare"
+      }
+    },
+    "yesValue": "כן",
+    "familyGroup": "משפחתי",
+    "electricDrive": "חשמלי"
+  },
+  "csv": {
+    "encoding": "windows-1255",
+    "columnIndex": {
+      "taxYear": 0,
+      "registrationYear": 1,
+      "vehicleTypeCode": 2,
+      "manufacturerCode": 3,
+      "manufacturer": 4,
+      "modelCode": 5,
+      "modelDescription": 6,
+      "fuelType": 7,
+      "name": 8,
+      "drive": 10,
+      "listPrice": 16,
+      "valueOfUse": 18
+    },
+    "driveNote": "The CSV header for column 10 is misleading; the values follow strauss-rules.json valueOfUse.driveField (0 petrol, 1 hybrid, 2 plug-in, 3 electric)."
+  }
+}
