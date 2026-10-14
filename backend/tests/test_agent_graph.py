@@ -129,3 +129,8 @@ def test_prompt_rechecks_after_rep_answer(prompt):
     note = load_agent_config(BACKEND_DIR)["texts"]["repAnswered"]
     assert note in prompt
     assert "אל תענה מהזיכרון" in prompt
+
+
+def test_prompt_says_a_human_checks_the_numbers(prompt):
+    assert "בן אדם יבדוק אחריך ידנית את התוצאות" in prompt
+    assert "לא לשנות את המספרים שאתה מקבל מהכלים" in prompt
