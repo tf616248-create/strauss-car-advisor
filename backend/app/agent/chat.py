@@ -55,7 +55,7 @@ def main() -> None:
     queue = InMemoryRepQueue()
     config = {"configurable": {"thread_id": THREAD}}
     cfg = load_agent_config(BACKEND_DIR)
-    agent = build_agent(build_model(), data, queue, cfg)
+    agent = build_agent(build_model(cfg["modelTimeoutSeconds"], thinking_level=cfg["geminiThinkingLevel"]), data, queue, cfg)
     last_card = None
 
     while True:
@@ -70,7 +70,7 @@ def main() -> None:
         if text.startswith("/rep"):
             if not _rep_command(queue, text.split()):
                 continue
-            text = cfg["texts"]["repAnswered"]  # in stage 7 Supabase Realtime sends this
+            text = cfg["texts"]["repAnswered"]  # in the web app, the browser sends this after a rep answer
             print(f"  {text}")
         if text == "/card":
             print(json.dumps(last_card, ensure_ascii=False, indent=2) if last_card else "  (עוד אין כרטיס)")

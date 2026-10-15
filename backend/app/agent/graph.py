@@ -16,6 +16,7 @@ from langgraph.prebuilt import InjectedState, create_react_agent
 
 from app.agent.advisor import Advisor
 from app.agent.prompt import build_prompt
+from app.timing import timed
 
 TOOL_NAMES = {"lookup_vehicle", "check_eligibility", "calculate", "ask_rep"}
 
@@ -41,7 +42,8 @@ def make_tools(data, rep_queue, cfg: dict) -> list:
         model_code: Annotated[Optional[str], "קוד דגם מתוך candidates, אם נשאלה גרסה"] = None,
     ) -> str:
         """זיהוי רכב ושווי השימוש שלו: קודם בקטלוג של שטראוס, ואחר כך בקובץ רשות המסים."""
-        return _dump(advisor.lookup_vehicle(name, registration_year, model_code, history=state["messages"]))
+        with timed("tool lookup_vehicle"):
+            return _dump(advisor.lookup_vehicle(name, registration_year, model_code, history=state["messages"]))
 
     @tool
     def check_eligibility(
@@ -58,7 +60,8 @@ def make_tools(data, rep_queue, cfg: dict) -> list:
         args = dict(occupation=occupation, group=group, alternative_kind=alternative_kind,
                     alternative_car=alternative_car, alternative_car_year=alternative_car_year,
                     children=children)
-        return _dump(advisor.check_eligibility(args, history=state["messages"], thread_id=_thread(config)))
+        with timed("tool check_eligibility"):
+            return _dump(advisor.check_eligibility(args, history=state["messages"], thread_id=_thread(config)))
 
     @tool
     def calculate(
@@ -83,7 +86,8 @@ def make_tools(data, rep_queue, cfg: dict) -> list:
     ) -> str:
         """נטו היום מול נטו בחלופה, עם הפרש מוכן לכל רכיב וכרטיס השוואה. כל המספרים מחושבים בקוד."""
         args = {k: v for k, v in locals().items() if k in Advisor.CALCULATE_FIELDS}
-        return _dump(advisor.calculate(args, history=state["messages"], thread_id=_thread(config)))
+        with timed("tool calculate"):
+            return _dump(advisor.calculate(args, history=state["messages"], thread_id=_thread(config)))
 
     @tool
     def ask_rep(
@@ -94,7 +98,8 @@ def make_tools(data, rep_queue, cfg: dict) -> list:
         registration_year: Annotated[Optional[int], "שנת רישום של הרכב"] = None,
     ) -> str:
         """שולח שאלה לנציג התחבורה. הנציג לא מדבר עם העובד - רק עונה על השאלה."""
-        return _dump(advisor.ask_rep(fields, question, car, registration_year, thread_id=_thread(config)))
+        with timed("tool ask_rep"):
+            return _dump(advisor.ask_rep(fields, question, car, registration_year, thread_id=_thread(config)))
 
     tools = [lookup_vehicle, check_eligibility, calculate, ask_rep]
     assert {t.name for t in tools} == TOOL_NAMES

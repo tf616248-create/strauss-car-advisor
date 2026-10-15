@@ -1,8 +1,8 @@
 """The shared 'transport rep' queue.
 
 The rep never talks to the employee; they only answer field questions.
-In-memory for now; Supabase (rep_requests table) replaces it in stage 7
-behind the same methods.
+In memory for tests and local development; app/db.py has the Postgres (Neon)
+version behind the same methods (tests/test_rep_repository.py runs on both).
 """
 from __future__ import annotations
 
@@ -27,21 +27,20 @@ class InMemoryRepQueue:
             "question": question,
             "car_key": car_key,
             "answer": None,
+            "delivered": False,
         }
         self._requests.append(req)
-        return req
+        return _public(req)
 
     def get(self, request_id: str) -> Optional[dict]:
-        return next((r for r in self._requests if r["id"] == request_id), None)
+        req = next((r for r in self._requests if r["id"] == request_id), None)
+        return _public(req) if req else None
 
     def all_pending(self) -> list[dict]:
-        return [r for r in self._requests if r["answer"] is None]
-
-    def answered_ids(self, thread_id: str) -> list[str]:
-        return [r["id"] for r in self._requests if r["thread_id"] == thread_id and r["answer"] is not None]
+        return [_public(r) for r in self._requests if r["answer"] is None]
 
     def pending(self, thread_id: str) -> list[dict]:
-        return [r for r in self._requests if r["thread_id"] == thread_id and r["answer"] is None]
+        return [_public(r) for r in self._requests if r["thread_id"] == thread_id and r["answer"] is None]
 
     def answer(self, request_id: str, values: dict) -> None:
         for req in self._requests:
@@ -61,3 +60,22 @@ class InMemoryRepQueue:
 
     def pending_fields(self, thread_id: str) -> set[tuple[str, Optional[str]]]:
         return {(f, r["car_key"]) for r in self.pending(thread_id) for f in r["fields"]}
+
+    def _new(self, thread_id: str) -> list[dict]:
+        return [r for r in self._requests
+                if r["thread_id"] == thread_id and r["answer"] is not None and not r["delivered"]]
+
+    def new_answers(self, thread_id: str) -> int:
+        """Rep answers the bot has not recalculated with yet."""
+        return len(self._new(thread_id))
+
+    def take_new_answers(self, thread_id: str) -> list[str]:
+        """Hand the new answers to the bot, once: a second call returns []."""
+        new = self._new(thread_id)
+        for r in new:
+            r["delivered"] = True
+        return [r["id"] for r in new]
+
+
+def _public(req: dict) -> dict:
+    return {k: v for k, v in req.items() if k != "delivered"}

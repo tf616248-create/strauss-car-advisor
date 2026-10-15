@@ -134,3 +134,8 @@ def test_prompt_rechecks_after_rep_answer(prompt):
 def test_prompt_says_a_human_checks_the_numbers(prompt):
     assert "בן אדם יבדוק אחריך ידנית את התוצאות" in prompt
     assert "לא לשנות את המספרים שאתה מקבל מהכלים" in prompt
+
+
+def test_prompt_asks_for_everything_missing_in_one_message(prompt):
+    """Each question is another round trip: ask for all the missing data together."""
+    assert "בהודעה אחת" in prompt

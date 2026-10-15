@@ -17,6 +17,8 @@ from typing import NamedTuple, Optional
 
 import openpyxl
 
+from app.timing import timed
+
 
 class VehicleKey(NamedTuple):
     """Full Tax Authority key. A None part acts as a wildcard in VehicleIndex.find."""
@@ -209,10 +211,15 @@ def load_all(base_dir: Path) -> Data:
     base_dir = Path(base_dir)
     cmap = _read_json(base_dir / "config" / "column-map.json")
     rules = _read_json(base_dir / "data" / "strauss-rules.json")
-    catalog, occupations, employees, reference = _load_excel(
-        base_dir / "data" / "strauss-data.xlsx", cmap
-    )
+    with timed("startup: Excel (catalog, occupations)"):
+        catalog, occupations, employees, reference = _load_excel(
+            base_dir / "data" / "strauss-data.xlsx", cmap
+        )
     check_family_track(rules, catalog, cmap["excel"]["familyGroup"])
+    with timed("startup: tax-authority CSV"):
+        vehicles = _load_csv(
+            base_dir / "data" / "vehicle-values-2026.csv", cmap, rules["valueOfUse"]["driveField"]
+        )
     return Data(
         rules=rules,
         column_map=cmap,
@@ -220,7 +227,5 @@ def load_all(base_dir: Path) -> Data:
         occupations=occupations,
         employees=employees,
         reference=reference,
-        vehicles=_load_csv(
-            base_dir / "data" / "vehicle-values-2026.csv", cmap, rules["valueOfUse"]["driveField"]
-        ),
+        vehicles=vehicles,
     )

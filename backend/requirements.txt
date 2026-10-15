@@ -10,3 +10,7 @@ python-dotenv>=1.0
 # server (stage 7)
 fastapi>=0.110
 uvicorn[standard]>=0.29
+# database (Neon Postgres) - used only when DATABASE_URL is set
+psycopg[binary]>=3.2
+psycopg-pool>=3.2
+langgraph-checkpoint-postgres>=2.0

@@ -38,8 +38,8 @@ async function json(url, init) {
   return res.json()
 }
 
+// the conversation's current state: messages, cards, rep { pending, new_answers }
 export const restore = (threadId) => json(`${API_URL}/chat/${threadId}`)
-export const repStatus = (threadId) => json(`${API_URL}/chat/${threadId}/rep`)
 export const repList = (passcode) => json(`${API_URL}/rep/requests`, { headers: { 'X-Rep-Passcode': passcode } })
 export const repAnswer = (passcode, id, values) => json(`${API_URL}/rep/requests/${id}/answer`, {
   method: 'POST',

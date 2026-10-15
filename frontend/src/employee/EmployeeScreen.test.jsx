@@ -11,16 +11,31 @@ function scripted(events) {
 }
 
 function setup({ chatEvents, repEvents = [], restore } = {}) {
-  let answered
+  let handlers
   const api = {
     streamChat: scripted(chatEvents ?? []),
     streamRepAnswered: scripted(repEvents),
     restore: restore ?? vi.fn().mockRejectedValue(new Error('none')),
   }
-  const subscribe = vi.fn((tid, cb) => { answered = cb; return () => {} })
+  const subscribe = vi.fn((tid, h) => { handlers = h; return () => {} })
   const notifier = { beep: vi.fn(), setUnread: vi.fn() }
   render(<EmployeeScreen api={api} subscribe={subscribe} notifier={notifier} />)
-  return { api, subscribe, notifier, fireRepAnswered: () => act(() => answered()) }
+  return {
+    api, subscribe, notifier,
+    fireChanged: () => act(() => { handlers.onChanged() }),
+    fireOpen: () => act(() => { handlers.onOpen() }),
+  }
+}
+
+// what GET /chat/{id} returns: the server is the source of truth
+const state = (rep = { pending: 0, new_answers: 0 }, messages = [{ role: 'user', text: 'שאלה' }]) =>
+  ({ thread_id: TID, messages, cards: [], rep })
+
+// before the rep answers, then after (the database says there is a new answer)
+function repAnswersOnTheServer() {
+  return vi.fn()
+    .mockResolvedValueOnce(state({ pending: 1, new_answers: 0 }))
+    .mockResolvedValue(state({ pending: 0, new_answers: 1 }))
 }
 
 beforeEach(() => localStorage.clear())
@@ -76,13 +91,47 @@ describe('EmployeeScreen', () => {
     expect(screen.getByText(/בדקתי את הרכב/)).toBeInTheDocument()
   })
 
+  it('"changed": reads the conversation again, beeps, and puts (1) in the tab title', async () => {
+    localStorage.setItem('threadId', TID)
+    const restore = vi.fn().mockResolvedValue(state())
+    const { notifier, fireChanged } = setup({ restore })
+    await waitFor(() => expect(restore).toHaveBeenCalledTimes(1)) // page load
+    fireChanged()
+    await waitFor(() => expect(restore).toHaveBeenCalledTimes(2))
+    expect(restore).toHaveBeenLastCalledWith(TID)
+    expect(notifier.beep).toHaveBeenCalled()
+    expect(notifier.setUnread).toHaveBeenCalledWith(1)
+  })
+
+  it('reads the conversation on page load and again when the employee returns to the tab', async () => {
+    localStorage.setItem('threadId', TID)
+    const restore = vi.fn().mockResolvedValue(state())
+    setup({ restore })
+    await waitFor(() => expect(restore).toHaveBeenCalledTimes(1))
+    act(() => { document.dispatchEvent(new Event('visibilitychange')) })
+    await waitFor(() => expect(restore).toHaveBeenCalledTimes(2))
+  })
+
+  it('reads the conversation again after the event stream reconnects', async () => {
+    localStorage.setItem('threadId', TID)
+    const restore = vi.fn().mockResolvedValue(state())
+    const { fireOpen } = setup({ restore })
+    await waitFor(() => expect(restore).toHaveBeenCalledTimes(1))
+    fireOpen()
+    await waitFor(() => expect(restore).toHaveBeenCalledTimes(2))
+    fireOpen()
+    await waitFor(() => expect(restore).toHaveBeenCalledTimes(3))
+  })
+
   it('when the rep answers: beeps, marks the tab, and lets the bot recalculate', async () => {
     localStorage.setItem('threadId', TID)
-    const { api, subscribe, notifier, fireRepAnswered } = setup({
+    const { api, subscribe, notifier, fireChanged } = setup({
+      restore: repAnswersOnTheServer(),
       repEvents: [['card', noa], ['token', { text: 'עודכן' }], ['done', {}]],
     })
-    expect(subscribe).toHaveBeenCalledWith(TID, expect.any(Function))
-    fireRepAnswered()
+    expect(subscribe).toHaveBeenCalledWith(TID, expect.objectContaining({ onChanged: expect.any(Function) }))
+    await screen.findByText('שאלה')
+    fireChanged()
     await waitFor(() => expect(api.streamRepAnswered).toHaveBeenCalledWith(TID, expect.any(Function)))
     expect(notifier.beep).toHaveBeenCalled()
     expect(notifier.setUnread).toHaveBeenCalledWith(1)
@@ -158,12 +207,26 @@ describe('EmployeeScreen', () => {
 
   it('reopens the panel by itself when the rep answers', async () => {
     localStorage.setItem('threadId', TID)
-    const { fireRepAnswered } = setup({ repEvents: [['card', noa], ['token', { text: 'עודכן' }], ['done', {}]] })
+    const { fireChanged } = setup({
+      restore: repAnswersOnTheServer(),
+      repEvents: [['card', noa], ['token', { text: 'עודכן' }], ['done', {}]],
+    })
+    await screen.findByText('שאלה')
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'סגירת פאנל ההשוואה' }))
-    fireRepAnswered()
+    fireChanged()
     await screen.findByText('עודכן')
-    expect(screen.getByRole('button', { name: 'סגירת פאנל ההשוואה' })).toHaveAttribute('aria-expanded', 'true')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'סגירת פאנל ההשוואה' })).toHaveAttribute('aria-expanded', 'true'))
+  })
+
+  it('a rep answer that arrived while the page was closed is picked up on load', async () => {
+    localStorage.setItem('threadId', TID)
+    const { api } = setup({
+      restore: vi.fn().mockResolvedValue(state({ pending: 0, new_answers: 1 })),
+      repEvents: [['token', { text: 'עודכן' }], ['done', {}]],
+    })
+    await waitFor(() => expect(api.streamRepAnswered).toHaveBeenCalledWith(TID, expect.any(Function)))
+    expect(await screen.findByText('עודכן')).toBeInTheDocument()
   })
 
   it('restores the conversation after a reload', async () => {

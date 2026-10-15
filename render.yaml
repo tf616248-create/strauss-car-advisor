@@ -1,0 +1,33 @@
+# Render (free plan): the API server.
+services:
+  - type: web
+    name: strauss-car-advisor-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # --workers 1 on purpose: the list of browsers connected to the events stream
+    # (GET /conversations/{id}/events) lives in this process's memory. With two workers,
+    # a rep answer handled by one would not ring a browser connected to the other.
+    # More processes need a shared channel (e.g. Postgres LISTEN/NOTIFY) - see CLAUDE.md.
+    startCommand: uvicorn app.api.server:app --host 0.0.0.0 --port $PORT --workers 1
+    # /health does not touch the database: UptimeRobot wakes Render only, Neon sleeps and wakes by itself
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: DATABASE_URL
+        sync: false
+      - key: REP_PASSCODE
+        sync: false
+      - key: FRONTEND_ORIGINS
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY_2
+        sync: false
+      - key: GOOGLE_API_KEY_3
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false

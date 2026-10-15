@@ -4,7 +4,8 @@ from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import Runnable
 
-from app.agent.models import RATE_LIMIT_ERRORS, available_models, build_model, with_fallbacks
+from app.agent.models import (RATE_LIMIT_ERRORS, ModelTimeoutError, available_models, build_model,
+                              with_fallbacks)
 
 ALL_KEYS = {"GOOGLE_API_KEY": "g", "GROQ_API_KEY": "q", "OPENROUTER_API_KEY": "o"}
 
@@ -20,7 +21,7 @@ def test_missing_key_is_skipped():
 
 def test_no_keys_fails_loudly():
     with pytest.raises(RuntimeError, match="GOOGLE_API_KEY"):
-        build_model({})
+        build_model(30, {})
 
 
 def test_model_names_come_from_env():
@@ -76,7 +77,7 @@ def test_real_models_keep_fallbacks_after_binding_tools(data):
     from tests.conftest import BACKEND_DIR
 
     tools = make_tools(data, InMemoryRepQueue(), load_agent_config(BACKEND_DIR))
-    bound = build_model(ALL_KEYS).bind_tools(tools)
+    bound = build_model(30, ALL_KEYS).bind_tools(tools)
     assert isinstance(bound, RunnableWithFallbacks)
     assert len(bound.fallbacks) == 2
 
@@ -159,3 +160,103 @@ class Unreachable(GenericFakeChatModel):
 def test_falls_back_when_provider_unreachable():
     chain = with_fallbacks([Unreachable(messages=iter([])), Fake(messages=iter([AIMessage(content="גיבוי")]))])
     assert chain.invoke("שלום").content == "גיבוי"
+
+
+# --- a model that never answers (quota wait / overload with no error) -------------
+
+import threading
+import time
+
+RELEASE = threading.Event()  # lets the abandoned call threads finish after each test
+
+
+@pytest.fixture(autouse=True)
+def _release_hanging_calls():
+    RELEASE.clear()
+    yield
+    RELEASE.set()
+
+
+class Hanging(GenericFakeChatModel):
+    calls: int = 0
+
+    def _generate(self, *args, **kwargs):
+        self.calls += 1
+        RELEASE.wait(10)
+        raise AssertionError("an abandoned call must not be used")
+
+    def bind_tools(self, tools, **kwargs) -> Runnable:
+        return self
+
+
+def test_timeout_comes_from_agent_config():
+    from app.agent.advisor import load_agent_config
+    from tests.conftest import BACKEND_DIR
+
+    seconds = load_agent_config(BACKEND_DIR)["modelTimeoutSeconds"]
+    assert isinstance(seconds, (int, float)) and 0 < seconds <= 120
+
+
+def test_timeout_is_handled_like_a_rate_limit():
+    assert ModelTimeoutError in RATE_LIMIT_ERRORS
+
+
+def test_hanging_model_times_out():
+    chain = with_fallbacks([Hanging(messages=iter([]))], timeout_seconds=0.2)
+    start = time.monotonic()
+    with pytest.raises(ModelTimeoutError):
+        chain.invoke("שלום")
+    assert time.monotonic() - start < 2
+
+
+def test_falls_back_when_model_hangs():
+    hanging = Hanging(messages=iter([]))
+    chain = with_fallbacks([hanging, Fake(messages=iter([AIMessage(content="גיבוי")]))], timeout_seconds=0.2)
+    assert chain.invoke("שלום").content == "גיבוי"
+    assert hanging.calls == 1
+
+
+def test_timeout_survives_binding_tools(data):
+    """create_react_agent calls bind_tools; every model in the chain must keep its timeout."""
+    from app.agent.advisor import load_agent_config
+    from app.agent.graph import make_tools
+    from app.agent.rep_queue import InMemoryRepQueue
+    from tests.conftest import BACKEND_DIR
+
+    tools = make_tools(data, InMemoryRepQueue(), load_agent_config(BACKEND_DIR))
+    hanging = Hanging(messages=iter([]))
+    bound = with_fallbacks([hanging, Fake(messages=iter([AIMessage(content="גיבוי")]))],
+                           timeout_seconds=0.2).bind_tools(tools)
+    assert bound.invoke("שלום").content == "גיבוי"
+
+
+def test_real_models_get_the_timeout():
+    from app.agent.models import WithTimeout
+
+    chain = build_model(7, ALL_KEYS)
+    for m in [chain.runnable, *chain.fallbacks]:
+        assert isinstance(m, WithTimeout) and m.seconds == 7
+
+
+# --- Gemini "thinking": off-ish for speed (a tool-calling agent that copies numbers) ---
+
+def test_thinking_level_comes_from_agent_config():
+    from app.agent.advisor import load_agent_config
+    from tests.conftest import BACKEND_DIR
+
+    assert load_agent_config(BACKEND_DIR)["geminiThinkingLevel"] in ("minimal", "low", "medium", "high")
+
+
+def test_gemini_gets_the_thinking_level():
+    models = dict(available_models(dict(ALL_KEYS, GOOGLE_API_KEY_2="g2"), thinking_level="minimal"))
+    assert models["gemini"].thinking_level == "minimal"
+    assert models["gemini_2"].thinking_level == "minimal"
+
+
+def test_without_thinking_level_gemini_keeps_its_default():
+    assert dict(available_models(ALL_KEYS))["gemini"].thinking_level is None
+
+
+def test_build_model_passes_the_thinking_level():
+    chain = build_model(7, ALL_KEYS, thinking_level="low")
+    assert chain.runnable.model.thinking_level == "low"

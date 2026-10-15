@@ -2,6 +2,9 @@
   "note": "Agent thresholds and employee-facing texts. Rules for when to ask the rep live in code (app/agent/advisor.py); the thresholds live here.",
   "maxAttempts": 2,
   "maxCandidates": 10,
+  "modelTimeoutSeconds": 30,
+  "geminiThinkingLevel": "low",
+  "sseHeartbeatSeconds": 20,
   "ranges": {
     "base": [1, 500000],
     "commission": [0, 500000],
