@@ -42,6 +42,24 @@ describe('RepScreen', () => {
       { carGroup: 'ב', companyCost: 3500, participation: 250 }))
   })
 
+  it('confirms the sent answer, then shows the empty queue', async () => {
+    const api = fakeApi()
+    const user = userEvent.setup()
+    render(<RepScreen api={api} />)
+    await user.type(screen.getByLabelText('סיסמת נציג'), 'pw')
+    await user.click(screen.getByRole('button', { name: 'כניסה' }))
+    await screen.findByText(request.question, { selector: 'h2' })
+    await user.type(screen.getByLabelText('קבוצת הרכב'), 'ב')
+    await user.type(screen.getByLabelText('עלות חודשית לחברה'), '3500')
+    await user.type(screen.getByLabelText('השתתפות עובד'), '250')
+    api.repList.mockResolvedValue([]) // the answered question leaves the queue
+    await user.click(screen.getByRole('button', { name: 'שליחת תשובה' }))
+
+    expect(await screen.findByText('התשובה נשלחה')).toBeInTheDocument()
+    expect(screen.getByText('נשלח ✓')).toBeInTheDocument()
+    expect(screen.getByText('אין כרגע שאלות. המסך מתעדכן לבד.')).toBeInTheDocument()
+  })
+
   it('does not send an incomplete answer', async () => {
     const api = fakeApi()
     const user = userEvent.setup()

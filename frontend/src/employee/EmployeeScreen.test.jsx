@@ -78,6 +78,32 @@ describe('EmployeeScreen', () => {
     expect(screen.getByText('הנציג ענה, והחלופה מתעדכנת')).toBeInTheDocument()
   })
 
+  it('the comparison panel closes to a side tab and reopens', async () => {
+    setup({ chatEvents: [['card', noa], ['token', { text: 'מוכן' }], ['done', {}]] })
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), 'שאלה')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    await screen.findByText('מוכן')
+
+    const close = screen.getByRole('button', { name: 'סגירת פאנל ההשוואה' })
+    expect(close).toHaveAttribute('aria-expanded', 'true')
+    await user.click(close)
+    const open = screen.getByRole('button', { name: 'פתיחת פאנל ההשוואה' })
+    expect(open).toHaveAttribute('aria-expanded', 'false')
+    await user.click(open)
+    expect(screen.getByRole('complementary', { name: 'כרטיס השוואה' })).toBeVisible()
+  })
+
+  it('reopens the panel by itself when the rep answers', async () => {
+    localStorage.setItem('threadId', TID)
+    const { fireRepAnswered } = setup({ repEvents: [['card', noa], ['token', { text: 'עודכן' }], ['done', {}]] })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'סגירת פאנל ההשוואה' }))
+    fireRepAnswered()
+    await screen.findByText('עודכן')
+    expect(screen.getByRole('button', { name: 'סגירת פאנל ההשוואה' })).toHaveAttribute('aria-expanded', 'true')
+  })
+
   it('restores the conversation after a reload', async () => {
     localStorage.setItem('threadId', TID)
     const restore = vi.fn().mockResolvedValue({

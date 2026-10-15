@@ -1,5 +1,6 @@
 // Comparison card, built from the `calculate` tool result. Every number here comes
 // from the server; the card only formats (rounding was already done for display).
+import { useEffect, useRef, useState } from 'react'
 
 const YOUR_DATA = [
   ['occupation', 'עיסוק'], ['group', 'קבוצה'], ['base', 'שכר בסיס', 'money'],
@@ -15,6 +16,7 @@ const ROWS = [
   ['tax', 'מס הכנסה'], ['social', 'ביטוח לאומי ובריאות'], ['net', 'נטו משוער', 'strong'],
 ]
 
+const FLASH_MS = 1600
 const fmtMoney = (v) => `${v.toLocaleString('he-IL')} ₪`
 
 function fmt(v, kind = 'money') {
@@ -31,54 +33,109 @@ function fmtDiff(v) {
   return `${v > 0 ? '+' : '−'}${fmtMoney(Math.abs(v))}`
 }
 
+const isWaiting = (v) => typeof v === 'string' && v.includes('⏳')
+
+function Value({ v, kind }) {
+  if (isWaiting(v)) return <span className="wait">{v}</span>
+  if (typeof v === 'number') return <bdi dir="ltr" className="num">{fmt(v, kind)}</bdi>
+  return <bdi>{fmt(v, kind)}</bdi>
+}
+
+function Source({ s }) {
+  return s ? <span className="source">{s}</span> : null
+}
+
+// keys of the alternative whose value changed since the last render (e.g. a rep answer)
+function useChanged(alt) {
+  const prev = useRef(alt)
+  const [changed, setChanged] = useState(() => new Set())
+  useEffect(() => {
+    const before = prev.current
+    prev.current = alt
+    if (before === alt) return
+    const keys = new Set(Object.keys(alt.values).filter((k) => before.values[k]?.value !== alt.values[k]?.value))
+    if (!keys.size) return
+    setChanged(keys)
+    const t = setTimeout(() => setChanged(new Set()), FLASH_MS)
+    return () => clearTimeout(t)
+  }, [alt])
+  return changed
+}
+
 export default function CompareCard({ result }) {
   const { card, status } = result
   const { your_data: yours, today, alternative: alt, diff, explanation } = card
+  const changed = useChanged(alt)
+  const facts = YOUR_DATA.filter(([key]) => yours[key])
+  const sources = new Set(facts.map(([key]) => yours[key].source))
+  const oneSource = sources.size === 1 ? [...sources][0] : null
+  const net = diff.net
+  const direction = typeof net !== 'number' || net === 0 ? 'flat' : net > 0 ? 'up' : 'down'
+  const lines = [...new Set(explanation)]
+
   return (
     <article className={`card ${status === 'waiting_rep' ? 'card--waiting' : ''}`}>
       <section aria-label="הנתונים שלך" className="card__yours">
-        <h3>הנתונים שלך</h3>
+        <h3>הנתונים שלך <Source s={oneSource} /></h3>
         <dl>
-          {YOUR_DATA.filter(([key]) => yours[key]).map(([key, label, kind]) => (
+          {facts.map(([key, label, kind]) => (
             <div key={key} className="card__fact">
               <dt>{label}</dt>
-              <dd>{fmt(yours[key].value, kind ?? 'plain')}</dd>
-              <dd className="source">{yours[key].source}</dd>
+              <dd><Value v={yours[key].value} kind={kind ?? 'plain'} /></dd>
+              {!oneSource && <dd><Source s={yours[key].source} /></dd>}
             </div>
           ))}
         </dl>
         <p className="hint">טעות באחד הנתונים? כתבו את הנכון בשיחה, והחישוב יתעדכן.</p>
       </section>
 
-      <table className="card__table">
-        <thead>
-          <tr>
-            <th scope="col"></th>
-            <th scope="col">{today.label}</th>
-            <th scope="col">{alt.label}</th>
-            <th scope="col">הפרש</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ROWS.map(([key, label, style]) => {
-            const t = today.values[key]
-            const a = alt.values[key]
-            if (!t && !a) return null
-            return (
-              <tr key={key} className={style === 'strong' ? 'row--strong' : ''}>
-                <th scope="row">{label}</th>
-                <td>{fmt(t?.value)}<span className="source">{t?.source}</span></td>
-                <td>{fmt(a?.value)}<span className="source">{a?.source}</span></td>
-                <td className="diff">{fmtDiff(diff[key])}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-
-      <div className="card__explain">
-        {explanation.map((line) => <p key={line}>{line}</p>)}
+      <div className="card__scroll">
+        <table className="card__table">
+          <thead>
+            <tr>
+              <th scope="col"><span className="visually-hidden">שדה</span></th>
+              <th scope="col">{today.label}</th>
+              <th scope="col" className="col--alt">{alt.label}</th>
+              <th scope="col">הפרש</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ROWS.map(([key, label, style]) => {
+              const t = today.values[key]
+              const a = alt.values[key]
+              if (!t && !a) return null
+              const cls = [style === 'strong' && 'row--strong', changed.has(key) && 'row--flash'].filter(Boolean).join(' ')
+              return (
+                <tr key={key} className={cls}>
+                  <th scope="row">{label}</th>
+                  <td><Value v={t?.value} /><Source s={t?.source} /></td>
+                  <td className="col--alt"><Value v={a?.value} /><Source s={a?.source} /></td>
+                  <td className="diff"><bdi dir="ltr">{fmtDiff(diff[key])}</bdi></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
+
+      {typeof net === 'number' ? (
+        <div role="group" aria-label="הפרש בנטו, לחודש" className={`bigdiff bigdiff--${direction}`}>
+          <span className="bigdiff__num">
+            {direction !== 'flat' && <span aria-hidden="true" className="bigdiff__arrow">{direction === 'up' ? '▲' : '▼'}</span>}
+            <bdi dir="ltr">{net === 0 ? fmtMoney(0) : fmtDiff(net)}</bdi>
+          </span>
+          <div className="card__explain">
+            {lines.map((line) => <p key={line}>{line}</p>)}
+          </div>
+        </div>
+      ) : (
+        <div className="bigdiff bigdiff--waiting">
+          <span className="bigdiff__icon" aria-hidden="true">⏳</span>
+          <div className="card__explain">
+            {lines.map((line) => <p key={line}>{line}</p>)}
+          </div>
+        </div>
+      )}
     </article>
   )
 }

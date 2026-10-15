@@ -30,6 +30,22 @@ describe('CompareCard', () => {
     for (const line of noa.card.explanation) expect(screen.getByText(line)).toBeInTheDocument()
   })
 
+  it('shows the net difference large, with its sign and direction', () => {
+    render(<CompareCard result={noa} />)
+    const big = screen.getByRole('group', { name: 'הפרש בנטו, לחודש' })
+    expect(within(big).getByText(`+${shekel(noa.card.diff.net)}`)).toBeInTheDocument()
+    expect(big).toHaveClass('bigdiff--up')
+  })
+
+  it('highlights a field that the rep answer filled in', () => {
+    const { rerender } = render(<CompareCard result={rachel} />)
+    const answered = structuredClone(rachel)
+    answered.status = 'ok'
+    answered.card.alternative.values.participation = { value: 250, source: 'נציג' }
+    rerender(<CompareCard result={answered} />)
+    expect(screen.getByRole('row', { name: /^השתתפות/ })).toHaveClass('row--flash')
+  })
+
   it('marks fields waiting for the rep', () => {
     render(<CompareCard result={rachel} />)
     const net = screen.getByRole('row', { name: /נטו משוער/ })
