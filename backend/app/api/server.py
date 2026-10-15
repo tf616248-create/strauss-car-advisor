@@ -6,6 +6,7 @@
 With DATABASE_URL (Neon): the rep queue and the conversations (PostgresSaver) are in Postgres.
 Without it: everything is in memory (tests, local development).
 One worker only: the list of open SSE connections lives in this process (see render.yaml).
+Tables and PostgresSaver are set up at startup; both are safe to run on every restart.
 """
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ from app.agent.models import build_model
 from app.agent.rep_queue import InMemoryRepQueue
 from app.api.events import InMemoryNotifier
 from app.api.main import create_app
+from app.api.settings import cors_origins
 from app.data.loader import load_all
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -31,7 +33,7 @@ _timing_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s", "%H:%M
 logging.getLogger("app.timing").addHandler(_timing_handler)
 logging.getLogger("app.timing").propagate = False
 
-origins = tuple(o.strip() for o in os.environ.get("FRONTEND_ORIGINS", "http://localhost:5173").split(",") if o.strip())
+origins = tuple(cors_origins(os.environ))
 
 cfg = load_agent_config(BACKEND_DIR)
 

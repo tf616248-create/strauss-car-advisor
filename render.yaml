@@ -1,11 +1,13 @@
-# Render (free plan): the API server.
+# Render: the API server. Secrets are only named here (sync: false) - fill them in the Render dashboard.
 services:
   - type: web
     name: strauss-car-advisor-api
     runtime: python
+    region: frankfurt
+    plan: free
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    # --workers 1 on purpose: the list of browsers connected to the events stream
+    # --workers 1 on purpose: SSE. The list of browsers connected to the events stream
     # (GET /conversations/{id}/events) lives in this process's memory. With two workers,
     # a rep answer handled by one would not ring a browser connected to the other.
     # More processes need a shared channel (e.g. Postgres LISTEN/NOTIFY) - see CLAUDE.md.
@@ -14,20 +16,16 @@ services:
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
-        value: 3.12.7
+        value: 3.12.4
       - key: DATABASE_URL
         sync: false
-      - key: REP_PASSCODE
-        sync: false
-      - key: FRONTEND_ORIGINS
-        sync: false
-      - key: GOOGLE_API_KEY
-        sync: false
-      - key: GOOGLE_API_KEY_2
-        sync: false
-      - key: GOOGLE_API_KEY_3
+      - key: GEMINI_API_KEY
         sync: false
       - key: GROQ_API_KEY
         sync: false
       - key: OPENROUTER_API_KEY
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: REP_PASSCODE
         sync: false

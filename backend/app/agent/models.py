@@ -64,7 +64,8 @@ DEFAULTS = {
 }
 
 
-GEMINI_KEY_VARS = ["GOOGLE_API_KEY"] + [f"GOOGLE_API_KEY_{i}" for i in range(2, 10)]
+# GEMINI_API_KEY is the name on Render; GOOGLE_API_KEY(_2.._9) the names in a local .env
+GEMINI_KEY_VARS = ["GEMINI_API_KEY", "GOOGLE_API_KEY"] + [f"GOOGLE_API_KEY_{i}" for i in range(2, 10)]
 
 
 def available_models(env: Mapping[str, str], thinking_level: Optional[str] = None) -> list[tuple[str, object]]:
@@ -76,7 +77,7 @@ def available_models(env: Mapping[str, str], thinking_level: Optional[str] = Non
         if env.get(var):
             from langchain_google_genai import ChatGoogleGenerativeAI
 
-            label = "gemini" + var[len("GOOGLE_API_KEY"):].lower()
+            label = "gemini" + var.split("API_KEY", 1)[1].lower()
             # max_retries=2: enough for a passing 503 overload, short enough that a
             # spent quota (429) moves on to the next key quickly
             out.append((label, ChatGoogleGenerativeAI(

@@ -31,3 +31,16 @@ describe('streamChat', () => {
     expect(got[0][0]).toBe('error')
   })
 })
+
+describe('apiBase', () => {
+  it('uses VITE_API_URL (without a trailing slash) for requests and the event stream', async () => {
+    const { apiBase } = await import('./api')
+    expect(apiBase({ VITE_API_URL: 'https://advisor-api.onrender.com/', DEV: false })).toBe('https://advisor-api.onrender.com')
+  })
+
+  it('falls back to localhost only in development', async () => {
+    const { apiBase } = await import('./api')
+    expect(apiBase({ VITE_API_URL: '', DEV: true })).toBe('http://localhost:8000')
+    expect(apiBase({ VITE_API_URL: '', DEV: false })).toBe('')
+  })
+})

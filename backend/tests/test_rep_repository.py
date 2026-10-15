@@ -109,3 +109,14 @@ def test_new_answers_are_handed_over_once(queue, new_tid):
     assert queue.take_new_answers(tid) == [r1["id"]]
     assert queue.new_answers(tid) == 0
     assert queue.take_new_answers(tid) == []
+
+
+def test_startup_is_safe_to_repeat(pg_pool):
+    """Every Render restart runs the table setup and PostgresSaver.setup() again."""
+    if not DATABASE_URL:
+        pytest.skip("no DATABASE_URL")
+    from app.db import PostgresRepQueue, make_checkpointer
+
+    for _ in range(2):
+        PostgresRepQueue(pg_pool).setup()
+        make_checkpointer(pg_pool)

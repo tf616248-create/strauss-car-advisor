@@ -84,7 +84,7 @@
 | רכיב | בחירה |
 |---|---|
 | איג'נט | LangGraph, בדפוס "איג'נט עם כלים": המודל עצמו קורא לכלים דרך function calling ומחליט מה לשאול ואיך לנסח. מכונת מצבים שבה הקוד מחליט על כל צעד והמודל רק מחלץ ומנסח נפסלה, כי היא לא עונה על הדרישה "איג'נט עם כלים". האמינות מגיעה מהשמירה שבתוך הכלים ומהפרומפט, לא משליטה של הקוד בזרימה. מימוש: `create_react_agent` המוכן של LangGraph, בלי צומת בדיקה ובלי תבנית |
-| שרת | **Python + FastAPI**, על **Render** בחשבון החינמי. **תהליך אחד (`--workers 1`, ב-`render.yaml`):** רשימת הדפדפנים שמחוברים ל-SSE נשמרת בזיכרון של התהליך. עם שני תהליכים, תשובת נציג שמטופלת באחד לא תצלצל לדפדפן שמחובר לשני. `/health` **לא פונה למסד**: UptimeRobot מעיר כל 10 דקות רק את Render. Neon מתעורר לבד, ופנייה כל 10 דקות הייתה מונעת ממנו להיכבות ושורפת את מכסת החינם. CORS: רק הדומיין של Vercel והכתובת המקומית (`FRONTEND_ORIGINS` ב-`.env`) |
+| שרת | **Python + FastAPI**, על **Render** בחשבון החינמי. **תהליך אחד (`--workers 1`, ב-`render.yaml`):** רשימת הדפדפנים שמחוברים ל-SSE נשמרת בזיכרון של התהליך. עם שני תהליכים, תשובת נציג שמטופלת באחד לא תצלצל לדפדפן שמחובר לשני. `/health` **לא פונה למסד**: UptimeRobot מעיר כל 10 דקות רק את Render. Neon מתעורר לבד, ופנייה כל 10 דקות הייתה מונעת ממנו להיכבות ושורפת את מכסת החינם. CORS: רק `FRONTEND_ORIGIN` (הדומיין של Vercel). מחוץ ל-Render (כש-`RENDER` לא מוגדר) גם localhost:5173 (`app/api/settings.py`). Python 3.12.4 (`backend/.python-version` ו-`PYTHON_VERSION`, כמו בבדיקות). העלאה: [docs/deploy.md](docs/deploy.md) |
 | ממשק | **React (Vite)** על **Vercel** |
 | מסד נתונים | **Neon** (Postgres נקי), דרך `DATABASE_URL`. **הוחלט: Postgres בלבד**, בלי מימוש בזיכרון. השרת והצ'אט בקונסול לא עולים בלי `DATABASE_URL`. הבדיקות רצות על אותו מסד (זה דמו, לא פרודקשן), על שיחות עם מזהה אקראי שנמחקות בסוף. המימוש ממתין ל-`DATABASE_URL`; עד אז הקוד עוד כולל את המימוש בזיכרון. PostgresSaver של LangGraph, וטבלאות `conversations`, `messages`, `rep_requests`. בפועל השיחה וההודעות נשמרות בטבלאות ה-checkpoint של PostgresSaver, ולא בטבלאות נפרדות, כדי לא לשכפל. `rep_requests` היא טבלה שלנו (`app/db.py`). חיבורים: `psycopg_pool` עם `check_connection`, כדי שחיבור "מת" אחרי ש-Neon נכבה יוחלף לבד. `autocommit=True` ו-`prepare_threshold=0`, כפי ש-PostgresSaver דורש. **כתובת ה-pooler של Neon עובדת** (נבדק: תור הנציג, 12 בדיקות contract, ושמירה ושחזור של שיחה דרך PostgresSaver) |
 | זרימת תשובה | **SSE**: כל הודעה היא POST, והתשובה זורמת באירועים `step` (לאנימציה), `token`, `card`, `done`, `error`. לא WebSocket: החיבור נסגר בסוף כל תשובה, ולכן לא נשבר כש-Render נרדם. כשכל המודלים נכשלים, אירוע `error` עם "המערכת עמוסה, נסו שוב בעוד דקה" |
@@ -136,13 +136,15 @@ backend/
   app/api/employee.py     צד העובד: POST /chat (SSE), מצב השיחה, זרם האירועים
   app/api/rep.py          צד הנציג: /rep/... כולו מאחורי הסיסמה (על ה-router, כך שאי אפשר לשכוח נתיב פתוח)
   app/api/common.py       משותף לשני הצדדים: פורמט SSE, קריאת הודעות וכרטיסים מהשיחה
+  app/api/settings.py     הגדרות מהסביבה: כתובות CORS
   app/api/events.py       Notifier (publish/subscribe בזיכרון) וזרם ה-SSE: "changed" ודופק
   app/api/server.py       הפעלה עם הגדרות מ-.env: uvicorn app.api.server:app. עם DATABASE_URL: Neon, בלעדיו: זיכרון
   config/column-map.json
   config/agent.json       ספים (maxAttempts, טווחים) וטקסטים לעובד
   tests/                  בדיקות ייחוס (6 עובדים), זכאות, שליפה מה-CSV, כלים, גרף (מודל מזויף), מודלים, API, אירועים.
                           test_rep_repository.py: אותן בדיקות לתור בזיכרון ול-Postgres (Postgres מדולג בלי DATABASE_URL)
-render.yaml               הפעלה ב-Render: uvicorn עם --workers 1
+render.yaml               הפעלה ב-Render: frankfurt, free, uvicorn עם --workers 1. סודות רק כשמות (sync: false)
+docs/deploy.md            סדר ההעלאה, ומה ממלאים ב-Render וב-Vercel
 frontend/                 React (Vite). npm test = vitest
   src/lib/                sse.js (פענוח זרם), api.js, realtime.js (EventSource לזרם האירועים), notify.js (צפצוף, כותרת)
   src/components/CompareCard.jsx   כרטיס ההשוואה
