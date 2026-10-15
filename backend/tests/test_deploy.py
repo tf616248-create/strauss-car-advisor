@@ -58,11 +58,11 @@ def test_python_version_matches_the_tests():
 
 
 def test_cors_on_render_is_only_the_frontend():
-    assert cors_origins({"RENDER": "true", "FRONTEND_ORIGIN": "https://advisor.vercel.app/"}) == ["https://advisor.vercel.app"]
+    assert cors_origins({"RENDER": "true", "FRONTEND_ORIGIN": "https://advisor.netlify.app/"}) == ["https://advisor.netlify.app"]
 
 
 def test_cors_in_development_adds_localhost():
-    assert set(cors_origins({"FRONTEND_ORIGIN": "https://advisor.vercel.app"})) == {"https://advisor.vercel.app"} | LOCAL
+    assert set(cors_origins({"FRONTEND_ORIGIN": "https://advisor.netlify.app"})) == {"https://advisor.netlify.app"} | LOCAL
     assert set(cors_origins({})) == LOCAL
 
 
@@ -95,3 +95,15 @@ def test_csv_is_read_with_a_codec_that_exists_everywhere():
     raw = (BACKEND_DIR / "data" / "vehicle-values-2026.csv").read_bytes()[:4000]
     text = raw.decode("windows-1255")
     assert any("֐" <= ch <= "׿" for ch in text)  # Hebrew header decoded, not mojibake
+
+
+# --- netlify.toml (the frontend) --------------------------------------------------
+
+
+def test_netlify_builds_the_frontend_as_a_single_page_app():
+    import tomllib
+
+    cfg = tomllib.loads((ROOT / "netlify.toml").read_text(encoding="utf-8"))
+    assert cfg["build"] == {"base": "frontend", "command": "npm run build", "publish": "dist"}
+    assert {"from": "/*", "to": "/index.html", "status": 200} in cfg["redirects"]
+    assert not (ROOT / "frontend" / "vercel.json").exists()  # one host only

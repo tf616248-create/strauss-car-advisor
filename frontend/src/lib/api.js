@@ -1,7 +1,7 @@
 import { createSSEParser } from './sse'
 
 // The server's address, for requests and for the events stream (EventSource).
-// Production (Vercel) must set VITE_API_URL; localhost is only a development fallback.
+// Production (Netlify) must set VITE_API_URL; localhost is only a development fallback.
 export function apiBase(env) {
   return (env.VITE_API_URL || (env.DEV ? 'http://localhost:8000' : '')).replace(/\/$/, '')
 }

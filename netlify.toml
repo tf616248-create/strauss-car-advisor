@@ -1,0 +1,11 @@
+# Netlify: the frontend (React + Vite) as a static site. The server is on Render, the database on Neon.
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+# single-page app: every path (also /rep) serves index.html, and React picks the screen
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
