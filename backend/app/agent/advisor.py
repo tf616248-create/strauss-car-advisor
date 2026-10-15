@@ -2,7 +2,7 @@
 
 Every method returns a dict with a `status`:
   ok | missing | invalid | contradiction | not_eligible | ambiguous | not_found
-  | needs_rep | waiting_rep | sent
+  | needs_rep | waiting_rep | sent | not_for_rep
 Only `ok` (and the known half of `waiting_rep`) carries calculated numbers.
 
 When to ask the rep is decided here; the thresholds live in config/agent.json.
@@ -196,6 +196,17 @@ class Advisor:
             options["current_kind"] = ["car", "waiver"]
         return bad, options
 
+    def _where_to_find(self, fields: list[str], history) -> str:
+        counts = defaultdict(int)
+        for res in _results(history, ("calculate", "check_eligibility")):
+            if res.get("status") in ("invalid", "missing"):
+                for f in res.get("fields", []):
+                    counts[f] += 1
+        if any(counts[f] + 1 >= self.cfg["maxAttempts"] for f in fields):
+            return (" זו כבר הפעם השנייה: אמור לעובד שהנתונים האלה מופיעים בתלוש השכר שלו. "
+                    "אל תנחש, ואל תפנה לנציג - הנציג לא יודע את נתוני השכר של העובד.")
+        return ""
+
     def _check_employee(self, args: dict, history, thread_id: str, for_calculate: bool):
         """Apply rep answers, then validate. Returns (problem | None, args, sources)."""
         answers = self.queue.answers(thread_id)
@@ -213,19 +224,12 @@ class Advisor:
         waiting = [f for f in bad if (f, None) in pending]
         if waiting:
             return self._waiting(waiting), args, sources
+        # Employee data stays with the employee: the rep cannot know an anonymous
+        # employee's salary. After the second failed attempt, say where to find it.
         if bad:
-            counts = defaultdict(int)
-            for res in _results(history, ("calculate", "check_eligibility")):
-                if res.get("status") in ("invalid", "needs_rep"):
-                    for f in res.get("fields", []):
-                        counts[f] += 1
-            to_rep = [f for f in bad if counts[f] + 1 >= self.cfg["maxAttempts"]]
-            if to_rep:
-                return {"status": "needs_rep", "fields": to_rep,
-                        "instruction": "העובד לא נתן ערך תקין גם בפעם השנייה. קרא ל-ask_rep עם השדות האלה. "
-                                       "אל תאמר לעובד לפנות לנציג."}, args, sources
             res = {"status": "invalid", "fields": bad,
-                   "instruction": "הערכים לא תקינים. שאל את העובד שוב על השדות האלה."}
+                   "instruction": "הערכים לא תקינים. שאל את העובד שוב על השדות האלה."
+                                  + self._where_to_find(bad, history)}
             if options:
                 res["options"] = options
             return res, args, sources
@@ -236,7 +240,8 @@ class Advisor:
             return self._waiting(waiting), args, sources
         if missing:
             return {"status": "missing", "fields": missing,
-                    "instruction": "חסר מידע. שאל את העובד על השדות האלה, אל תנחש."}, args, sources
+                    "instruction": "חסר מידע. שאל את העובד על השדות האלה, אל תנחש."
+                                   + self._where_to_find(missing, history)}, args, sources
 
         occ_group = self.data.occupations[args["occupation"]]["group"]
         if ("group", None) not in answers and args["group"] != occ_group:
@@ -428,6 +433,11 @@ class Advisor:
 
     def ask_rep(self, fields: list[str], question: str, car: Optional[str] = None,
                 registration_year: Optional[int] = None, thread_id: str = "default") -> dict:
+        salary = [f for f in fields if f in EMPLOYEE_FIELDS and f != "group"]
+        if salary:  # an anonymous employee's data: the rep cannot know it
+            return {"status": "not_for_rep", "fields": salary,
+                    "instruction": "הנציג לא יודע את נתוני השכר של העובד. שאל את העובד, "
+                                   "ואמור לו שהנתונים מופיעים בתלוש השכר שלו."}
         car_key = None
         if car:
             kind, found = self._resolve_car(car, registration_year)

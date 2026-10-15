@@ -325,3 +325,20 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
   .cards, .panel__toggle svg { transition: none; }
 }
+
+/* ---- "talk to a rep": service email, bottom-right, above the message box ---- */
+.contact { position: fixed; right: 20px; bottom: 96px; z-index: 20; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.contact__btn {
+  width: 52px; height: 52px; padding: 0; border-radius: 50%; display: grid; place-items: center;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
+}
+.contact__btn svg, .contact__close svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.contact__panel {
+  width: min(300px, calc(100vw - 40px)); background: var(--bg); color: var(--text);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.16);
+}
+.contact__panel p { margin: 6px 0 0; }
+.contact__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.contact__close { background: transparent; color: var(--muted); padding: 4px; min-height: 0; border-radius: 8px; }
+@media (max-width: 767px) { .contact { right: 12px; bottom: 84px; } }

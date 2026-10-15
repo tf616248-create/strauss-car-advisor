@@ -139,3 +139,15 @@ def test_prompt_says_a_human_checks_the_numbers(prompt):
 def test_prompt_asks_for_everything_missing_in_one_message(prompt):
     """Each question is another round trip: ask for all the missing data together."""
     assert "בהודעה אחת" in prompt
+
+
+def test_prompt_does_not_send_employee_data_to_the_rep(prompt):
+    assert "אחרי 2 ניסיונות כושלים" not in prompt
+    assert "תלוש" in prompt
+
+
+def test_prompt_sends_an_explicit_request_for_a_human_to_the_contact_button(prompt):
+    """The rep only answers predefined fields; a person to write to is the contact button."""
+    assert "מבקש במפורש לדבר עם אדם" in prompt
+    assert '"שיחה עם נציג"' in prompt
+    assert "אל תקרא ל-ask_rep בשביל זה" in prompt

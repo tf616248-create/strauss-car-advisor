@@ -229,6 +229,11 @@ describe('EmployeeScreen', () => {
     expect(await screen.findByText('עודכן')).toBeInTheDocument()
   })
 
+  it('has a "talk to a rep" button with contact details', () => {
+    setup()
+    expect(screen.getByRole('button', { name: 'שיחה עם נציג' })).toBeInTheDocument()
+  })
+
   it('restores the conversation after a reload', async () => {
     localStorage.setItem('threadId', TID)
     const restore = vi.fn().mockResolvedValue({

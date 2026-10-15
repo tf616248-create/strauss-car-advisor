@@ -167,14 +167,35 @@ def test_children_required_only_for_family_track(advisor, data):
     assert res["status"] == "missing" and res["fields"] == ["children"]
 
 
-def test_invalid_value_asks_again_then_rep(advisor, data):
+def test_invalid_value_keeps_asking_the_employee(advisor, data):
+    """The rep cannot know an anonymous employee's salary data: it never goes to the rep."""
     args = dict(employee_args(data, "E-001"), pension_pct=60)
     first = advisor.calculate(args)
     assert first["status"] == "invalid" and "pension_pct" in first["fields"]
     assert not has_number(first)
+    history = [tool_msg("calculate", first)]
+    for _ in range(3):
+        again = advisor.calculate(args, history=history)
+        assert again["status"] == "invalid" and "pension_pct" in again["fields"]
+        history.append(tool_msg("calculate", again))
+
+
+def test_second_failed_attempt_says_where_to_find_the_value(advisor, data):
+    args = dict(employee_args(data, "E-001"), pension_pct=60)
+    first = advisor.calculate(args)
+    assert "תלוש" not in first["instruction"]
     second = advisor.calculate(args, history=[tool_msg("calculate", first)])
-    assert second["status"] == "needs_rep"
-    assert "pension_pct" in second["fields"]
+    assert "תלוש" in second["instruction"]
+
+
+def test_missing_value_keeps_asking_and_then_says_where_to_find_it(advisor, data):
+    args = employee_args(data, "E-001")
+    del args["base"]
+    first = advisor.calculate(args)
+    assert "תלוש" not in first["instruction"]
+    second = advisor.calculate(args, history=[tool_msg("calculate", first)])
+    assert second["status"] == "missing" and "base" in second["fields"]
+    assert "תלוש" in second["instruction"]
 
 
 def test_unknown_occupation_lists_options(advisor, data):
@@ -338,3 +359,17 @@ def test_rep_answers_are_per_conversation(advisor, data, queue):
                     registration_year=2025, thread_id="t1")
     queue.answer(queue.pending("t1")[0]["id"], {"carGroup": "ב", "companyCost": 3500, "participation": 250})
     assert advisor.calculate(rachel_atto2(data), thread_id="t2")["status"] == "needs_rep"
+
+
+def test_ask_rep_refuses_employee_salary_fields(advisor):
+    """The rep cannot know an anonymous employee's data; the guard is in the tool, not only the prompt."""
+    res = advisor.ask_rep(["base", "pension_pct"], "מה השכר?", thread_id="t-guard")
+    assert res["status"] == "not_for_rep"
+    assert res["fields"] == ["base", "pension_pct"]
+    assert "תלוש" in res["instruction"]
+    assert advisor.queue.pending("t-guard") == []
+
+
+def test_ask_rep_still_takes_company_fields_car_and_group(advisor):
+    for fields in (["carGroup", "companyCost", "participation"], ["car"], ["group"]):
+        assert advisor.ask_rep(fields, "?", thread_id="t-ok")["status"] == "sent", fields

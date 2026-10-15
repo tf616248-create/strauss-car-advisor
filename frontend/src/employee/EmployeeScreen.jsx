@@ -4,6 +4,7 @@ import { notifier as realNotifier } from '../lib/notify'
 import { subscribeChanges } from '../lib/realtime'
 import CompareCard from '../components/CompareCard'
 import Road from '../components/Road'
+import ContactRep from '../components/ContactRep'
 import logo from '../assets/strauss-logo.svg'
 
 const REP_ANSWERED = 'הנציג ענה, והחלופה מתעדכנת'
@@ -233,6 +234,8 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
           {waiting && <span aria-hidden="true">⏳</span>}
         </button>
       )}
+
+      <ContactRep />
     </div>
   )
 }
