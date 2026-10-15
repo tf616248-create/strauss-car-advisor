@@ -1,59 +1,62 @@
-// The little road under the chat: the car drives between stations that match the
-// real steps the server reports. View only - it never decides anything.
+// The little road under the chat. It is built while the answer runs: every tool the
+// model really calls adds a stop, and the finish lights only with a real result (a card).
+// View only - it never decides anything and never guesses the next step.
 import logo from '../assets/strauss-logo.svg'
 
-// Server step labels (backend/config/agent.json, "steps"), in the order the tools run.
-const STATIONS = [
-  { step: 'מחפש את הרכב…', label: 'שווי שימוש' },
-  { step: 'בודק זכאות…', label: 'זכאות' },
-  { step: 'מחשב נטו…', label: 'חישוב נטו' },
-]
+// short stop names for the known tools (backend/app/agent/graph.py)
+const NAMES = {
+  lookup_vehicle: 'איתור רכב',
+  check_eligibility: 'זכאות',
+  calculate: 'חישוב נטו',
+  ask_rep: 'שאלה לנציג',
+}
+const MAX_STOPS = 3
 // distance from the right edge (RTL: the car drives right to left), in %
-const AT = [12, 50, 88]
+const SLOTS = [12, 34, 56]
 const START = 2
+const FINISH = 84
 const PARK = 96
-const WAIT_AT = 64 // between the last two stations, stopped at the light
+const WAIT_AT = 62 // stopped at the light, before the finish
+const PAST_STOP = 60 // px: the car waits just past the stop it reached, never heading to a stop it can't know
 
-export function stationIndex(stepLabel) {
-  return STATIONS.findIndex((s) => s.step === stepLabel)
+export function stopName({ tool, label }) {
+  return NAMES[tool] ?? (label ?? '').replace(/…$/, '')
 }
 
-function carPosition(phase, reached) {
-  if (phase === 'arrived') return PARK
-  if (phase === 'waiting') return WAIT_AT
-  // driving: creep most of the way to the next station, never reach it on its own
-  const from = reached < 0 ? START : AT[reached]
-  const to = reached + 1 < AT.length ? AT[reached + 1] : PARK
-  return from + (to - from) * 0.75
+function carPosition(phase, count) {
+  if (phase === 'arrived') return `${PARK}%`
+  if (phase === 'waiting') return `${WAIT_AT}%`
+  if (count === 0) return `${START}%`
+  return `calc(${SLOTS[count - 1]}% + ${PAST_STOP}px)`
 }
 
-function stationState(i, phase, reached) {
-  if (phase === 'arrived' || i <= reached) return 'done'
-  if (phase === 'waiting') return i < STATIONS.length - 1 ? 'done' : 'idle'
-  if (phase === 'driving' && i === reached + 1) return 'active'
-  return 'idle'
-}
-
-export default function Road({ phase, reached = -1, label }) {
+export default function Road({ phase, stops = [], label }) {
+  const shown = stops.slice(-MAX_STOPS)
   const note = phase === 'waiting' ? '⏳ ממתין לנציג' : phase === 'arrived' ? 'התשובה מוכנה' : (label || 'חושב…')
+  const stopState = (i) => (phase === 'driving' && i === shown.length - 1 ? 'active' : 'done')
   return (
     <div className={`road road--${phase}`}>
       <span role="status" className="visually-hidden">{note}</span>
       <div className="road__scene" aria-hidden="true">
         <div className="road__lane" />
-        {STATIONS.map((s, i) => (
-          <div key={s.step} className={`station station--${stationState(i, phase, reached)}`} style={{ right: `${AT[i]}%` }}>
-            <span className="station__label">{s.label}</span>
-            <span className="station__dot" />
+        {shown.map((s, i) => (
+          <div key={`${stops.length - shown.length + i}-${s.tool}`} className={`stop stop--${stopState(i)}`} style={{ right: `${SLOTS[i]}%` }}>
+            <span className="stop__label">{stopName(s)}</span>
+            <span className="stop__dot" />
           </div>
         ))}
+        <div className={`finish ${phase === 'arrived' ? 'finish--done' : ''}`} style={{ right: `${FINISH}%` }}>
+          <span className="finish__label">תוצאה</span>
+          <span className="finish__flag" />
+        </div>
         {phase === 'waiting' && (
-          <div className="road__light" style={{ right: `calc(${WAIT_AT}% + 48px)` }}>
+          <div className="road__light" style={{ right: `calc(${WAIT_AT}% + 42px)` }}>
             <span /><span className="road__lamp" /><span />
           </div>
         )}
-        <div className="road__car" style={{ right: `${carPosition(phase, reached)}%` }}>
-          {phase !== 'arrived' && <span className="road__note">{note}</span>}
+        <div className="road__car" style={{ right: carPosition(phase, shown.length) }}>
+          {/* the stop itself names the running step; above the car only "thinking" or "waiting" */}
+          {(phase === 'waiting' || (phase === 'driving' && !shown.length)) && <span className="road__note">{note}</span>}
           <div className="road__body">
             <svg viewBox="0 0 100 46" width="92" height="42">
               <ellipse cx="50" cy="42" rx="42" ry="3.5" fill="#000" opacity="0.16" />

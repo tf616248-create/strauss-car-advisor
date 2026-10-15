@@ -133,12 +133,19 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
   content: ""; position: absolute; left: 0; right: 0; top: 13px; height: 2px;
   background: repeating-linear-gradient(to left, var(--bg) 0 18px, transparent 18px 34px);
 }
-.station { position: absolute; bottom: 36px; transform: translateX(50%); display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.station__label { font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
-.station__dot { width: 18px; height: 18px; border-radius: 50%; background: var(--bg); border: 2px solid var(--muted); transition: background .3s, box-shadow .3s; }
-.station--done .station__dot { background: var(--text); border-color: var(--text); }
-.station--active .station__label { font-weight: 800; }
-.station--active .station__dot { background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 0 4px var(--bg), 0 0 0 6px var(--cyan); }
+.stop, .finish { position: absolute; bottom: 36px; transform: translateX(50%); display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.stop__label, .finish__label { font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+.stop__dot { width: 18px; height: 18px; border-radius: 50%; background: var(--text); transition: background .3s, box-shadow .3s; }
+.stop--active .stop__label { font-weight: 800; }
+.stop--active .stop__dot { background: var(--cyan); box-shadow: 0 0 0 4px var(--bg), 0 0 0 6px var(--cyan); }
+.finish__label { color: var(--muted); }
+/* the finish: a small checkered flag, dim until a real result arrives */
+.finish__flag {
+  width: 18px; height: 18px; border-radius: 3px; border: 2px solid var(--muted); opacity: .55;
+  background: repeating-conic-gradient(var(--muted) 0 25%, transparent 0 50%) 0 0 / 7px 7px;
+}
+.finish--done .finish__label { color: var(--text); font-weight: 800; }
+.finish--done .finish__flag { opacity: 1; border-color: var(--text); background: repeating-conic-gradient(var(--text) 0 25%, var(--bg) 0 50%) 0 0 / 7px 7px; }
 
 .road__car { position: absolute; bottom: 10px; transform: translateX(50%); transition: right 7s cubic-bezier(.2, .7, .3, 1); }
 .road--arrived .road__car { transition-duration: .6s; }
@@ -162,17 +169,19 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
   .road--arrived .road__body { animation: hop .45s ease-out 1; }
   .road__lamp { animation: blink 1.6s ease-in-out infinite; }
   .card { animation: appear .25s ease-out; }
+  .stop { animation: stop-in .3s ease-out; }
 }
 @keyframes lane { to { background-position: -34px 0; } }
 @keyframes spin { to { transform: rotate(-360deg); } }
 @keyframes bob { to { transform: translateY(-1.5px); } }
 @keyframes hop { 40% { transform: translateY(-8px); } 100% { transform: none; } }
 @keyframes blink { 50% { opacity: .35; } }
+@keyframes stop-in { from { opacity: 0; transform: translate(50%, 6px); } to { opacity: 1; transform: translateX(50%); } }
 @keyframes appear { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes flash { from { background: var(--cyan); } to { background: transparent; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .panel, .cards, .road__car, .station__dot { transition: none; }
+  .panel, .cards, .road__car, .stop__dot { transition: none; }
 }
 
 /* ---- comparison card ---- */
@@ -304,7 +313,7 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
   .road__logo { left: 35px; top: 11px; width: 21px; }
   .road__note { bottom: 72px; }
   .road__scene { height: 104px; }
-  .station__label { font-size: 0.72rem; }
+  .stop__label, .finish__label { font-size: 0.72rem; }
 
   .card__table th, .card__table td { padding: 8px; }
 

@@ -114,6 +114,23 @@ describe('EmployeeScreen', () => {
     await act(async () => { finish() })
   })
 
+  it('the road shows only the tools this answer really used', async () => {
+    let emit
+    const api = {
+      streamChat: vi.fn((params, onEvent) => { emit = onEvent; return new Promise(() => {}) }),
+      streamRepAnswered: vi.fn(),
+      restore: vi.fn().mockRejectedValue(new Error('none')),
+    }
+    const { container } = render(<EmployeeScreen api={api} subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), 'כן, תמשיך לפי קבוצה ב')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    // nothing called yet: the car does not head to any station by guess
+    expect(container.querySelectorAll('.stop')).toHaveLength(0)
+    act(() => { emit('step', { tool: 'check_eligibility', label: 'בודק זכאות…' }) })
+    expect([...container.querySelectorAll('.stop')].map((s) => s.textContent)).toEqual(['זכאות'])
+  })
+
   it('a turn without a result leaves no car parked at the end', async () => {
     setup({ chatEvents: [['step', { label: 'מחפש את הרכב…' }], ['token', { text: 'באיזו שנה הרכב?' }], ['done', {}]] })
     const user = userEvent.setup()

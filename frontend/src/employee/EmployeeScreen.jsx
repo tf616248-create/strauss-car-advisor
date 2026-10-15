@@ -3,7 +3,7 @@ import * as realApi from '../lib/api'
 import { notifier as realNotifier } from '../lib/notify'
 import { subscribeRepAnswers } from '../lib/realtime'
 import CompareCard from '../components/CompareCard'
-import Road, { stationIndex } from '../components/Road'
+import Road from '../components/Road'
 import logo from '../assets/strauss-logo.svg'
 
 const REP_ANSWERED = 'הנציג ענה, והחלופה מתעדכנת'
@@ -20,7 +20,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeRep
   const [busy, setBusy] = useState(false)
   const [input, setInput] = useState('')
   const [panelOpen, setPanelOpen] = useState(true)
-  const [reached, setReached] = useState(-1)
+  const [stops, setStops] = useState([]) // tools really called in this answer, in order
   const [parked, setParked] = useState(false)
   const [currentId, setCurrentId] = useState(null)
   const endRef = useRef(null)
@@ -32,14 +32,8 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeRep
   // a new comparison (or a rep answer) opens the panel by itself
   useEffect(() => { if (cards.length) setPanelOpen(true) }, [cards])
 
-  // road: the car reaches a station only when the server really moves to that step
   useEffect(() => {
-    const i = stationIndex(step)
-    if (i >= 0) setReached((r) => Math.max(r, i))
-  }, [step])
-
-  useEffect(() => {
-    if (busy) { turnStartCards.current = cards; setReached(-1); setParked(false) }
+    if (busy) { turnStartCards.current = cards; setStops([]); setParked(false) }
     if (wasBusy.current && !busy) {
       setParked(true)
       const t = setTimeout(() => setParked(false), PARKED_MS)
@@ -74,6 +68,8 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeRep
         setThreadId(data.thread_id)
       } else if (event === 'step') {
         setStep(data.label)
+        // the road gets a stop per tool call (a repeat of the same tool in a row is one stop)
+        setStops((ss) => (ss.at(-1)?.tool === data.tool ? ss : [...ss, { tool: data.tool, label: data.label }]))
       } else if (event === 'card') {
         turnCards = [...turnCards, data]
         setCards(turnCards)
@@ -125,7 +121,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeRep
 
   const waiting = cards.some((c) => c.status === 'waiting_rep')
   // The car arrives only with a real result: a card from `calculate` in this answer.
-  // Steps move it between stations; the bot writing (e.g. a follow-up question) does not.
+  // Tool calls add stops; the bot writing (e.g. a follow-up question) does not move it on.
   const gotCard = cards !== turnStartCards.current
   const roadPhase = busy
     ? (gotCard ? (waiting ? 'waiting' : 'arrived') : 'driving')
@@ -156,7 +152,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeRep
           <li ref={endRef} aria-hidden="true" />
         </ol>
         {/* a new key per answer: the car starts each trip from the start line */}
-        {roadPhase && <Road key={currentId ?? 'idle'} phase={roadPhase} reached={reached} label={step} />}
+        {roadPhase && <Road key={currentId ?? 'idle'} phase={roadPhase} stops={stops} label={step} />}
         <form className="chat__form" onSubmit={send}>
           <label htmlFor="msg" className="visually-hidden">הודעה</label>
           <textarea id="msg" rows={1} value={input} onChange={(e) => setInput(e.target.value)}
