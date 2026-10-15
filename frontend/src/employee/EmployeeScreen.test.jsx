@@ -64,6 +64,18 @@ describe('EmployeeScreen', () => {
     expect(await screen.findByText('המערכת עמוסה כרגע. נסו שוב בעוד דקה.')).toBeInTheDocument()
   })
 
+  it('keeps the part of the answer already written when an error arrives mid-answer', async () => {
+    setup({ chatEvents: [
+      ['token', { text: 'בדקתי את הרכב' }],
+      ['error', { message: 'המערכת עמוסה כרגע. נסו שוב בעוד דקה.' }],
+    ] })
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), 'שלום')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    expect(await screen.findByText('המערכת עמוסה כרגע. נסו שוב בעוד דקה.')).toBeInTheDocument()
+    expect(screen.getByText(/בדקתי את הרכב/)).toBeInTheDocument()
+  })
+
   it('when the rep answers: beeps, marks the tab, and lets the bot recalculate', async () => {
     localStorage.setItem('threadId', TID)
     const { api, subscribe, notifier, fireRepAnswered } = setup({
@@ -76,6 +88,39 @@ describe('EmployeeScreen', () => {
     expect(notifier.setUnread).toHaveBeenCalledWith(1)
     expect(await screen.findByText('עודכן')).toBeInTheDocument()
     expect(screen.getByText('הנציג ענה, והחלופה מתעדכנת')).toBeInTheDocument()
+  })
+
+  it('the car arrives only when a real result (card) arrives, not when the bot starts writing', async () => {
+    let emit
+    let finish
+    const api = {
+      streamChat: vi.fn((params, onEvent) => { emit = onEvent; return new Promise((r) => { finish = r }) }),
+      streamRepAnswered: vi.fn(),
+      restore: vi.fn().mockRejectedValue(new Error('none')),
+    }
+    render(<EmployeeScreen api={api} subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), 'שאלה')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+
+    act(() => { emit('step', { tool: 'check_eligibility', label: 'בודק זכאות…' }) })
+    expect(screen.getByRole('status')).toHaveTextContent('בודק זכאות…')
+    // the bot asks a follow-up question: no calculation yet, so the car must not arrive
+    act(() => { emit('token', { text: 'מה השכר שלך?' }) })
+    expect(screen.getByRole('status')).not.toHaveTextContent('התשובה מוכנה')
+
+    act(() => { emit('card', noa) })
+    expect(screen.getByRole('status')).toHaveTextContent('התשובה מוכנה')
+    await act(async () => { finish() })
+  })
+
+  it('a turn without a result leaves no car parked at the end', async () => {
+    setup({ chatEvents: [['step', { label: 'מחפש את הרכב…' }], ['token', { text: 'באיזו שנה הרכב?' }], ['done', {}]] })
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), 'שאלה')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    await screen.findByText('באיזו שנה הרכב?')
+    expect(screen.queryByText('התשובה מוכנה')).toBeNull()
   })
 
   it('the comparison panel closes to a side tab and reopens', async () => {

@@ -25,6 +25,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeRep
   const [currentId, setCurrentId] = useState(null)
   const endRef = useRef(null)
   const wasBusy = useRef(false)
+  const turnStartCards = useRef(cards) // the cards before this answer began
 
   useEffect(() => { endRef.current?.scrollIntoView?.({ block: 'end' }) }, [messages])
 
@@ -38,7 +39,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeRep
   }, [step])
 
   useEffect(() => {
-    if (busy) { setReached(-1); setParked(false) }
+    if (busy) { turnStartCards.current = cards; setReached(-1); setParked(false) }
     if (wasBusy.current && !busy) {
       setParked(true)
       const t = setTimeout(() => setParked(false), PARKED_MS)
@@ -46,6 +47,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeRep
       return () => clearTimeout(t)
     }
     wasBusy.current = busy
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy])
 
   // restore after a reload
@@ -79,7 +81,12 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeRep
         setStep(null)
         setMessages((ms) => ms.map((m) => (m.id === assistantId ? { ...m, text: m.text + data.text } : m)))
       } else if (event === 'error') {
-        setMessages((ms) => ms.map((m) => (m.id === assistantId ? { ...m, role: 'error', text: data.message } : m)))
+        // keep what was already written; the error goes below it as its own message
+        setMessages((ms) => {
+          const current = ms.find((m) => m.id === assistantId)
+          if (current?.text) return [...ms, { role: 'error', text: data.message, id: nextId++ }]
+          return ms.map((m) => (m.id === assistantId ? { ...m, role: 'error', text: data.message } : m))
+        })
       }
     }
   }
@@ -117,11 +124,12 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeRep
   }, [threadId])
 
   const waiting = cards.some((c) => c.status === 'waiting_rep')
-  const answering = busy && step === null && messages.some((m) => m.id === currentId && m.text)
-  // waiting for the rep: the car drives straight to the light (it never parks and backs up)
+  // The car arrives only with a real result: a card from `calculate` in this answer.
+  // Steps move it between stations; the bot writing (e.g. a follow-up question) does not.
+  const gotCard = cards !== turnStartCards.current
   const roadPhase = busy
-    ? (answering ? (waiting ? 'waiting' : 'arrived') : 'driving')
-    : waiting ? 'waiting' : parked ? 'arrived' : null
+    ? (gotCard ? (waiting ? 'waiting' : 'arrived') : 'driving')
+    : waiting ? 'waiting' : (parked && gotCard) ? 'arrived' : null
   const nets = cards.map((c) => c.card?.diff?.net).filter((v) => typeof v === 'number' && v !== 0)
   const togglePanel = () => setPanelOpen((o) => !o)
 

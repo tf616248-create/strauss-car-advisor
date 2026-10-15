@@ -145,7 +145,7 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .road__note { position: absolute; bottom: 66px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 0.82rem; font-weight: 700; }
 .road__body { position: relative; width: 92px; }
 .road__body svg { display: block; }
-.road__logo { position: absolute; left: 47px; top: 17px; width: 25px; height: auto; }
+.road__logo { position: absolute; left: 42px; top: 13px; width: 25px; height: auto; }
 .road__wheel { transform-box: fill-box; transform-origin: center; }
 
 .road__light {
@@ -301,7 +301,7 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 
   .road__body { width: 76px; }
   .road__body svg { width: 76px; height: 35px; }
-  .road__logo { left: 39px; top: 14px; width: 21px; }
+  .road__logo { left: 35px; top: 11px; width: 21px; }
   .road__note { bottom: 72px; }
   .road__scene { height: 104px; }
   .station__label { font-size: 0.72rem; }
