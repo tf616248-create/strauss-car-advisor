@@ -3,13 +3,22 @@ import * as realApi from '../lib/api'
 import { notifier as realNotifier } from '../lib/notify'
 import { subscribeChanges } from '../lib/realtime'
 import CompareCard from '../components/CompareCard'
-import Road from '../components/Road'
+import Road, { CarBody } from '../components/Road'
 import ContactRep from '../components/ContactRep'
 import logo from '../assets/strauss-logo.svg'
 
 const REP_ANSWERED = 'הנציג ענה, והחלופה מתעדכנת'
 const PARKED_MS = 2500
 let nextId = 1
+
+// the welcome screen: four equal choices (the bot compares, it does not recommend)
+const CHOICES = [
+  ['לעבור לרכב חשמלי', 'מה יקרה לנטו שלי אם אעבור לרכב חשמלי?'],
+  ['להחליף לרכב אחר', 'מה יקרה לנטו שלי אם אחליף לרכב אחר?'],
+  ['מסלול משפחתי', 'מה יקרה לנטו שלי אם אעבור למסלול המשפחתי?'],
+  ['לוותר על הרכב', 'מה יקרה לנטו שלי אם אוותר על הרכב?'],
+]
+const WELCOME = 'שלום! בואו נבדוק מה יקרה לנטו שלך'
 
 const fmtNet = (v) => `${v > 0 ? '+' : '−'}${Math.abs(v).toLocaleString('he-IL')} ₪`
 
@@ -121,6 +130,11 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     const text = input.trim()
     if (!text || busy) return
     setInput('')
+    await ask(text)
+  }
+
+  async function ask(text) {
+    if (busyRef.current) return
     notifier.setUnread(0)
     append({ role: 'user', text })
     await run((onEvent) => api.streamChat({ message: text, threadId }, onEvent))
@@ -191,10 +205,20 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
             </button>
           </div>
         )}
-        <ol className="chat__messages" aria-live="polite">
-          {messages.length === 0 && (
-            <li className="msg msg--hint">למשל: "אם אעבור מהקורולה קרוס ל-BYD Atto 3, כמה זה ישנה לי בנטו?"</li>
-          )}
+        {messages.length === 0 && (
+          <section className="welcome" aria-labelledby="welcome-title">
+            <div className="welcome__car" aria-hidden="true"><CarBody /></div>
+            <h2 id="welcome-title" className="welcome__title">{WELCOME}</h2>
+            <p className="welcome__sub">השוואה ברורה לפי כללי שטראוס ורשות המסים – תוך דקה</p>
+            <div className="welcome__choices">
+              {CHOICES.map(([label, question]) => (
+                <button key={label} type="button" className="welcome__choice" onClick={() => ask(question)}>{label}</button>
+              ))}
+            </div>
+            <p className="welcome__more">אפשר גם לשאול: מה זה שווי שימוש? מה זה השתתפות עצמית?</p>
+          </section>
+        )}
+        <ol className={`chat__messages ${messages.length ? '' : 'chat__messages--empty'}`} aria-live="polite">
           {messages.map((m) => (
             <li key={m.id} className={`msg msg--${m.role}`}>
               {m.role === 'assistant' && m.text && <span className="msg__who">יועץ הרכב</span>}

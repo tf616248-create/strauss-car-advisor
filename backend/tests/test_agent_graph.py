@@ -136,6 +136,33 @@ def test_prompt_says_a_human_checks_the_numbers(prompt):
     assert "לא לשנות את המספרים שאתה מקבל מהכלים" in prompt
 
 
+def explain_section(prompt):
+    start = prompt.index("## שאלות הסבר")
+    end = prompt.index("\n## ", start + 1)
+    return prompt[start:end]
+
+
+# one phrase per Strauss rule, written from strauss-rules.json (see CLAUDE.md)
+STRAUSS_RULES = {
+    "participation": "השתתפות עצמית יורדת מהנטו בלבד",  # participation.treatment = net_deduction
+    "not_value_of_use": "לא מקטינה את שווי השימוש",  # participation.reducesValueOfUse = false
+    "family": "הפער בין עלות הרכב לתקציב הקבוצה מתחלק",  # familyTrack.gapSplitEmployee
+    "electric": "החברה מוסיפה סכום קבוע לנטו, ומגלמת אותו בברוטו",  # electric.method = gross_up
+    "waiver": "מקבלים דמי אחזקה לפי העיסוק",  # waiver.allowedBy = occupation, maintenance per occupation
+}
+
+
+def test_prompt_explains_terms_without_numbers(prompt):
+    """'What is value of use?' is answered from the prompt; a personal number goes to the tools."""
+    section = explain_section(prompt)
+    assert "בהסבר כללי אין מספרים" in section
+    assert "כמה שווי השימוש שלי?" in section and "עוברת לכלים" in section
+    assert "גוברים על כל ידע כללי" in section
+    for name, phrase in STRAUSS_RULES.items():
+        assert phrase in section, name
+    assert not re.search(r"\d", section)  # no amounts: they live in strauss-rules.json
+
+
 def test_prompt_asks_for_everything_missing_in_one_message(prompt):
     """Each question is another round trip: ask for all the missing data together."""
     assert "בהודעה אחת" in prompt

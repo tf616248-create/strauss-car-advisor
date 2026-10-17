@@ -306,4 +306,59 @@ describe('EmployeeScreen', () => {
       el.matches('.contact__btn') ? 'contact' : el.tagName === 'TEXTAREA' ? 'input' : 'send')
     expect(order).toEqual(['contact', 'input', 'send']) // RTL: the first is on the right
   })
+  describe('welcome screen', () => {
+    const CHOICES = [
+      ['לעבור לרכב חשמלי', 'מה יקרה לנטו שלי אם אעבור לרכב חשמלי?'],
+      ['להחליף לרכב אחר', 'מה יקרה לנטו שלי אם אחליף לרכב אחר?'],
+      ['מסלול משפחתי', 'מה יקרה לנטו שלי אם אעבור למסלול המשפחתי?'],
+      ['לוותר על הרכב', 'מה יקרה לנטו שלי אם אוותר על הרכב?'],
+    ]
+
+    it('shows the parked car, a greeting and four equal choices when there are no messages', () => {
+      const { container } = render(<EmployeeScreen api={{ restore: vi.fn().mockRejectedValue(new Error('none')) }}
+        subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
+      const welcome = screen.getByRole('region', { name: 'שלום! בואו נבדוק מה יקרה לנטו שלך' })
+      expect(within(welcome).getByText('השוואה ברורה לפי כללי שטראוס ורשות המסים – תוך דקה')).toBeInTheDocument()
+      expect(within(welcome).getByText(/אפשר גם לשאול: מה זה שווי שימוש\? מה זה השתתפות עצמית\?/)).toBeInTheDocument()
+      expect(welcome.querySelector('.welcome__car .road__body')).not.toBeNull() // the white car with the logo
+      const buttons = CHOICES.map(([label]) => within(welcome).getByRole('button', { name: label }))
+      // none stands out: the bot compares, it does not recommend
+      expect(new Set(buttons.map((b) => b.className))).toEqual(new Set(['welcome__choice']))
+      expect(container.querySelector('.msg--hint')).toBeNull()
+    })
+
+    it.each(CHOICES)('"%s" sends the full question', async (label, question) => {
+      const { api } = setup({ chatEvents: [['token', { text: 'בואו נתחיל' }], ['done', {}]] })
+      const user = userEvent.setup()
+      await user.click(screen.getByRole('button', { name: label }))
+      expect(api.streamChat.mock.calls[0][0]).toEqual({ message: question, threadId: null })
+      expect(await screen.findByText(question)).toBeInTheDocument()
+    })
+
+    it('the choices are reachable from the keyboard', async () => {
+      setup()
+      const user = userEvent.setup()
+      const first = screen.getByRole('button', { name: CHOICES[0][0] })
+      first.focus()
+      expect(first).toHaveFocus()
+      await user.keyboard('{Enter}')
+      expect(await screen.findByText(CHOICES[0][1])).toBeInTheDocument()
+    })
+
+    it('disappears after the first message', async () => {
+      setup({ chatEvents: [['token', { text: 'תשובה' }], ['done', {}]] })
+      const user = userEvent.setup()
+      await user.type(screen.getByLabelText('הודעה'), 'שאלה')
+      await user.click(screen.getByRole('button', { name: 'שליחה' }))
+      await screen.findByText('תשובה')
+      expect(screen.queryByRole('region', { name: 'שלום! בואו נבדוק מה יקרה לנטו שלך' })).toBeNull()
+    })
+
+    it('is not shown over a conversation restored after a reload', async () => {
+      localStorage.setItem('threadId', TID)
+      setup({ restore: vi.fn().mockResolvedValue(state()) })
+      await screen.findByText('שאלה')
+      expect(screen.queryByRole('button', { name: 'לעבור לרכב חשמלי' })).toBeNull()
+    })
+  })
 })
