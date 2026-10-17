@@ -246,4 +246,12 @@ describe('EmployeeScreen', () => {
     const cards = screen.getByRole('complementary', { name: 'כרטיס השוואה' })
     expect(within(cards).getByText(noa.card.alternative.label)).toBeInTheDocument()
   })
+
+  it('the "talk to a rep" button sits in the message row: button, then the text box, then send', () => {
+    setup()
+    const form = screen.getByLabelText('הודעה').closest('form')
+    const order = [...form.querySelectorAll('.contact__btn, textarea, button[type="submit"]')].map((el) =>
+      el.matches('.contact__btn') ? 'contact' : el.tagName === 'TEXTAREA' ? 'input' : 'send')
+    expect(order).toEqual(['contact', 'input', 'send']) // RTL: the first is on the right
+  })
 })

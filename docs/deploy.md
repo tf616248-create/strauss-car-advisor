@@ -40,7 +40,7 @@ Add new site → Import an existing project → הריפו. Netlify קורא א�
 | משתנה | מה ממלאים | חובה |
 |---|---|---|
 | `VITE_API_URL` | כתובת השרת מ-Render, למשל `https://strauss-car-advisor-api.onrender.com` | כן. בלעדיו הממשק לא יודע לאן לפנות |
-| `VITE_SUPPORT_EMAIL` | מייל לכפתור "שיחה עם נציג" | לא |
+| `VITE_SUPPORT_EMAIL` | מייל לכפתור "שיחה עם נציג". ריק = `support@strauss-in.com` | לא |
 
 - משתני `VITE_` נכנסים לממשק בזמן הבנייה. אחרי שינוי משתנה צריך לבנות מחדש (Deploys → Trigger deploy).
 - **בדיקה:** פותחים את הכתובת, שולחים הודעה, ובודקים שהתשובה זורמת. אם מופיעה "אין חיבור לשרת", בודקים את `VITE_API_URL` ואת `FRONTEND_ORIGIN`.

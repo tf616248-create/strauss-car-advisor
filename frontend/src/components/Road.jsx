@@ -54,7 +54,9 @@ export default function Road({ phase, stops = [], label }) {
             <span /><span className="road__lamp" /><span />
           </div>
         )}
-        <div className="road__car" style={{ right: carPosition(phase, shown.length) }}>
+        {/* at the start line the whole car (and its note) stays inside the road, not half past the edge */}
+        <div className={`road__car ${phase === 'driving' && !shown.length ? 'road__car--start' : ''}`}
+          style={{ right: carPosition(phase, shown.length) }}>
           {/* the stop itself names the running step; above the car only "thinking" or "waiting" */}
           {(phase === 'waiting' || (phase === 'driving' && !shown.length)) && <span className="road__note">{note}</span>}
           <div className="road__body">

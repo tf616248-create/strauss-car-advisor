@@ -56,4 +56,15 @@ describe('Road', () => {
     expect(container.querySelector('.road__light')).not.toBeNull()
     expect(container.querySelector('.finish--done')).toBeNull()
   })
+
+  it('at the start line the car stands fully inside the road, with its note anchored to it', () => {
+    const { container } = render(<Road phase="driving" stops={[]} />)
+    const car = container.querySelector('.road__car')
+    expect(car).toHaveClass('road__car--start') // no half-car shift past the right edge (styles.css)
+  })
+
+  it('leaves the start line once a stop is reached', () => {
+    const { container } = render(<Road phase="driving" stops={[ELIG]} label="בודק זכאות…" />)
+    expect(container.querySelector('.road__car')).not.toHaveClass('road__car--start')
+  })
 })

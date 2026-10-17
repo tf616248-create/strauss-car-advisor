@@ -32,11 +32,20 @@ describe('ContactRep', () => {
     expect(screen.queryByText(EMAIL)).toBeNull()
   })
 
-  it('says so when no email is configured, instead of inventing one', async () => {
+  it('without VITE_SUPPORT_EMAIL it shows the service address support@strauss-in.com', async () => {
     const user = userEvent.setup()
     render(<ContactRep email="" />)
     await user.click(screen.getByRole('button', { name: 'שיחה עם נציג' }))
-    expect(screen.getByText('כתובת המייל של השירות עוד לא הוגדרה.')).toBeInTheDocument()
-    expect(screen.queryByRole('link')).toBeNull()
+    expect(screen.getByRole('link', { name: 'support@strauss-in.com' })).toHaveAttribute('href', 'mailto:support@strauss-in.com')
+    expect(screen.queryByText('כתובת המייל של השירות עוד לא הוגדרה.')).toBeNull()
+  })
+
+  it('opening the panel does not move the button: the panel floats above it', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<ContactRep email={EMAIL} />)
+    const button = screen.getByRole('button', { name: 'שיחה עם נציג' })
+    await user.click(button)
+    expect(screen.getByRole('button', { name: 'שיחה עם נציג' })).toBe(button) // same element, same place
+    expect(container.querySelector('.contact__panel')).toHaveClass('contact__panel--floating')
   })
 })

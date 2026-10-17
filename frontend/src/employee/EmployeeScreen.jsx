@@ -185,6 +185,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         {/* a new key per answer: the car starts each trip from the start line */}
         {roadPhase && <Road key={currentId ?? 'idle'} phase={roadPhase} stops={stops} label={step} />}
         <form className="chat__form" onSubmit={send}>
+          <ContactRep />
           <label htmlFor="msg" className="visually-hidden">הודעה</label>
           <textarea id="msg" rows={1} value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) send(e) }}
@@ -235,7 +236,6 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         </button>
       )}
 
-      <ContactRep />
     </div>
   )
 }

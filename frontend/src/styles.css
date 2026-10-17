@@ -94,8 +94,8 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .msg--system { align-self: center; padding: 6px 14px; border: 1.5px dashed var(--muted); border-radius: 999px; font-size: 0.9rem; font-weight: 600; }
 .msg--error { align-self: flex-start; padding: 10px 14px; border: 1.5px solid var(--error); border-radius: 12px; color: var(--error); }
 .msg--hint { align-self: center; color: var(--muted); }
-.chat__form { display: flex; gap: 10px; }
-.chat__form textarea { resize: none; border-radius: 999px; padding: 13px 22px; min-height: 52px; }
+.chat__form { display: flex; align-items: center; gap: 10px; }
+.chat__form textarea { flex: 1; min-width: 0; resize: none; border-radius: 999px; padding: 13px 22px; min-height: 52px; }
 .chat__form button { min-height: 52px; padding: 0 28px; }
 
 /* edge toggle on the border between chat and panel */
@@ -147,7 +147,10 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .finish--done .finish__label { color: var(--text); font-weight: 800; }
 .finish--done .finish__flag { opacity: 1; border-color: var(--text); background: repeating-conic-gradient(var(--text) 0 25%, var(--bg) 0 50%) 0 0 / 7px 7px; }
 
-.road__car { position: absolute; bottom: 10px; transform: translateX(50%); transition: right 7s cubic-bezier(.2, .7, .3, 1); }
+.road__car { position: absolute; bottom: 10px; transform: translateX(50%); transition: right 7s cubic-bezier(.2, .7, .3, 1), transform 7s cubic-bezier(.2, .7, .3, 1); }
+/* at the start line: the car's right edge on the line, and its note grows leftwards - nothing cut off */
+.road__car--start { transform: none; }
+.road__car--start .road__note { left: auto; right: 0; transform: none; }
 .road--arrived .road__car { transition-duration: .6s; }
 .road__note { position: absolute; bottom: 66px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 0.82rem; font-weight: 700; }
 .road__body { position: relative; width: 92px; }
@@ -326,12 +329,14 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
   .cards, .panel__toggle svg { transition: none; }
 }
 
-/* ---- "talk to a rep": service email, bottom-right, above the message box ---- */
-.contact { position: fixed; right: 20px; bottom: 96px; z-index: 20; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-.contact__btn {
-  width: 52px; height: 52px; padding: 0; border-radius: 50%; display: grid; place-items: center;
+/* ---- "talk to a rep": service email, at the right end of the message row ---- */
+.contact { position: relative; flex: none; }
+.contact__btn, .chat__form .contact__btn {
+  width: 52px; height: 52px; min-height: 52px; padding: 0; border-radius: 50%; display: grid; place-items: center;
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
 }
+/* the panel floats above the button and grows leftwards: the button never moves */
+.contact__panel--floating { position: absolute; bottom: calc(100% + 10px); right: 0; z-index: 20; }
 .contact__btn svg, .contact__close svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .contact__panel {
   width: min(300px, calc(100vw - 40px)); background: var(--bg); color: var(--text);
@@ -340,5 +345,4 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 }
 .contact__panel p { margin: 6px 0 0; }
 .contact__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.contact__close { background: transparent; color: var(--muted); padding: 4px; min-height: 0; border-radius: 8px; }
-@media (max-width: 767px) { .contact { right: 12px; bottom: 84px; } }
+.contact__close, .chat__form .contact__close { background: transparent; color: var(--muted); padding: 4px; min-height: 0; border-radius: 8px; }
