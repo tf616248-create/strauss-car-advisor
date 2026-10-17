@@ -126,6 +126,19 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     await run((onEvent) => api.streamChat({ message: text, threadId }, onEvent))
   }
 
+  // A fresh start: forget this conversation in the browser (it stays in the database,
+  // but this browser can no longer open it). Also for a shared computer.
+  function newConversation() {
+    localStorage.removeItem('threadId')
+    setThreadId(null)
+    setMessages([])
+    setCards([])
+    setStops([])
+    setStep(null)
+    setParked(false)
+    notifier.setUnread(0)
+  }
+
   // the server rang ("changed", e.g. the rep answered): beep, mark the tab, read the state
   useEffect(() => {
     if (!threadId) return
@@ -170,6 +183,13 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
       </header>
 
       <main className="chat">
+        {(threadId || messages.length > 0) && (
+          <div className="chat__top">
+            <button type="button" className="chat__new" onClick={newConversation} disabled={busy}>
+              <span aria-hidden="true">↺</span> התחלת שיחה חדשה
+            </button>
+          </div>
+        )}
         <ol className="chat__messages" aria-live="polite">
           {messages.length === 0 && (
             <li className="msg msg--hint">למשל: "אם אעבור מהקורולה קרוס ל-BYD Atto 3, כמה זה ישנה לי בנטו?"</li>

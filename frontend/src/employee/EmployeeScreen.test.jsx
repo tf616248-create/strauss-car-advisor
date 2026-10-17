@@ -234,6 +234,58 @@ describe('EmployeeScreen', () => {
     expect(screen.getByRole('button', { name: 'שיחה עם נציג' })).toBeInTheDocument()
   })
 
+  it('no "new conversation" link on an empty screen', () => {
+    setup()
+    expect(screen.queryByRole('button', { name: /שיחה חדשה/ })).toBeNull()
+  })
+
+  it('"new conversation" clears the screen and the next message starts a new conversation', async () => {
+    const { api } = setup({ chatEvents: [
+      ['thread', { thread_id: TID }], ['card', noa], ['token', { text: 'הנטו עולה' }], ['done', {}],
+    ] })
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), 'שאלה ראשונה')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    await screen.findByText('הנטו עולה')
+
+    await user.click(screen.getByRole('button', { name: /שיחה חדשה/ }))
+    expect(screen.queryByText('הנטו עולה')).toBeNull()
+    expect(screen.queryByText('שאלה ראשונה')).toBeNull()
+    const cards = screen.getByRole('complementary', { name: 'כרטיס השוואה' })
+    expect(within(cards).queryByText(noa.card.alternative.label)).toBeNull()
+    expect(localStorage.getItem('threadId')).toBeNull()
+
+    await user.type(screen.getByLabelText('הודעה'), 'שאלה חדשה')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    expect(api.streamChat.mock.calls[1][0]).toEqual({ message: 'שאלה חדשה', threadId: null })
+  })
+
+  it('"new conversation" also works on a conversation restored after a reload', async () => {
+    localStorage.setItem('threadId', TID)
+    setup({ restore: vi.fn().mockResolvedValue(state()) })
+    await screen.findByText('שאלה')
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /שיחה חדשה/ }))
+    expect(screen.queryByText('שאלה')).toBeNull()
+    expect(localStorage.getItem('threadId')).toBeNull()
+  })
+
+  it('"new conversation" is disabled while an answer is being written', async () => {
+    let finish
+    const api = {
+      streamChat: vi.fn((params, onEvent) => { onEvent('thread', { thread_id: TID }); return new Promise((r) => { finish = r }) }),
+      streamRepAnswered: vi.fn(),
+      restore: vi.fn().mockRejectedValue(new Error('none')),
+    }
+    render(<EmployeeScreen api={api} subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), 'שאלה')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    expect(screen.getByRole('button', { name: /שיחה חדשה/ })).toBeDisabled()
+    await act(async () => { finish() })
+    expect(screen.getByRole('button', { name: /שיחה חדשה/ })).toBeEnabled()
+  })
+
   it('restores the conversation after a reload', async () => {
     localStorage.setItem('threadId', TID)
     const restore = vi.fn().mockResolvedValue({

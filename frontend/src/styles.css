@@ -346,3 +346,12 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .contact__panel p { margin: 6px 0 0; }
 .contact__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .contact__close, .chat__form .contact__close { background: transparent; color: var(--muted); padding: 4px; min-height: 0; border-radius: 8px; }
+
+/* ---- "new conversation": a small link pinned above the messages (does not scroll away) ---- */
+.chat__top { display: flex; justify-content: flex-start; }
+.chat__new {
+  background: transparent; color: var(--muted); border: 0; padding: 4px 2px; min-height: 0;
+  font-size: 14px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+}
+.chat__new:hover:not(:disabled) { color: var(--text); text-decoration: underline; }
+.chat__new:disabled { opacity: 0.5; cursor: default; }
