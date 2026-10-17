@@ -186,7 +186,8 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         {(threadId || messages.length > 0) && (
           <div className="chat__top">
             <button type="button" className="chat__new" onClick={newConversation} disabled={busy}>
-              <span aria-hidden="true">↺</span> התחלת שיחה חדשה
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+              שיחה חדשה
             </button>
           </div>
         )}

@@ -347,11 +347,13 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .contact__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .contact__close, .chat__form .contact__close { background: transparent; color: var(--muted); padding: 4px; min-height: 0; border-radius: 8px; }
 
-/* ---- "new conversation": a small link pinned above the messages (does not scroll away) ---- */
+/* ---- "new conversation": a quiet outlined pill pinned above the messages, like the edge toggle ---- */
 .chat__top { display: flex; justify-content: flex-start; }
 .chat__new {
-  background: transparent; color: var(--muted); border: 0; padding: 4px 2px; min-height: 0;
-  font-size: 14px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  min-height: 34px; padding: 0 14px 0 12px; display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg); color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
+  font-size: 0.9rem; font-weight: 600; transition: color .15s ease, border-color .15s ease, background .15s ease;
 }
-.chat__new:hover:not(:disabled) { color: var(--text); text-decoration: underline; }
-.chat__new:disabled { opacity: 0.5; cursor: default; }
+.chat__new svg { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.chat__new:hover:not(:disabled) { color: var(--text); border-color: var(--muted); background: var(--surface); }
+@media (prefers-reduced-motion: reduce) { .chat__new { transition: none; } }
