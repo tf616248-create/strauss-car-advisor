@@ -178,3 +178,9 @@ def test_prompt_sends_an_explicit_request_for_a_human_to_the_contact_button(prom
     assert "מבקש במפורש לדבר עם אדם" in prompt
     assert '"שיחה עם נציג"' in prompt
     assert "אל תקרא ל-ask_rep בשביל זה" in prompt
+
+
+def test_prompt_no_tables_in_the_chat(prompt):
+    """The comparison is the card beside the chat; a table in the chat would repeat its numbers."""
+    assert "בלי טבלאות" in prompt
+    assert "בכרטיס" in prompt

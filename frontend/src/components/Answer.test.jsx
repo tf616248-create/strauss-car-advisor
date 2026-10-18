@@ -1,0 +1,56 @@
+import { render, screen } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+import Answer from './Answer'
+
+describe('Answer (the bot\'s Markdown)', () => {
+  it('bold, headings and lists are shown formatted, without the stars', () => {
+    const { container } = render(<Answer text={'## מה חסר\n1. **עיסוק מדויק** וקבוצה\n2. שכר\n\n- *בונוס* חודשי'} />)
+    expect(screen.getByRole('heading', { name: 'מה חסר' })).toBeInTheDocument()
+    expect(screen.getByText('עיסוק מדויק').tagName).toBe('STRONG')
+    expect(screen.getByText('בונוס').tagName).toBe('EM')
+    expect(container.querySelectorAll('ol > li')).toHaveLength(2)
+    expect(container.querySelectorAll('ul > li')).toHaveLength(1)
+    expect(container.textContent).not.toContain('**')
+  })
+
+  it('no tables: the comparison lives in the card', () => {
+    const { container } = render(<Answer text={'| היום | חלופה |\n|---|---|\n| 1 | 2 |'} />)
+    expect(container.querySelector('table')).toBeNull()
+  })
+
+  it('no HTML from the model, no links or images', () => {
+    const { container } = render(<Answer text={'<b>x</b> [קישור](https://evil.example) ![](https://evil.example/i.png)'} />)
+    expect(container.querySelector('b, a, img, script')).toBeNull()
+    expect(container.textContent).toContain('קישור')
+  })
+
+  it('an unfinished bold while the answer streams in does not break', () => {
+    const { container } = render(<Answer text={'הנטו **יעלה'} />)
+    expect(container.textContent).toContain('יעלה')
+  })
+})
+
+describe('text colors (styles.css)', () => {
+  const css = readFileSync('src/styles.css', 'utf8')
+
+  it('has the dark brand cyan for text', () => {
+    expect(css).toMatch(/--brand-cyan-text:\s*#0B7F9E/i)
+  })
+
+  it('bold words use it; the bright cyan #16BDE6 is never a text color', () => {
+    expect(css).toMatch(/\.answer strong\s*{[^}]*color:\s*var\(--brand-cyan-text\)/)
+    expect(css).not.toMatch(/(^|[;{\s])color:\s*(#16BDE6|var\(--cyan\))/im)
+  })
+
+  it('headings are dark text with a small cyan bar', () => {
+    expect(css).toMatch(/\.answer :is\(h1, h2, h3, h4, h5, h6\)\s*{[^}]*color:\s*var\(--text\)/)
+    expect(css).toMatch(/\.answer :is\(h1, h2, h3, h4, h5, h6\)::after\s*{[^}]*background:\s*var\(--cyan\)/)
+  })
+
+  it('handwriting only in the welcome title', () => {
+    const uses = css.match(/font-family:[^;]*Playpen Sans Hebrew/g) ?? []
+    expect(uses).toHaveLength(1)
+    expect(css).toMatch(/\.welcome__title\s*{[^}]*Playpen Sans Hebrew/)
+  })
+})

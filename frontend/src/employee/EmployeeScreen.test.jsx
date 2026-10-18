@@ -306,6 +306,15 @@ describe('EmployeeScreen', () => {
       el.matches('.contact__btn') ? 'contact' : el.tagName === 'TEXTAREA' ? 'input' : 'send')
     expect(order).toEqual(['contact', 'input', 'send']) // RTL: the first is on the right
   })
+  it("the bot's Markdown is shown formatted; the employee's own text is shown as typed", async () => {
+    setup({ chatEvents: [['token', { text: 'חסר לי: **עיסוק**' }], ['done', {}]] })
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), '**שלום**')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    expect((await screen.findByText('עיסוק')).tagName).toBe('STRONG')
+    expect(screen.getByText('**שלום**')).toBeInTheDocument()
+  })
+
   describe('welcome screen', () => {
     const CHOICES = [
       ['לעבור לרכב חשמלי', 'מה יקרה לנטו שלי אם אעבור לרכב חשמלי?'],

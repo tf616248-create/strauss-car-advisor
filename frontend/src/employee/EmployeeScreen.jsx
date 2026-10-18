@@ -5,6 +5,7 @@ import { subscribeChanges } from '../lib/realtime'
 import CompareCard from '../components/CompareCard'
 import Road, { CarBody } from '../components/Road'
 import ContactRep from '../components/ContactRep'
+import Answer from '../components/Answer'
 import logo from '../assets/strauss-logo.svg'
 
 const REP_ANSWERED = 'הנציג ענה, והחלופה מתעדכנת'
@@ -222,7 +223,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
           {messages.map((m) => (
             <li key={m.id} className={`msg msg--${m.role}`}>
               {m.role === 'assistant' && m.text && <span className="msg__who">יועץ הרכב</span>}
-              {m.role === 'system' ? REP_ANSWERED : m.text}
+              {m.role === 'system' ? REP_ANSWERED : m.role === 'assistant' ? <Answer text={m.text} /> : m.text}
             </li>
           ))}
           <li ref={endRef} aria-hidden="true" />
