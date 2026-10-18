@@ -48,9 +48,9 @@ describe('text colors (styles.css)', () => {
     expect(css).toMatch(/\.answer :is\(h1, h2, h3, h4, h5, h6\)::after\s*{[^}]*background:\s*var\(--cyan\)/)
   })
 
-  it('handwriting only in the welcome title', () => {
-    const uses = css.match(/font-family:[^;]*Playpen Sans Hebrew/g) ?? []
-    expect(uses).toHaveLength(1)
-    expect(css).toMatch(/\.welcome__title\s*{[^}]*Playpen Sans Hebrew/)
+  it('one font on the whole page (Assistant), no handwriting; the welcome title is bold and big', () => {
+    expect(css).not.toMatch(/Playpen/)
+    expect([...css.matchAll(/font-family:\s*([^;]+);/g)].map((m) => m[1]).every((f) => f.startsWith('"Assistant"') || f === 'inherit')).toBe(true)
+    expect(css).toMatch(/\.welcome__title\s*{[^}]*font-weight:\s*(700|800)/)
   })
 })

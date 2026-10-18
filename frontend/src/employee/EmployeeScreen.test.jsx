@@ -324,6 +324,43 @@ describe('EmployeeScreen', () => {
     expect(document.title).toBe('כובי · יועץ הרכב של שטראוס')
   })
 
+  it('the header says it is only a check: nothing changes in salary or car', () => {
+    setup()
+    const sub = document.querySelector('.topbar__sub')
+    expect(sub).toHaveTextContent('רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלכם · לפי כללי שטראוס ורשות המסים')
+    expect(sub.querySelector('strong')).toHaveTextContent(/^רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלכם$/)
+  })
+
+  it('the empty card panel explains why a car changes the salary, how it works, and shows a grey preview', () => {
+    const { container } = render(<EmployeeScreen api={{ restore: vi.fn().mockRejectedValue(new Error('none')) }}
+      subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
+    const panel = screen.getByRole('complementary', { name: 'כרטיס השוואה' })
+    expect(within(panel).getByRole('heading', { name: 'למה רכב משנה את המשכורת?' })).toBeInTheDocument()
+    expect(within(panel).getByText(/המדינה רואה בו חלק מהשכר שלכם/)).toBeInTheDocument()
+    expect(within(panel).getByRole('heading', { name: 'איך זה עובד?' })).toBeInTheDocument()
+    expect([...panel.querySelectorAll('ol > li')].map((li) => li.textContent)).toEqual([
+      'מספרים לכובי בקצרה על השכר והרכב שלכם',
+      'בוחרים מה לבדוק',
+      'מקבלים כאן השוואה: היום מול החלופה, וכמה יישאר לכם בכל חודש',
+    ])
+    const ghost = panel.querySelector('.ghost-card')
+    expect(ghost).toHaveAttribute('aria-hidden', 'true')
+    expect(panel.textContent).not.toMatch(/\d/)
+    expect(container.textContent).not.toContain('כרטיס ההשוואה יופיע כאן')
+  })
+
+  it('the first comparison replaces the grey preview with the real card', async () => {
+    setup({ chatEvents: [['card', noa], ['token', { text: 'מוכן' }], ['done', {}]] })
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), 'שאלה')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    await screen.findByText('מוכן')
+    const panel = screen.getByRole('complementary', { name: 'כרטיס השוואה' })
+    expect(panel.querySelector('.ghost-card')).toBeNull()
+    expect(within(panel).queryByRole('heading', { name: 'איך זה עובד?' })).toBeNull()
+    expect(within(panel).getByText(noa.card.alternative.label)).toBeInTheDocument()
+  })
+
   it('every bot message is signed as Kobi, a bot', async () => {
     setup({ chatEvents: [['token', { text: 'שלום' }], ['done', {}]] })
     const user = userEvent.setup()
@@ -344,9 +381,12 @@ describe('EmployeeScreen', () => {
     it('shows the parked car, a greeting and four equal choices when there are no messages', () => {
       const { container } = render(<EmployeeScreen api={{ restore: vi.fn().mockRejectedValue(new Error('none')) }}
         subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
-      const welcome = screen.getByRole('region', { name: 'שלום, אני כובי – בוט הרכב של שטראוס' })
-      expect(within(welcome).getByText('אבדוק בשבילך מה יקרה לנטו – השוואה ברורה לפי כללי שטראוס ורשות המסים, תוך דקה')).toBeInTheDocument()
-      expect(within(welcome).getByText(/אפשר גם לשאול: מה זה שווי שימוש\? מה זה השתתפות עצמית\?/)).toBeInTheDocument()
+      const welcome = screen.getByRole('region', { name: 'שלום, אני כובי' })
+      expect(within(welcome).getByText('רכב חברה משפיע על המשכורת שלכם, גם אם לא שמתם לב.')).toBeInTheDocument()
+      expect(within(welcome).getByText('אני מראה בדיוק כמה כסף יישאר לכם בכל חודש, היום ואחרי שינוי ברכב.')).toBeInTheDocument()
+      expect(within(welcome).getByRole('group', { name: 'מה תרצו לבדוק?' })).toBeInTheDocument()
+      expect(within(welcome).getByText('לא בטוחים מה זה "שווי שימוש" או "השתתפות עצמית"? פשוט שאלו אותי.')).toBeInTheDocument()
+      expect(welcome.textContent).not.toMatch(/\d/) // no numbers for people new to all this
       expect(welcome.querySelector('.welcome__car .road__body')).not.toBeNull() // the white car with the logo
       const buttons = CHOICES.map(([label]) => within(welcome).getByRole('button', { name: label }))
       // none stands out: the bot compares, it does not recommend
@@ -378,7 +418,7 @@ describe('EmployeeScreen', () => {
       await user.type(screen.getByLabelText('הודעה'), 'שאלה')
       await user.click(screen.getByRole('button', { name: 'שליחה' }))
       await screen.findByText('תשובה')
-      expect(screen.queryByRole('region', { name: 'שלום, אני כובי – בוט הרכב של שטראוס' })).toBeNull()
+      expect(screen.queryByRole('region', { name: 'שלום, אני כובי' })).toBeNull()
     })
 
     it('is not shown over a conversation restored after a reload', async () => {

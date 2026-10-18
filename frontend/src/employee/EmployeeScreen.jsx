@@ -6,6 +6,7 @@ import CompareCard from '../components/CompareCard'
 import Road, { CarBody } from '../components/Road'
 import ContactRep from '../components/ContactRep'
 import Answer from '../components/Answer'
+import EmptyPanel from '../components/EmptyPanel'
 import logo from '../assets/strauss-logo.svg'
 
 const REP_ANSWERED = 'הנציג ענה, והחלופה מתעדכנת'
@@ -19,7 +20,7 @@ const CHOICES = [
   ['מסלול משפחתי', 'מה יקרה לנטו שלי אם אעבור למסלול המשפחתי?'],
   ['לוותר על הרכב', 'מה יקרה לנטו שלי אם אוותר על הרכב?'],
 ]
-const WELCOME = 'שלום, אני כובי – בוט הרכב של שטראוס'
+const WELCOME = 'שלום, אני כובי'
 
 const fmtNet = (v) => `${v > 0 ? '+' : '−'}${Math.abs(v).toLocaleString('he-IL')} ₪`
 
@@ -199,7 +200,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
           <span className="topbar__name">כובי</span>
           <span className="topbar__product">יועץ הרכב של שטראוס</span>
         </h1>
-        <p className="topbar__sub">מה יקרה לנטו שלך אם תעבור לרכב אחר, לרכב חשמלי, למסלול המשפחתי, או תוותר על הרכב?</p>
+        <p className="topbar__sub"><strong>רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלכם</strong> · לפי כללי שטראוס ורשות המסים</p>
       </header>
 
       <main className="chat">
@@ -215,13 +216,15 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
           <section className="welcome" aria-labelledby="welcome-title">
             <div className="welcome__car" aria-hidden="true"><CarBody /></div>
             <h2 id="welcome-title" className="welcome__title">{WELCOME}</h2>
-            <p className="welcome__sub">אבדוק בשבילך מה יקרה לנטו – השוואה ברורה לפי כללי שטראוס ורשות המסים, תוך דקה</p>
-            <div className="welcome__choices">
+            <p className="welcome__sub">רכב חברה משפיע על המשכורת שלכם, גם אם לא שמתם לב.</p>
+            <p className="welcome__sub">אני מראה בדיוק כמה כסף יישאר לכם בכל חודש, היום ואחרי שינוי ברכב.</p>
+            <p id="welcome-ask" className="welcome__ask">מה תרצו לבדוק?</p>
+            <div className="welcome__choices" role="group" aria-labelledby="welcome-ask">
               {CHOICES.map(([label, question]) => (
                 <button key={label} type="button" className="welcome__choice" onClick={() => ask(question)}>{label}</button>
               ))}
             </div>
-            <p className="welcome__more">אפשר גם לשאול: מה זה שווי שימוש? מה זה השתתפות עצמית?</p>
+            <p className="welcome__more">לא בטוחים מה זה "שווי שימוש" או "השתתפות עצמית"? פשוט שאלו אותי.</p>
           </section>
         )}
         <ol className={`chat__messages ${messages.length ? '' : 'chat__messages--empty'}`} aria-live="polite">
@@ -273,7 +276,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         </button>
         <aside id="cmp-panel" className="cards" aria-label="כרטיס השוואה" inert={!panelOpen}>
           {cards.length === 0
-            ? <p className="hint">כרטיס ההשוואה יופיע כאן אחרי החישוב.</p>
+            ? <EmptyPanel />
             : cards.map((c, i) => <CompareCard key={i} result={c} />)}
         </aside>
       </section>

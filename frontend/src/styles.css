@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&family=Playpen+Sans+Hebrew:wght@600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&display=swap");
 
 /* Strauss brand colors: exact values, the same in dark mode. Text on them is always dark. */
 :root {
@@ -42,6 +42,22 @@ h1, h2, h3 { margin: 0; }
 p { margin: 0; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .hint { color: var(--muted); font-size: 0.875rem; }
+
+/* the empty comparison panel: a short explanation, three steps, and a grey card preview */
+.intro { display: flex; flex-direction: column; gap: 10px; }
+.intro__title { font-size: 1.05rem; font-weight: 800; }
+.intro__title:not(:first-child) { margin-top: 8px; }
+.intro__text { color: var(--muted); line-height: 1.65; }
+.intro__steps { margin: 0; padding-inline-start: 22px; display: flex; flex-direction: column; gap: 6px; line-height: 1.5; }
+.intro__steps li::marker { color: var(--brand-cyan-text); font-weight: 800; }
+.ghost-card { margin-top: 12px; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface2); display: flex; flex-direction: column; gap: 12px; }
+.ghost-card__row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 14px; }
+.ghost-card__row--head { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.ghost-card__row--net { padding-top: 12px; border-top: 1px solid var(--line); }
+.ghost-card__bar { display: block; height: 10px; border-radius: 5px; background: var(--line); }
+.ghost-card__bar--title { width: 45%; height: 14px; }
+.ghost-card__row--head .ghost-card__bar, .ghost-card__row--net .ghost-card__bar { height: 12px; }
+.ghost-card__row:not(.ghost-card__row--head):not(.ghost-card__row--net) .ghost-card__bar:first-child { width: 80%; }
 .error { color: var(--error); font-weight: 600; }
 .num { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
 bdi { unicode-bidi: isolate; }
@@ -81,7 +97,8 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .topbar__title { display: flex; flex-direction: column; line-height: 1.15; }
 .topbar__name { font-size: 1.75rem; font-weight: 800; }
 .topbar__product { font-size: 0.9rem; font-weight: 600; color: var(--muted); }
-.topbar__sub { margin-inline-start: auto; color: var(--muted); font-size: 0.875rem; max-width: 420px; }
+.topbar__sub { margin-inline-start: auto; color: var(--muted); font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.topbar__sub strong { color: var(--text); font-weight: 700; }
 
 /* ---- employee: chat on the right, comparison panel on the left (RTL) ---- */
 .employee {
@@ -116,9 +133,10 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .welcome__car { position: relative; display: flex; justify-content: center; width: 200px; padding-bottom: 14px; margin-bottom: 10px; }
 .welcome__car::after { content: ""; position: absolute; inset: auto 0 0 0; height: 14px; border-radius: 7px; background: var(--line); }
 .welcome__car .road__body { z-index: 1; margin-bottom: -8px; }
-.welcome__title { font-family: "Playpen Sans Hebrew", "Assistant", sans-serif; font-size: 1.75rem; font-weight: 600; }
+.welcome__title { font-size: 1.9rem; font-weight: 800; }
+.welcome__ask { margin-top: 14px; font-weight: 700; }
 .welcome__sub { color: var(--muted); }
-.welcome__choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: min(100%, 440px); margin-top: 12px; }
+.welcome__choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: min(100%, 440px); }
 .welcome__choice {
   min-height: 52px; padding: 10px 16px; border-radius: 999px; border: 1.5px solid var(--line);
   background: var(--surface2); color: var(--text); font: inherit; font-weight: 600; cursor: pointer;
