@@ -331,7 +331,7 @@ describe('EmployeeScreen', () => {
     expect(sub.querySelector('strong')).toHaveTextContent(/^רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלכם$/)
   })
 
-  it('the empty card panel explains why a car changes the salary, how it works, and shows a grey preview', () => {
+  it('the empty card panel explains why a car changes the salary and how it works (no fake table)', () => {
     const { container } = render(<EmployeeScreen api={{ restore: vi.fn().mockRejectedValue(new Error('none')) }}
       subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
     const panel = screen.getByRole('complementary', { name: 'כרטיס השוואה' })
@@ -343,20 +343,18 @@ describe('EmployeeScreen', () => {
       'בוחרים מה לבדוק',
       'מקבלים כאן השוואה: היום מול החלופה, וכמה יישאר לכם בכל חודש',
     ])
-    const ghost = panel.querySelector('.ghost-card')
-    expect(ghost).toHaveAttribute('aria-hidden', 'true')
+    expect(panel.querySelector('.ghost-card, table')).toBeNull()
     expect(panel.textContent).not.toMatch(/\d/)
     expect(container.textContent).not.toContain('כרטיס ההשוואה יופיע כאן')
   })
 
-  it('the first comparison replaces the grey preview with the real card', async () => {
+  it('the first comparison replaces the explanation with the real card', async () => {
     setup({ chatEvents: [['card', noa], ['token', { text: 'מוכן' }], ['done', {}]] })
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('הודעה'), 'שאלה')
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
     await screen.findByText('מוכן')
     const panel = screen.getByRole('complementary', { name: 'כרטיס השוואה' })
-    expect(panel.querySelector('.ghost-card')).toBeNull()
     expect(within(panel).queryByRole('heading', { name: 'איך זה עובד?' })).toBeNull()
     expect(within(panel).getByText(noa.card.alternative.label)).toBeInTheDocument()
   })

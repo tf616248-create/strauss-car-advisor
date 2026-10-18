@@ -43,6 +43,16 @@ describe('text colors (styles.css)', () => {
     expect(css).not.toMatch(/(^|[;{\s])color:\s*(#16BDE6|var\(--cyan\))/im)
   })
 
+  it('the "only a check" line in the header is shown on phones too (a small line under the header)', () => {
+    expect(css).not.toMatch(/\.topbar__sub\s*{\s*display:\s*none/)
+  })
+
+  it('the welcome screen is centred only when it fits: on a short phone screen its top (Kobi) can still be scrolled to', () => {
+    const welcome = css.match(/\.welcome\s*{([^}]*)}/)[1]
+    expect(welcome).not.toMatch(/justify-content:\s*center/)
+    expect(welcome).toMatch(/justify-content:\s*safe center/)
+  })
+
   it('headings are dark text with a small cyan bar', () => {
     expect(css).toMatch(/\.answer :is\(h1, h2, h3, h4, h5, h6\)\s*{[^}]*color:\s*var\(--text\)/)
     expect(css).toMatch(/\.answer :is\(h1, h2, h3, h4, h5, h6\)::after\s*{[^}]*background:\s*var\(--cyan\)/)
