@@ -315,6 +315,15 @@ describe('EmployeeScreen', () => {
     expect(screen.getByText('**שלום**')).toBeInTheDocument()
   })
 
+  it('the main title is "Kobi", with the product name smaller; the tab says so too', () => {
+    document.title = ''
+    setup()
+    const h1 = screen.getByRole('heading', { level: 1 })
+    expect(h1.querySelector('.topbar__name')).toHaveTextContent(/^כובי$/)
+    expect(h1.querySelector('.topbar__product')).toHaveTextContent(/^יועץ הרכב של שטראוס$/)
+    expect(document.title).toBe('כובי · יועץ הרכב של שטראוס')
+  })
+
   it('every bot message is signed as Kobi, a bot', async () => {
     setup({ chatEvents: [['token', { text: 'שלום' }], ['done', {}]] })
     const user = userEvent.setup()

@@ -1,4 +1,6 @@
-const BASE_TITLE = document.title
+// tab titles: the employee talks to Kobi; the rep screen is the queue (no Kobi)
+export const EMPLOYEE_TITLE = 'כובי · יועץ הרכב של שטראוס'
+export const REP_TITLE = 'תור הנציג · יועץ הרכב של שטראוס'
 
 export function beep() {
   try {
@@ -14,7 +16,7 @@ export function beep() {
 }
 
 export function setUnread(n) {
-  document.title = n > 0 ? `(${n}) תשובה חדשה · ${BASE_TITLE}` : BASE_TITLE
+  document.title = n > 0 ? `(${n}) ${EMPLOYEE_TITLE}` : EMPLOYEE_TITLE
 }
 
 export const notifier = { beep, setUnread }

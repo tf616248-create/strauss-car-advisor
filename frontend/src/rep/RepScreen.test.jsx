@@ -17,6 +17,12 @@ function fakeApi() {
 }
 
 describe('RepScreen', () => {
+  it('the tab title is the rep queue, without Kobi', () => {
+    document.title = ''
+    render(<RepScreen api={fakeApi()} />)
+    expect(document.title).toBe('תור הנציג · יועץ הרכב של שטראוס')
+  })
+
   it('asks for the passcode first', () => {
     render(<RepScreen api={fakeApi()} />)
     expect(screen.getByLabelText('סיסמת נציג')).toBeInTheDocument()

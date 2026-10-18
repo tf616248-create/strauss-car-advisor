@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import * as realApi from '../lib/api'
-import { notifier as realNotifier } from '../lib/notify'
+import { EMPLOYEE_TITLE, notifier as realNotifier } from '../lib/notify'
 import { subscribeChanges } from '../lib/realtime'
 import CompareCard from '../components/CompareCard'
 import Road, { CarBody } from '../components/Road'
@@ -38,6 +38,8 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const wasBusy = useRef(false)
   const busyRef = useRef(false) // set at once, so two reads of the state cannot both start the bot
   const turnStartCards = useRef(cards) // the cards before this answer began
+
+  useEffect(() => { document.title = EMPLOYEE_TITLE }, [])
 
   useEffect(() => { endRef.current?.scrollIntoView?.({ block: 'end' }) }, [messages])
 
@@ -193,7 +195,10 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
       <header className="topbar">
         <img className="topbar__logo" src={logo} alt="שטראוס" />
         <span className="topbar__sep" aria-hidden="true" />
-        <h1>יועץ הרכב</h1>
+        <h1 className="topbar__title">
+          <span className="topbar__name">כובי</span>
+          <span className="topbar__product">יועץ הרכב של שטראוס</span>
+        </h1>
         <p className="topbar__sub">מה יקרה לנטו שלך אם תעבור לרכב אחר, לרכב חשמלי, למסלול המשפחתי, או תוותר על הרכב?</p>
       </header>
 

@@ -77,6 +77,10 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .topbar__logo { height: 72px; width: auto; display: block; background: #FFFFFF; border-radius: 10px; padding: 4px 8px; }
 .topbar__sep { width: 1px; height: 40px; background: var(--line); }
 .topbar h1 { font-size: 1.5rem; font-weight: 800; }
+/* employee screen: "Kobi" big, the product name smaller under it */
+.topbar__title { display: flex; flex-direction: column; line-height: 1.15; }
+.topbar__name { font-size: 1.75rem; font-weight: 800; }
+.topbar__product { font-size: 0.9rem; font-weight: 600; color: var(--muted); }
 .topbar__sub { margin-inline-start: auto; color: var(--muted); font-size: 0.875rem; max-width: 420px; }
 
 /* ---- employee: chat on the right, comparison panel on the left (RTL) ---- */
@@ -318,6 +322,8 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
   .topbar__logo { height: 60px; }
   .topbar__sep { height: 32px; }
   .topbar h1 { font-size: 1.3rem; }
+  .topbar__name { font-size: 1.5rem; }
+  .topbar__product { font-size: 0.8rem; }
   .topbar__sub { display: none; }
 
   .employee { display: flex; flex-direction: column; height: auto; min-height: 100vh; }

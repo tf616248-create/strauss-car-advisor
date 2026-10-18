@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as realApi from '../lib/api'
 import CompareCard from '../components/CompareCard'
+import { REP_TITLE } from '../lib/notify'
 import logo from '../assets/strauss-logo.svg'
 
 const POLL_MS = 5000
@@ -85,6 +86,7 @@ function Context({ request }) {
 }
 
 export default function RepScreen({ api = realApi }) {
+  useEffect(() => { document.title = REP_TITLE }, [])
   const [input, setInput] = useState('')
   const [passcode, setPasscode] = useState(() => sessionStorage.getItem('repPasscode'))
   const [requests, setRequests] = useState([])
