@@ -3,30 +3,30 @@ import { describe, expect, it } from 'vitest'
 import Road, { stopName } from './Road'
 
 const stop = (tool, label) => ({ tool, label })
-const LOOKUP = stop('lookup_vehicle', 'מחפש את הרכב…')
-const ELIG = stop('check_eligibility', 'בודק זכאות…')
-const CALC = stop('calculate', 'מחשב נטו…')
+const LOOKUP = stop('lookup_vehicle', 'כובי מחפש את הרכב…')
+const ELIG = stop('check_eligibility', 'כובי בודק זכאות…')
+const CALC = stop('calculate', 'כובי מחשב נטו…')
 
 const stopsIn = (container) => [...container.querySelectorAll('.stop')]
 
 describe('Road', () => {
   it('names a stop by the tool really called; an unknown tool uses the server label', () => {
     expect(stopName(ELIG)).toBe('זכאות')
-    expect(stopName(stop('ask_rep', 'שולח שאלה לנציג…'))).toBe('שאלה לנציג')
+    expect(stopName(stop('ask_rep', 'כובי שלח שאלה לנציג התחבורה ⏳'))).toBe('שאלה לנציג')
     expect(stopName(stop('something_new', 'בודק משהו…'))).toBe('בודק משהו')
   })
 
   it('before any tool runs there are no stops, only the start and the finish', () => {
     const { container } = render(<Road phase="driving" stops={[]} />)
-    expect(screen.getByRole('status')).toHaveTextContent('חושב…')
+    expect(screen.getByRole('status')).toHaveTextContent('כובי חושב…')
     expect(stopsIn(container)).toHaveLength(0)
     expect(container.querySelector('.finish--done')).toBeNull()
   })
 
   it('adds a stop only for the tools called in this answer, in the order they ran', () => {
     // the bot only re-checks eligibility: no value-of-use stop appears
-    const { container } = render(<Road phase="driving" stops={[ELIG]} label="בודק זכאות…" />)
-    expect(screen.getByRole('status')).toHaveTextContent('בודק זכאות…')
+    const { container } = render(<Road phase="driving" stops={[ELIG]} label="כובי בודק זכאות…" />)
+    expect(screen.getByRole('status')).toHaveTextContent('כובי בודק זכאות…')
     expect(stopsIn(container).map((s) => s.textContent)).toEqual(['זכאות'])
     expect(stopsIn(container)[0]).toHaveClass('stop--active')
   })
@@ -51,8 +51,8 @@ describe('Road', () => {
   })
 
   it('stops at the light while waiting for the rep', () => {
-    const { container } = render(<Road phase="waiting" stops={[LOOKUP, stop('ask_rep', 'שולח שאלה לנציג…')]} />)
-    expect(screen.getByRole('status')).toHaveTextContent('⏳ ממתין לנציג')
+    const { container } = render(<Road phase="waiting" stops={[LOOKUP, stop('ask_rep', 'כובי שלח שאלה לנציג התחבורה ⏳')]} />)
+    expect(screen.getByRole('status')).toHaveTextContent('כובי שלח שאלה לנציג התחבורה ⏳')
     expect(container.querySelector('.road__light')).not.toBeNull()
     expect(container.querySelector('.finish--done')).toBeNull()
   })
@@ -64,7 +64,7 @@ describe('Road', () => {
   })
 
   it('leaves the start line once a stop is reached', () => {
-    const { container } = render(<Road phase="driving" stops={[ELIG]} label="בודק זכאות…" />)
+    const { container } = render(<Road phase="driving" stops={[ELIG]} label="כובי בודק זכאות…" />)
     expect(container.querySelector('.road__car')).not.toHaveClass('road__car--start')
   })
 })

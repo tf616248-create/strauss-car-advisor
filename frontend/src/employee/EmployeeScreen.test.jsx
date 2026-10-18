@@ -45,7 +45,7 @@ describe('EmployeeScreen', () => {
   it('streams the answer, shows the running step, and puts the card beside the chat', async () => {
     const { api } = setup({ chatEvents: [
       ['thread', { thread_id: TID }],
-      ['step', { tool: 'calculate', label: 'מחשב נטו…' }],
+      ['step', { tool: 'calculate', label: 'כובי מחשב נטו…' }],
       ['card', noa],
       ['token', { text: 'הנטו שלך ' }], ['token', { text: 'יעלה' }],
       ['done', {}],
@@ -72,22 +72,22 @@ describe('EmployeeScreen', () => {
   })
 
   it('shows a calm message when the server is overloaded', async () => {
-    setup({ chatEvents: [['error', { message: 'המערכת עמוסה כרגע. נסו שוב בעוד דקה.' }]] })
+    setup({ chatEvents: [['error', { message: 'כובי עמוס כרגע. נסו שוב בעוד רגע.' }]] })
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('הודעה'), 'שלום')
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
-    expect(await screen.findByText('המערכת עמוסה כרגע. נסו שוב בעוד דקה.')).toBeInTheDocument()
+    expect(await screen.findByText('כובי עמוס כרגע. נסו שוב בעוד רגע.')).toBeInTheDocument()
   })
 
   it('keeps the part of the answer already written when an error arrives mid-answer', async () => {
     setup({ chatEvents: [
       ['token', { text: 'בדקתי את הרכב' }],
-      ['error', { message: 'המערכת עמוסה כרגע. נסו שוב בעוד דקה.' }],
+      ['error', { message: 'כובי עמוס כרגע. נסו שוב בעוד רגע.' }],
     ] })
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('הודעה'), 'שלום')
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
-    expect(await screen.findByText('המערכת עמוסה כרגע. נסו שוב בעוד דקה.')).toBeInTheDocument()
+    expect(await screen.findByText('כובי עמוס כרגע. נסו שוב בעוד רגע.')).toBeInTheDocument()
     expect(screen.getByText(/בדקתי את הרכב/)).toBeInTheDocument()
   })
 
@@ -152,8 +152,8 @@ describe('EmployeeScreen', () => {
     await user.type(screen.getByLabelText('הודעה'), 'שאלה')
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
 
-    act(() => { emit('step', { tool: 'check_eligibility', label: 'בודק זכאות…' }) })
-    expect(screen.getByRole('status')).toHaveTextContent('בודק זכאות…')
+    act(() => { emit('step', { tool: 'check_eligibility', label: 'כובי בודק זכאות…' }) })
+    expect(screen.getByRole('status')).toHaveTextContent('כובי בודק זכאות…')
     // the bot asks a follow-up question: no calculation yet, so the car must not arrive
     act(() => { emit('token', { text: 'מה השכר שלך?' }) })
     expect(screen.getByRole('status')).not.toHaveTextContent('התשובה מוכנה')
@@ -176,12 +176,12 @@ describe('EmployeeScreen', () => {
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
     // nothing called yet: the car does not head to any station by guess
     expect(container.querySelectorAll('.stop')).toHaveLength(0)
-    act(() => { emit('step', { tool: 'check_eligibility', label: 'בודק זכאות…' }) })
+    act(() => { emit('step', { tool: 'check_eligibility', label: 'כובי בודק זכאות…' }) })
     expect([...container.querySelectorAll('.stop')].map((s) => s.textContent)).toEqual(['זכאות'])
   })
 
   it('a turn without a result leaves no car parked at the end', async () => {
-    setup({ chatEvents: [['step', { label: 'מחפש את הרכב…' }], ['token', { text: 'באיזו שנה הרכב?' }], ['done', {}]] })
+    setup({ chatEvents: [['step', { label: 'כובי מחפש את הרכב…' }], ['token', { text: 'באיזו שנה הרכב?' }], ['done', {}]] })
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('הודעה'), 'שאלה')
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
@@ -315,6 +315,15 @@ describe('EmployeeScreen', () => {
     expect(screen.getByText('**שלום**')).toBeInTheDocument()
   })
 
+  it('every bot message is signed as Kobi, a bot', async () => {
+    setup({ chatEvents: [['token', { text: 'שלום' }], ['done', {}]] })
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), 'היי')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    await screen.findByText('שלום')
+    expect(screen.getByText('כובי · בוט')).toBeInTheDocument()
+  })
+
   describe('welcome screen', () => {
     const CHOICES = [
       ['לעבור לרכב חשמלי', 'מה יקרה לנטו שלי אם אעבור לרכב חשמלי?'],
@@ -326,8 +335,8 @@ describe('EmployeeScreen', () => {
     it('shows the parked car, a greeting and four equal choices when there are no messages', () => {
       const { container } = render(<EmployeeScreen api={{ restore: vi.fn().mockRejectedValue(new Error('none')) }}
         subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
-      const welcome = screen.getByRole('region', { name: 'שלום! בואו נבדוק מה יקרה לנטו שלך' })
-      expect(within(welcome).getByText('השוואה ברורה לפי כללי שטראוס ורשות המסים – תוך דקה')).toBeInTheDocument()
+      const welcome = screen.getByRole('region', { name: 'שלום, אני כובי – בוט הרכב של שטראוס' })
+      expect(within(welcome).getByText('אבדוק בשבילך מה יקרה לנטו – השוואה ברורה לפי כללי שטראוס ורשות המסים, תוך דקה')).toBeInTheDocument()
       expect(within(welcome).getByText(/אפשר גם לשאול: מה זה שווי שימוש\? מה זה השתתפות עצמית\?/)).toBeInTheDocument()
       expect(welcome.querySelector('.welcome__car .road__body')).not.toBeNull() // the white car with the logo
       const buttons = CHOICES.map(([label]) => within(welcome).getByRole('button', { name: label }))
@@ -360,7 +369,7 @@ describe('EmployeeScreen', () => {
       await user.type(screen.getByLabelText('הודעה'), 'שאלה')
       await user.click(screen.getByRole('button', { name: 'שליחה' }))
       await screen.findByText('תשובה')
-      expect(screen.queryByRole('region', { name: 'שלום! בואו נבדוק מה יקרה לנטו שלך' })).toBeNull()
+      expect(screen.queryByRole('region', { name: 'שלום, אני כובי – בוט הרכב של שטראוס' })).toBeNull()
     })
 
     it('is not shown over a conversation restored after a reload', async () => {

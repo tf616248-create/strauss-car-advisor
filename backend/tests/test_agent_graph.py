@@ -184,3 +184,20 @@ def test_prompt_no_tables_in_the_chat(prompt):
     """The comparison is the card beside the chat; a table in the chat would repeat its numbers."""
     assert "בלי טבלאות" in prompt
     assert "בכרטיס" in prompt
+
+
+def test_prompt_kobi_is_a_bot_and_says_so(prompt):
+    assert prompt.startswith("אתה כובי, בוט הרכב של שטראוס. אתה בוט, ואם שואלים – אומר זאת.")
+    assert "הטון: חם וענייני. בלי אימוג'י ובלי בדיחות בתשובות על כסף." in prompt
+    assert "יועץ הרכב של שטראוס" not in prompt
+
+
+def test_statuses_and_errors_speak_as_kobi():
+    texts = load_agent_config(BACKEND_DIR)["texts"]
+    assert texts["steps"] == {
+        "lookup_vehicle": "כובי מחפש את הרכב…",
+        "check_eligibility": "כובי בודק זכאות…",
+        "calculate": "כובי מחשב נטו…",
+        "ask_rep": "כובי שלח שאלה לנציג התחבורה ⏳",
+    }
+    assert texts["overloaded"] == "כובי עמוס כרגע. נסו שוב בעוד רגע."

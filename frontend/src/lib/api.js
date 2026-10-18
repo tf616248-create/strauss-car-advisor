@@ -7,11 +7,14 @@ export function apiBase(env) {
 }
 
 export const API_URL = apiBase(import.meta.env)
-const NETWORK_ERROR = 'אין חיבור לשרת. נסו שוב בעוד דקה.'
+// errors always say what to do next
+const NETWORK_ERROR = 'כובי לא מצליח להתחבר כרגע. נסו שוב בעוד דקה.'
+const BUSY = 'כובי עמוס כרגע. נסו שוב בעוד רגע.'
 
 async function stream(url, init, onEvent, fetchImpl) {
   try {
     const res = await fetchImpl(url, init)
+    if (res.status === 429) { onEvent('error', { message: BUSY }); return }
     if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
     const reader = res.body.getReader()
     const decoder = new TextDecoder()

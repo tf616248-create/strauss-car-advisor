@@ -19,7 +19,7 @@ const CHOICES = [
   ['מסלול משפחתי', 'מה יקרה לנטו שלי אם אעבור למסלול המשפחתי?'],
   ['לוותר על הרכב', 'מה יקרה לנטו שלי אם אוותר על הרכב?'],
 ]
-const WELCOME = 'שלום! בואו נבדוק מה יקרה לנטו שלך'
+const WELCOME = 'שלום, אני כובי – בוט הרכב של שטראוס'
 
 const fmtNet = (v) => `${v > 0 ? '+' : '−'}${Math.abs(v).toLocaleString('he-IL')} ₪`
 
@@ -210,7 +210,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
           <section className="welcome" aria-labelledby="welcome-title">
             <div className="welcome__car" aria-hidden="true"><CarBody /></div>
             <h2 id="welcome-title" className="welcome__title">{WELCOME}</h2>
-            <p className="welcome__sub">השוואה ברורה לפי כללי שטראוס ורשות המסים – תוך דקה</p>
+            <p className="welcome__sub">אבדוק בשבילך מה יקרה לנטו – השוואה ברורה לפי כללי שטראוס ורשות המסים, תוך דקה</p>
             <div className="welcome__choices">
               {CHOICES.map(([label, question]) => (
                 <button key={label} type="button" className="welcome__choice" onClick={() => ask(question)}>{label}</button>
@@ -222,7 +222,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         <ol className={`chat__messages ${messages.length ? '' : 'chat__messages--empty'}`} aria-live="polite">
           {messages.map((m) => (
             <li key={m.id} className={`msg msg--${m.role}`}>
-              {m.role === 'assistant' && m.text && <span className="msg__who">יועץ הרכב</span>}
+              {m.role === 'assistant' && m.text && <span className="msg__who">כובי · בוט</span>}
               {m.role === 'system' ? REP_ANSWERED : m.role === 'assistant' ? <Answer text={m.text} /> : m.text}
             </li>
           ))}

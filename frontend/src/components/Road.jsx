@@ -11,6 +11,7 @@ const NAMES = {
   ask_rep: 'שאלה לנציג',
 }
 const MAX_STOPS = 3
+const WAITING = 'כובי שלח שאלה לנציג התחבורה ⏳'
 // distance from the right edge (RTL: the car drives right to left), in %
 const SLOTS = [12, 34, 56]
 const START = 2
@@ -30,7 +31,8 @@ function carPosition(phase, count) {
   return `calc(${SLOTS[count - 1]}% + ${PAST_STOP}px)`
 }
 
-// the white car with the Strauss logo (also parked on the welcome screen)
+// the white car with the Strauss logo is Kobi, the bot (also parked on the welcome screen).
+// No face and no eyes, on purpose
 export function CarBody() {
   return (
   <div className="road__body">
@@ -55,7 +57,7 @@ export function CarBody() {
 
 export default function Road({ phase, stops = [], label }) {
   const shown = stops.slice(-MAX_STOPS)
-  const note = phase === 'waiting' ? '⏳ ממתין לנציג' : phase === 'arrived' ? 'התשובה מוכנה' : (label || 'חושב…')
+  const note = phase === 'waiting' ? WAITING : phase === 'arrived' ? 'התשובה מוכנה' : (label || 'כובי חושב…')
   const stopState = (i) => (phase === 'driving' && i === shown.length - 1 ? 'active' : 'done')
   return (
     <div className={`road road--${phase}`}>

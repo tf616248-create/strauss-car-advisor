@@ -12,7 +12,7 @@ function sseResponse(chunks) {
 describe('streamChat', () => {
   it('posts the message and thread id, and delivers events in order', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(sseResponse([
-      'event: step\ndata: {"tool":"calculate","label":"מחשב נטו…"}\n\n',
+      'event: step\ndata: {"tool":"calculate","label":"כובי מחשב נטו…"}\n\n',
       'event: token\ndata: {"text":"הנטו "}\n\nevent: token\ndata: {"text":"עולה"}\n\n',
       'event: done\ndata: {}\n\n',
     ]))
@@ -28,7 +28,19 @@ describe('streamChat', () => {
     const fetchImpl = vi.fn().mockRejectedValue(new TypeError('offline'))
     const got = []
     await streamChat({ message: 'x' }, (e, d) => got.push([e, d]), fetchImpl)
-    expect(got[0][0]).toBe('error')
+    expect(got).toEqual([['error', { message: 'כובי לא מצליח להתחבר כרגע. נסו שוב בעוד דקה.' }]])
+  })
+
+  it('a server that is down (e.g. 502/503) is "cannot connect", with what to do', async () => {
+    const got = []
+    await streamChat({ message: 'x' }, (e, d) => got.push([e, d]), vi.fn().mockResolvedValue({ ok: false, status: 503 }))
+    expect(got).toEqual([['error', { message: 'כובי לא מצליח להתחבר כרגע. נסו שוב בעוד דקה.' }]])
+  })
+
+  it('429 (too many requests) is "busy", with what to do', async () => {
+    const got = []
+    await streamChat({ message: 'x' }, (e, d) => got.push([e, d]), vi.fn().mockResolvedValue({ ok: false, status: 429 }))
+    expect(got).toEqual([['error', { message: 'כובי עמוס כרגע. נסו שוב בעוד רגע.' }]])
   })
 })
 
