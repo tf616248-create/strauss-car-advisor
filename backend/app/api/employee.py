@@ -19,6 +19,7 @@ from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessageChunk
 from pydantic import BaseModel, Field
 
+from app.agent.models import ModelStalledError
 from app.api.common import (SSE_HEADERS, UUID_RE, EventStreamResponse, cards_of, messages_of, sse,
                             text_of, thread_config)
 from app.api.events import conversation_events
@@ -80,7 +81,8 @@ def router(*, agent, rep_queue, notifier, cfg: dict, usage_file=None) -> APIRout
                             yield sse("card", card)
                 timing_log.info("⏱ answer: total %.3fs", time.perf_counter() - start)
                 yield sse("done", {})
-            except Exception:  # every model failed, or a bug - the employee gets a calm message
+            except (Exception, ModelStalledError):  # every model failed, one went silent, or a bug -
+                # the employee gets a calm message
                 timing_log.info("⏱ answer: failed after %.3fs", time.perf_counter() - start)
                 log.exception("chat failed (thread %s)", thread_id)
                 yield sse("error", {"message": texts["overloaded"]})

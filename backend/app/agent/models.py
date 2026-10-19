@@ -1,5 +1,6 @@
-"""Model chain: Gemini Flash first, then Groq, then OpenRouter, switching on a 429, a 5xx, a connection
-error or a timeout.
+"""Model chain: Gemini Flash first, then Groq, then OpenRouter. ANY error moves on to the next key or
+model (a 429, a 5xx, a connection error, a timeout, and also an invalid key - 401 - or a bad request),
+except a model that went silent mid-answer (see below).
 
 Keys and model names come only from the environment (.env) - see .env.example.
 A provider without a key is skipped. Gemini's free quota is per Google project,
@@ -24,9 +25,6 @@ import threading
 import time
 from typing import Any, Iterator, Mapping, Optional
 
-import groq
-import openai
-from langchain_core.exceptions import ModelAPIError, ModelConnectionError, ModelRateLimitError
 from langchain_core.language_models import BaseChatModel
 from langchain_core.language_models.chat_models import generate_from_stream
 from langchain_core.messages import BaseMessage
@@ -41,21 +39,17 @@ class ModelTimeoutError(TimeoutError):
     """A model didn't start answering within modelTimeoutSeconds."""
 
 
-class ModelStalledError(RuntimeError):
+class ModelStalledError(BaseException):
     """A model started answering, then went silent. Deliberately NOT a reason to switch models:
-    its words are already on screen, and a second model would write a second answer below them."""
+    its words are already on screen, and a second model would write a second answer below them.
+    A BaseException, so the fallbacks (which catch every Exception) let it through; whoever runs
+    the agent catches it by name (app/api/employee.py)."""
 
 
-# Errors that move on to the next key/model: 429 (quota), 5xx (e.g. 503 overload),
-# an unreachable provider (e.g. blocked by a network filter), and a call that hangs.
-# langchain-google-genai raises GoogleRateLimitError / GoogleAPIError (ModelRateLimitError /
-# ModelAPIError); Groq and OpenAI-compatible clients raise their own classes.
-RATE_LIMIT_ERRORS = (
-    groq.RateLimitError, openai.RateLimitError, ModelRateLimitError,
-    groq.InternalServerError, openai.InternalServerError, ModelAPIError,
-    groq.APIConnectionError, openai.APIConnectionError, ModelConnectionError,
-    ModelTimeoutError,
-)
+# Every error moves on to the next key/model: 429 (quota), 5xx (e.g. 503 overload), an unreachable
+# provider (e.g. blocked by a network filter), a call that hangs, an invalid key (401) - one broken
+# key must not stop the others. ModelStalledError is not an Exception, so it is never caught here.
+SWITCH_ERRORS = (Exception,)
 
 DEFAULTS = {
     "GEMINI_MODEL": "gemini-3.7-flash",
@@ -182,7 +176,7 @@ def with_fallbacks(models: list, timeout_seconds: Optional[float] = None, labels
         models = [WithTimeout(m, timeout_seconds, label) for m, label in zip(models, labels)]
     if len(models) == 1:
         return models[0]
-    return models[0].with_fallbacks(models[1:], exceptions_to_handle=RATE_LIMIT_ERRORS)
+    return models[0].with_fallbacks(models[1:], exceptions_to_handle=SWITCH_ERRORS)
 
 
 def build_model(timeout_seconds: float, env: Optional[Mapping[str, str]] = None,

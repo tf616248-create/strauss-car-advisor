@@ -86,7 +86,7 @@ def main() -> None:
 
     from app.agent.advisor import load_agent_config
     from app.agent.graph import build_agent
-    from app.agent.models import build_model
+    from app.agent.models import ModelStalledError, build_model
     from app.agent.rep_queue import InMemoryRepQueue
     from app.data.loader import load_all
 
@@ -112,7 +112,7 @@ def main() -> None:
                 out = agent.invoke({"messages": [("user", case["question"])]}, config)
                 ok, why = check(out["messages"], sentence, case)
                 answer = _final_text(out["messages"])
-            except Exception as e:  # e.g. every model failed: counts as a fail, with the reason
+            except (Exception, ModelStalledError) as e:  # e.g. every model failed: counts as a fail, with the reason
                 ok, why, answer = False, f"error: {type(e).__name__}: {e}", ""
             passed += ok
             print(f'{"PASS" if ok else "FAIL"}  [{case.get("kind", title)}] {case["id"]}: {case["question"]}')

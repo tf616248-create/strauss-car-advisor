@@ -4,7 +4,7 @@ from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import Runnable
 
-from app.agent.models import (RATE_LIMIT_ERRORS, ModelTimeoutError, available_models, build_model,
+from app.agent.models import (SWITCH_ERRORS, ModelStalledError, ModelTimeoutError, available_models, build_model,
                               with_fallbacks)
 
 ALL_KEYS = {"GOOGLE_API_KEY": "g", "GROQ_API_KEY": "q", "OPENROUTER_API_KEY": "o"}
@@ -44,8 +44,8 @@ def test_provider_rate_limit_errors_are_handled():
     import groq
     import openai
 
-    assert groq.RateLimitError in RATE_LIMIT_ERRORS
-    assert openai.RateLimitError in RATE_LIMIT_ERRORS
+    assert issubclass(groq.RateLimitError, SWITCH_ERRORS)
+    assert issubclass(openai.RateLimitError, SWITCH_ERRORS)
 
 
 class Failing(GenericFakeChatModel):
@@ -133,7 +133,7 @@ def test_provider_server_errors_are_handled():
     from langchain_core.exceptions import ModelAPIError
 
     for cls in (groq.InternalServerError, openai.InternalServerError, ModelAPIError):
-        assert cls in RATE_LIMIT_ERRORS
+        assert issubclass(cls, SWITCH_ERRORS)
 
 
 def test_connection_errors_move_on_too():
@@ -143,7 +143,7 @@ def test_connection_errors_move_on_too():
     from langchain_core.exceptions import ModelConnectionError
 
     for cls in (groq.APIConnectionError, openai.APIConnectionError, ModelConnectionError):
-        assert cls in RATE_LIMIT_ERRORS
+        assert issubclass(cls, SWITCH_ERRORS)
 
 
 class Unreachable(GenericFakeChatModel):
@@ -198,7 +198,7 @@ def test_timeout_comes_from_agent_config():
 
 
 def test_timeout_is_handled_like_a_rate_limit():
-    assert ModelTimeoutError in RATE_LIMIT_ERRORS
+    assert issubclass(ModelTimeoutError, SWITCH_ERRORS)
 
 
 def test_hanging_model_times_out():
@@ -260,3 +260,41 @@ def test_without_thinking_level_gemini_keeps_its_default():
 def test_build_model_passes_the_thinking_level():
     chain = build_model(7, ALL_KEYS, thinking_level="low")
     assert chain.runnable.model.thinking_level == "low"
+
+
+# --- every error moves to the next key, except a model that went silent mid-answer ----
+
+
+class BadKey(GenericFakeChatModel):
+    """Like Gemini with an invalid key: 401, not a rate limit."""
+
+    def _generate(self, *args, **kwargs):
+        raise PermissionError("401 UNAUTHENTICATED: API key not valid")
+
+    def bind_tools(self, tools, **kwargs) -> Runnable:
+        return self
+
+
+class Broken(GenericFakeChatModel):
+    def _generate(self, *args, **kwargs):
+        raise ValueError("400 bad request")
+
+    def bind_tools(self, tools, **kwargs) -> Runnable:
+        return self
+
+
+@pytest.mark.parametrize("failing", [BadKey, Broken])
+def test_any_error_moves_to_the_next_key(failing):
+    chain = with_fallbacks([failing(messages=iter([])), Fake(messages=iter([AIMessage(content="גיבוי")]))])
+    assert chain.invoke("שלום").content == "גיבוי"
+
+
+@pytest.mark.parametrize("failing", [BadKey, Broken])
+def test_any_error_moves_on_with_the_clock_too(failing):
+    chain = with_fallbacks([failing(messages=iter([])), Fake(messages=iter([AIMessage(content="גיבוי")]))], 5)
+    assert chain.invoke("שלום").content == "גיבוי"
+
+
+def test_a_model_that_went_silent_mid_answer_never_switches():
+    """Its words are already on the employee's screen: a second model would write a second answer."""
+    assert not issubclass(ModelStalledError, SWITCH_ERRORS)

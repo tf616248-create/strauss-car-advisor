@@ -19,10 +19,10 @@ def turn(final, calls=()):
     return msgs
 
 
-def test_five_cases_with_expectations():
+def test_six_cases_with_expectations():
     cases = json.loads(RECOMMEND_FILE.read_text(encoding="utf-8"))
-    assert [c["id"] for c in cases] == ["comfort-vague", "family-safe", "most-beautiful", "dolphin-consumption",
-                                        "recommend-no-details"]
+    assert [c["id"] for c in cases] == ["comfort-vague", "family-safe", "roomy-safe", "most-beautiful",
+                                        "dolphin-consumption", "recommend-no-details"]
     assert all(c["expect"] for c in cases)
 
 

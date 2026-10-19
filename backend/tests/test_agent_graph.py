@@ -247,6 +247,9 @@ def test_prompt_recommends_only_through_rank_options(prompt):
 
 def test_prompt_translates_a_vague_wish_into_filters_openly(prompt):
     assert "'נוח מבחינת מה?'" in prompt
+    # 'family car' at Strauss is also the family track (4+ children): ask which one is meant
+    assert "'למסלול המשפחתי, או רכב מרווח למשפחה?'" in prompt
+    assert "מרווח ← מושבים וסוג מרכב" in prompt
     for phrase in ("מקום ← מושבים וסוג מרכב", "חניה ← מצלמת רוורס", "נסיעות ארוכות ← שיוט אדפטיבי",
                    "ישיבה גבוהה ← גובה וסוג מרכב", "אומרים לעובד בגלוי איך תרגמת, והוא יכול לתקן."):
         assert phrase in prompt, phrase
