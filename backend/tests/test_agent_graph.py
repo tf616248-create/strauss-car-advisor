@@ -49,8 +49,27 @@ def tool_results(out, name):
     return [json.loads(m.content) for m in out["messages"] if isinstance(m, ToolMessage) and m.name == name]
 
 
-def test_four_tools(data):
-    assert TOOL_NAMES == {"lookup_vehicle", "check_eligibility", "calculate", "ask_rep"}
+def test_six_tools(data):
+    assert TOOL_NAMES == {"lookup_vehicle", "check_eligibility", "calculate", "ask_rep", "car_specs", "rank_options"}
+
+
+def test_car_specs_through_the_graph(data):
+    script = [call("car_specs", {"car": "BYD DOLPHIN"}), AIMessage(content="סיום")]
+    out, _ = run(data, script)
+    [res] = tool_results(out, "car_specs")
+    assert res["status"] == "ok"
+    assert res["specs"]["electric_consumption"]["provisional"] is True
+
+
+def test_rank_options_through_the_graph(data):
+    args = {k: v for k, v in employee_args(data, "E-001").items() if not k.startswith("alternative")}
+    script = [call("rank_options", {**args, "drive": ["electric"], "sort_by": "safety"}), AIMessage(content="סיום")]
+    out, _ = run(data, script)
+    [res] = tool_results(out, "rank_options")
+    assert res["status"] == "ok"
+    assert res["applied_filters"] == {"drive": ["electric"]}
+    assert res["sort_by"] == "safety"
+    assert len(res["options"]) <= 3
 
 
 def test_calculate_through_the_graph(data):
@@ -104,7 +123,7 @@ def prompt(data):
 
 def test_prompt_core_rules(prompt):
     assert "החישוב תמיד בקוד, אף פעם לא במודל השפה." in prompt
-    for phrase in ("מועתק כמו שהוא", "אסור לחשב", "לשנתי", "לאחוזים", "לא ממליצים",
+    for phrase in ("מועתק כמו שהוא", "אסור לחשב", "לשנתי", "לאחוזים",
                    "פנה לנציג", "לספרות"):
         assert phrase in prompt, phrase
 
@@ -211,3 +230,39 @@ def test_statuses_and_errors_speak_as_kobi():
         "ask_rep": "כובי שלח שאלה לנציג התחבורה ⏳",
     }
     assert texts["overloaded"] == "כובי עמוס כרגע. נסו שוב בעוד רגע."
+
+
+# --- recommending: only through rank_options --------------------------------------
+
+
+def test_prompt_recommends_only_through_rank_options(prompt):
+    assert ("מותר להמליץ רק דרך rank_options, ולפי מה שהעובד אמר שחשוב לו. בלי rank_options, לא מציגים רכבים. "
+            "מנסחים 'סידרתי לפי הנתונים', לא 'שטראוס ממליצה' ולא 'הכי טוב לך'.") in prompt
+    assert "לא ממליצים ולא מציעים חלופות אחרות" not in prompt
+    assert "'מה הכי חשוב לך: שיישאר יותר כסף בנטו, בטיחות, מקום, או משהו אחר?'" in prompt
+
+
+def test_prompt_translates_a_vague_wish_into_filters_openly(prompt):
+    assert "'נוח מבחינת מה?'" in prompt
+    for phrase in ("מקום ← מושבים וסוג מרכב", "חניה ← מצלמת רוורס", "נסיעות ארוכות ← שיוט אדפטיבי",
+                   "ישיבה גבוהה ← גובה וסוג מרכב", "אומרים לעובד בגלוי איך תרגמת, והוא יכול לתקן."):
+        assert phrase in prompt, phrase
+
+
+def test_prompt_specs_only_from_the_tools(prompt):
+    assert "על יופי, שקט, תחושת נסיעה ותא מטען אין נתון רשמי" in prompt
+    assert "נסיעת מבחן" in prompt
+    assert "אסור לכתוב נתוני מפרט מהזיכרון, רק מתוצאה של car_specs או rank_options." in prompt
+    assert "'נתון ראשוני'" in prompt and "'בקירוב'" in prompt
+    assert "'לפרטים המלאים: [המפרט אצל היבואן]'" in prompt
+
+
+def test_prompt_catalog_list_is_for_names_only(prompt):
+    assert "לזיהוי שמות בלבד. מציגים רכבים רק מתוצאה של rank_options." in prompt
+    assert '"איזה רכב כדאי לי?"' in prompt
+
+
+def test_prompt_tone_example_offers_to_sort(prompt):
+    assert "אני לא ממליץ על רכבים" not in prompt
+    assert ("מבין, זו החלטה לא פשוטה. אני יכול לסדר לך את הרכבים שמגיעים לך לפי מה שהכי חשוב לך,\n"
+            "ולהראות מה יקרה לנטו בכל אחד.") in prompt

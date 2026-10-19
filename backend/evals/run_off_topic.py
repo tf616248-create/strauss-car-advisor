@@ -6,7 +6,11 @@
 
 Off topic (off_topic.json): passes when the answer contains the fixed out-of-scope sentence
 and no tool was called. In scope (in_scope.json): passes when Kobi really answers - no fixed
-sentence (tools are fine there). Each case runs in its own conversation.
+sentence (tools are fine there). Recommend (recommend.json): each case says what it expects
+("expect": tools called or not, their arguments, words in the answer) - judge_expect reads it.
+Each case runs in its own conversation.
+
+    python -m evals.run_off_topic recommend
 """
 from __future__ import annotations
 
@@ -20,6 +24,7 @@ from langchain_core.messages import AIMessage
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 CASES_FILE = BACKEND_DIR / "evals" / "off_topic.json"
 IN_SCOPE_FILE = BACKEND_DIR / "evals" / "in_scope.json"
+RECOMMEND_FILE = BACKEND_DIR / "evals" / "recommend.json"
 
 
 def _final_text(messages: list) -> str:
@@ -47,6 +52,35 @@ def judge_in_scope(messages: list, sentence: str) -> tuple[bool, str]:
     return True, ""
 
 
+def judge_expect(messages: list, expect: dict, sentence: str, car_names: list[str]) -> tuple[bool, str]:
+    """Recommend: (passed, why not), from the case's "expect"."""
+    calls = [tc for m in messages if isinstance(m, AIMessage) for tc in m.tool_calls]
+    called = {tc["name"] for tc in calls}
+    text = _final_text(messages)
+    for name in expect.get("no_tools", []):
+        if name in called:
+            return False, f"called {name}"
+    for name in expect.get("tools", []):
+        if name not in called:
+            return False, f"did not call {name}"
+    for name, wanted in expect.get("tool_args", {}).items():
+        if not any(tc["name"] == name and all(tc["args"].get(k) == v for k, v in wanted.items()) for tc in calls):
+            return False, f"{name} without {wanted}"
+    for name, keys in expect.get("tool_args_any", {}).items():
+        if not any(tc["name"] == name and any(tc["args"].get(k) not in (None, [], "") for k in keys) for tc in calls):
+            return False, f"{name} without any of {keys}"
+    if expect.get("not_refused") and sentence in text:
+        return False, "refused (fixed sentence)"
+    if expect.get("no_car_names"):
+        shown = [n for n in car_names if n.upper() in text.upper()]
+        if shown:
+            return False, "shows cars before rank_options: " + ", ".join(shown)
+    for group in expect.get("text_any", []):
+        if not any(word in text for word in group):
+            return False, f"answer has none of {group}"
+    return True, ""
+
+
 def main() -> None:
     from dotenv import load_dotenv
 
@@ -60,9 +94,13 @@ def main() -> None:
     load_dotenv(BACKEND_DIR / ".env")
     cfg = load_agent_config(BACKEND_DIR)
     sentence = cfg["texts"]["outOfScope"]
+    data = load_all(BACKEND_DIR)
     agent = build_agent(build_model(cfg["modelTimeoutSeconds"], thinking_level=cfg["geminiThinkingLevel"]),
-                        load_all(BACKEND_DIR), InMemoryRepQueue(), cfg)
-    sets = {"off_topic": ("off topic", CASES_FILE, judge), "in_scope": ("in scope", IN_SCOPE_FILE, judge_in_scope)}
+                        data, InMemoryRepQueue(), cfg)  # car specs: the snapshot in git
+    cars = [c["name"] for c in data.catalog.values()]
+    sets = {"off_topic": ("off topic", CASES_FILE, lambda m, s, case: judge(m, s)),
+            "in_scope": ("in scope", IN_SCOPE_FILE, lambda m, s, case: judge_in_scope(m, s)),
+            "recommend": ("recommend", RECOMMEND_FILE, lambda m, s, case: judge_expect(m, case["expect"], s, cars))}
     chosen = sys.argv[1:] or list(sets)  # e.g. "python -m evals.run_off_topic in_scope" saves model quota
     for title, path, check in (sets[name] for name in chosen):
         cases = json.loads(path.read_text(encoding="utf-8"))
@@ -72,7 +110,7 @@ def main() -> None:
             config = {"configurable": {"thread_id": f"eval-{uuid.uuid4()}"}}
             try:
                 out = agent.invoke({"messages": [("user", case["question"])]}, config)
-                ok, why = check(out["messages"], sentence)
+                ok, why = check(out["messages"], sentence, case)
                 answer = _final_text(out["messages"])
             except Exception as e:  # e.g. every model failed: counts as a fail, with the reason
                 ok, why, answer = False, f"error: {type(e).__name__}: {e}", ""

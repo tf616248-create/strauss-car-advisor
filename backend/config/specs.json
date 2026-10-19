@@ -80,6 +80,59 @@
       "useForFiltering": true
     }
   },
+  "agent": {
+    "_readme": "The agent's car_specs and rank_options tools (app/agent/car_options.py). Labels are what the employee sees. A field with no data is never shown.",
+    "hidden": ["kinuy_mishari"],
+    "labels": {
+      "merkav": "סוג מרכב",
+      "mispar_moshavim": "מושבים",
+      "mispar_dlatot": "דלתות",
+      "koah_sus": "כוח סוס",
+      "automatic_ind": "תיבת הילוכים אוטומטית",
+      "mazgan_ind": "מזגן",
+      "bakarat_shyut_adaptivit_ind": "בקרת שיוט אדפטיבית",
+      "matzlemat_reverse_ind": "מצלמת רוורס",
+      "gova": "גובה",
+      "delek_nm": "דלק",
+      "technologiat_hanaa_nm": "הנעה",
+      "nikud_betihut": "ניקוד בטיחות",
+      "ramat_eivzur_betihuty": "רמת אבזור בטיחותי",
+      "kvutzat_zihum": "קבוצת זיהום",
+      "madad_yarok": "מדד ירוק",
+      "CO2_WLTP": "פליטת CO2 (גרם לק\"מ, WLTP)",
+      "ramat_gimur": "רמת גימור",
+      "fuel_consumption": "צריכת דלק (ליטר ל-100 ק\"מ, בקירוב)",
+      "electric_consumption": "צריכת חשמל (Wh לק\"מ)",
+      "electric_range": "טווח חשמלי (ק\"מ)",
+      "participation": "השתתפות חודשית"
+    },
+    "fuelSource": "משרד התחבורה (פליטת CO2), מחושב במקדם של EPA - בקירוב",
+    "plugInFuel": "תלוי בטעינה",
+    "top": 3,
+    "_trims": "A car with several trims: a filter or a sort uses the value every trim has (min for 'higher is better', max for 'lower is better'). Flags count only if every trim has them.",
+    "sortBy": {
+      "net": {"direction": "higher_is_better"},
+      "safety": {"field": "nikud_betihut", "directionFrom": "indices"},
+      "seats": {"field": "mispar_moshavim", "direction": "higher_is_better"},
+      "power": {"field": "koah_sus", "direction": "higher_is_better"},
+      "consumption": {"field": "consumption", "direction": "lower_is_better",
+                      "_note": "Electricity (Wh/km, EEA) and fuel (L/100km) can't be compared: a mixed list is refused."},
+      "pollution": {"field": "kvutzat_zihum", "directionFrom": "indices"}
+    },
+    "filters": {
+      "drive": {"op": "drive", "values": ["electric", "plug_in", "hybrid", "petrol", "diesel"]},
+      "min_seats": {"field": "mispar_moshavim", "op": "min"},
+      "body_type": {"field": "merkav", "op": "one_of"},
+      "automatic": {"field": "automatic_ind", "op": "flag"},
+      "adaptive_cruise": {"field": "bakarat_shyut_adaptivit_ind", "op": "flag"},
+      "reverse_camera": {"field": "matzlemat_reverse_ind", "op": "flag"},
+      "min_horsepower": {"field": "koah_sus", "op": "min"},
+      "min_safety_score": {"field": "nikud_betihut", "op": "min"},
+      "min_safety_level": {"field": "ramat_eivzur_betihuty", "op": "min"},
+      "max_pollution_group": {"field": "kvutzat_zihum", "op": "max"},
+      "max_participation": {"field": "participation", "op": "max"}
+    }
+  },
   "knownMissing": {
     "_note": "Catalog cars the source has no rows for (checked 2026-10-19). A test checks every car is found or listed here.",
     "mot": ["CAR-20"],

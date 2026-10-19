@@ -18,7 +18,8 @@ flowchart TB
         API_E["api/employee.py<br/>צ'אט, מצב שיחה, אירועי SSE"]
         API_R["api/rep.py<br/>הכול מאחורי סיסמה"]
         AGENT["איג'נט LangGraph (agent/graph.py)<br/>create_react_agent + פרומפט"]
-        TOOLS["4 כלים (agent/advisor.py)<br/>lookup_vehicle · check_eligibility<br/>calculate · ask_rep"]
+        TOOLS["6 כלים (agent/advisor.py, agent/car_options.py)<br/>lookup_vehicle · check_eligibility<br/>calculate · ask_rep<br/>car_specs · rank_options"]
+        SPECS["data/specs_store.py<br/>מפרט רכב: גיבוי בגיט, רענון יומי ברקע"]
         EVENTS["api/events.py<br/>publish / subscribe בזיכרון"]
     end
 
@@ -52,6 +53,8 @@ flowchart TB
     EVENTS -.-> API_E
     AGENT -- "checkpoint" --> DB
     DATA -- "נטען פעם אחת בעליית השרת (data/loader.py)" --> TOOLS
+    SPECS --> TOOLS
+    GOV["משרד התחבורה (data.gov.il) · EEA"] -. "פעם ביום" .-> SPECS
 ```
 
 | שכבה | מה היא עושה | מה היא לא עושה |
@@ -106,6 +109,15 @@ sequenceDiagram
     AG->>T: check_eligibility
     T->>E: build_scenario
     E-->>T: זכאי / לא זכאי + סיבה
+    opt העובד שואל "איזה רכב כדאי לי?"
+        AG->>T: rank_options(נתוני העובד, סינונים, sort_by)
+        T->>T: calculate לכל רכב בקטלוג (זכאות + נטו)
+        T-->>AG: 3 רכבים מסודרים + diff + מפרט + מה הוצא ולמה
+    end
+    opt העובד שואל על נתון של רכב
+        AG->>T: car_specs(car)
+        T-->>AG: מפרט עם מקור ושנה לכל נתון + קישור ליבואן
+    end
     AG->>T: calculate
     T->>E: build_scenario + compute_net (היום מול החלופה)
     E-->>T: נטו, רכיבים, הפרשים
@@ -114,6 +126,8 @@ sequenceDiagram
     AG-->>UI: הסבר בשפה חופשית (token אחר token)
     API-->>UI: done
 ```
+
+`rank_options` לא מחשב בעצמו: הוא קורא ל-`calculate` לכל רכב בקטלוג, ולכן הזכאות והנטו זהים. הוא מסנן ומסדר בקוד, לפי הכיוון שב-`config/specs.json`. המודל רק מנסח, ואסור לו להציג רכב שלא הגיע מהכלי.
 
 המודל מחליט על סדר הקריאות. הסדר שבדיאגרמה הוא הסדר הרגיל, לא סדר שהקוד אוכף. `calculate` מזהה את הרכב בעצמו, גם בלי קריאה קודמת ל-`lookup_vehicle`.
 ניסיונות כושלים נספרים מתוך תוצאות הכלים הקודמות בשיחה, ולכן הכלים עצמם בלי מצב. נתוני השכר של העובד לא עוברים לנציג אף פעם, כי העובד לא מזוהה והנציג לא יכול לדעת אותם. אחרי ניסיון שני הבוט אומר לעובד שהנתון מופיע בתלוש. `ask_rep` עם שדה שכר מחזיר `not_for_rep`. לנציג עוברים רק מידע של החברה, רכב שלא זוהה, וסתירה בקבוצה.

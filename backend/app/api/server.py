@@ -54,6 +54,10 @@ else:
 
 data = load_all(BACKEND_DIR)
 
+# car specs (MOT + EEA) for car_specs and rank_options: starts from the snapshot, then loads from the
+# APIs in a background thread, so /health is not held up; refreshed daily
+specs = build_specs_store(data.catalog, BACKEND_DIR)
+
 app = create_app(
     data=data,
     model=build_model(cfg["modelTimeoutSeconds"], thinking_level=cfg["geminiThinkingLevel"]),
@@ -64,8 +68,7 @@ app = create_app(
     checkpointer=checkpointer,
     origins=origins,
     usage_file=BACKEND_DIR / cfg["usage"]["file"],  # cost of each question, not in git
+    specs=specs,
 )
-
-# car specs (MOT + EEA): loaded in a background thread, so /health is not held up; refreshed daily
-app.state.specs = build_specs_store(data.catalog, BACKEND_DIR)
-app.state.specs.start_background()
+app.state.specs = specs
+specs.start_background()

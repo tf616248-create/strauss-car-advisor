@@ -83,6 +83,12 @@ class SpecsStore:
             log.warning("%s: נטען מהגיבוי (%s: %s)", name, type(e).__name__, e)
             return {**snap, "origin": "snapshot"}
 
+    def load_snapshot(self) -> None:
+        """The snapshot only, no network: the agent's tools have specs before the first live load.
+        Doesn't count as a load, so refresh_if_due still goes to the API."""
+        with self._lock:
+            self._data = {name: {**entry, "origin": "snapshot"} for name, entry in self._snapshot().items()}
+
     def load_all(self) -> None:
         fresh = {name: self._load(name) for name in self._loaders}
         with self._lock:
@@ -124,8 +130,22 @@ class SpecsStore:
         return out
 
 
+def _links(backend_dir: Path) -> dict[str, Optional[str]]:
+    return {cid: c.get("importer_url") for cid, c in load_car_sources(backend_dir).items()}
+
+
 def build_specs_store(catalog: dict, backend_dir: Path) -> SpecsStore:
+    """Starts from the snapshot; start_background() then loads from the APIs."""
     cfg = load_specs_config(backend_dir)
-    links = {cid: c.get("importer_url") for cid, c in load_car_sources(backend_dir).items()}
-    return SpecsStore(live_loaders(catalog, backend_dir), Path(backend_dir) / cfg["snapshot"], cfg["refreshHours"],
-                      links=links)
+    store = SpecsStore(live_loaders(catalog, backend_dir), Path(backend_dir) / cfg["snapshot"], cfg["refreshHours"],
+                       links=_links(backend_dir))
+    store.load_snapshot()
+    return store
+
+
+def snapshot_store(backend_dir: Path) -> SpecsStore:
+    """The snapshot only, never the network (tests, evals, the console chat)."""
+    cfg = load_specs_config(backend_dir)
+    store = SpecsStore({}, Path(backend_dir) / cfg["snapshot"], cfg["refreshHours"], links=_links(backend_dir))
+    store.load_snapshot()
+    return store

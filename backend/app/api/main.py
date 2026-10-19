@@ -20,9 +20,10 @@ from app.api import employee, rep
 
 def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Optional[str],
                checkpointer=None, origins: tuple[str, ...] = ("http://localhost:5173",),
-               usage_file=None) -> FastAPI:
-    """usage_file: a CSV with the cost of each question (app/usage.py); None writes nothing (tests)."""
-    agent = build_agent(model, data, rep_queue, cfg, checkpointer)
+               usage_file=None, specs=None) -> FastAPI:
+    """usage_file: a CSV with the cost of each question (app/usage.py); None writes nothing (tests).
+    specs: the car specs store (app/data/specs_store.py); None = the snapshot in git, no network."""
+    agent = build_agent(model, data, rep_queue, cfg, checkpointer, specs=specs)
     app = FastAPI(title="Strauss car advisor")
     app.add_middleware(CORSMiddleware, allow_origins=list(origins), allow_methods=["*"], allow_headers=["*"])
 

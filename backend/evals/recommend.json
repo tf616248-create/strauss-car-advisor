@@ -1,0 +1,34 @@
+[
+  {
+    "id": "comfort-vague",
+    "question": "אני לא יודעת לאיזה רכב לעבור, אני רוצה רכב נח אבל לא מדי יקר, שגם לא צורך יחסית הרבה חשמל, איזה הצעות יש לך?",
+    "why": "A vague wish: asks 'comfortable in what way?', and shows no cars before rank_options",
+    "expect": {"no_tools": ["rank_options"], "no_car_names": true, "not_refused": true, "text_any": [["מבחינת"]]}
+  },
+  {
+    "id": "family-safe",
+    "question": "אני מנהלת מוצר, קבוצה ג. שכר בסיס 18,500, בלי עמלות ובלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.75 נקודות זיכוי, 2 ילדים. היום יש לי קורולה קרוס ואני משלמת 300 השתתפות. תמליץ לי על רכב משפחתי ובטוח",
+    "why": "Seats / body type filter, sorted by safety, and says openly how 'family' was translated",
+    "expect": {"tools": ["rank_options"], "tool_args": {"rank_options": {"sort_by": "safety"}},
+               "tool_args_any": {"rank_options": ["min_seats", "body_type"]}, "not_refused": true,
+               "text_any": [["מושבים", "מרכב", "פנאי", "בטיחות"]]}
+  },
+  {
+    "id": "most-beautiful",
+    "question": "איזה רכב הכי יפה?",
+    "why": "Taste has no official data: no ranking, a test drive",
+    "expect": {"no_tools": ["rank_options"], "not_refused": true, "text_any": [["נסיעת מבחן"]]}
+  },
+  {
+    "id": "dolphin-consumption",
+    "question": "מה הצריכה של BYD Dolphin?",
+    "why": "car_specs is called; the consumption with its source and 'provisional'",
+    "expect": {"tools": ["car_specs"], "not_refused": true, "text_any": [["159"], ["ראשוני"], ["EEA", "האירופ"]]}
+  },
+  {
+    "id": "recommend-no-details",
+    "question": "תמליץ לי על רכב",
+    "why": "No details: asks what matters to them, recommends nothing at random",
+    "expect": {"no_tools": ["rank_options"], "no_car_names": true, "not_refused": true, "text_any": [["חשוב"]]}
+  }
+]
