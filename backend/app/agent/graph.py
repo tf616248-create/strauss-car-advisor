@@ -113,11 +113,14 @@ def make_tools(data, rep_queue, cfg: dict, specs=None) -> list:
         with timed("tool ask_rep"):
             return _dump(advisor.ask_rep(fields, question, car, registration_year, thread_id=_thread(config)))
 
-    @tool
-    def car_specs(car: Annotated[str, "שם הרכב בקטלוג, באנגלית כמו ברשימה (למשל BYD DOLPHIN)"]) -> str:
+    @tool(response_format="content_and_artifact")
+    def car_specs(car: Annotated[str, "שם הרכב בקטלוג, באנגלית כמו ברשימה (למשל BYD DOLPHIN)"]
+                  ) -> tuple[str, Optional[dict]]:
         """מה ידוע על רכב מהקטלוג: המפרט הרשמי (משרד התחבורה, EEA), עם מקור ושנה לכל נתון, וקישור ליבואן."""
         with timed("tool car_specs"):
-            return _dump(options.car_specs(car))
+            result = options.car_specs(car)
+        # the model reads the specs to answer; the same specs also go to the screen as a card
+        return _dump(result), options.specs_card(result)
 
     @tool(response_format="content_and_artifact")
     def rank_options(

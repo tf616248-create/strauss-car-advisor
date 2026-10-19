@@ -31,8 +31,9 @@ def text_of(content) -> str:
 
 
 def cards_of(messages) -> list[dict]:
-    """The cards for the screen: the comparison card (in calculate's result) and the ranking card
-    (rank_options' artifact - the model never reads it, only its short result)."""
+    """The cards for the screen: the comparison card (in calculate's result), the ranking card
+    (rank_options' artifact - the model never reads it, only its short result) and the specs card
+    (car_specs' artifact)."""
     out = []
     for m in messages:
         if m.type == "tool" and m.name == "calculate":
@@ -41,6 +42,8 @@ def cards_of(messages) -> list[dict]:
                 out.append({"status": res["status"], "kind": "comparison", "card": res["card"]})
         elif m.type == "tool" and m.name == "rank_options" and getattr(m, "artifact", None):
             out.append({"status": "ok", "kind": "ranking", "card": m.artifact})
+        elif m.type == "tool" and m.name == "car_specs" and getattr(m, "artifact", None):
+            out.append({"status": "ok", "kind": "specs", "card": m.artifact})
     return out
 
 

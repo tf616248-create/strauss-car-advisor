@@ -424,3 +424,53 @@ def test_the_ranking_card_reaches_the_screen_over_sse(data, cfg):
     cards = [d for e, d in chat(client, "תסדר לי לפי בטיחות") if e == "card"]
     assert [c["kind"] for c in cards] == ["ranking"]
     assert cards[0]["card"]["options"][0]["specs"]["nikud_betihut"]
+
+
+# --- the cards on the screen: sources with their date, and a card for car_specs -----------
+
+
+def test_each_ranked_car_names_its_sources_with_the_date(data, cfg, store):
+    opts, _ = make(data, cfg, store)
+    _, card = opts.rank_options(employee(data, "E-006"), {"drive": ["electric"]}, "safety")
+    for o in card["options"]:
+        names = [s["name"] for s in o["sources"]]
+        assert names == ["משרד התחבורה", "EEA"]  # electric cars: EEA too
+        assert all(s["fetched_at"] for s in o["sources"])
+    _, petrol = opts.rank_options(employee(data, "E-006"), {"drive": ["petrol"]}, "net")
+    assert [s["name"] for s in petrol["options"][0]["sources"]] == ["משרד התחבורה"]
+
+
+def test_car_specs_card(data, cfg, store):
+    opts, _ = make(data, cfg, store)
+    card = opts.specs_card(opts.car_specs("BYD DOLPHIN"))
+    assert card["type"] == "specs" and card["car"] == "BYD DOLPHIN"
+    assert card["specs"] == opts.car_specs("BYD DOLPHIN")["specs"]
+    assert [s["name"] for s in card["sources"]] == ["משרד התחבורה", "EEA"]
+    assert card["importer_url"].startswith("https://")
+
+
+def test_car_specs_card_without_official_data(data, cfg, store):
+    opts, _ = make(data, cfg, store)
+    card = opts.specs_card(opts.car_specs("SANTA FE"))
+    assert card == {"type": "specs", "car": "SANTA FE", "specs": {}, "sources": [],
+                    "importer_url": card["importer_url"], "message": "אין נתון רשמי"}
+    assert card["importer_url"].startswith("https://")
+
+
+def test_no_card_for_a_car_outside_the_catalog(data, cfg, store):
+    opts, _ = make(data, cfg, store)
+    assert opts.specs_card(opts.car_specs("ATTO 2")) is None
+
+
+def test_the_specs_card_goes_to_the_screen():
+    import json
+
+    from langchain_core.messages import ToolMessage
+
+    from app.api.common import cards_of, comparison_cards
+
+    msg = ToolMessage(content=json.dumps({"status": "ok"}), tool_call_id="1", name="car_specs",
+                      artifact={"type": "specs", "car": "MG4", "specs": {}})
+    cards = cards_of([msg])
+    assert cards == [{"status": "ok", "kind": "specs", "card": {"type": "specs", "car": "MG4", "specs": {}}}]
+    assert comparison_cards(cards) == []

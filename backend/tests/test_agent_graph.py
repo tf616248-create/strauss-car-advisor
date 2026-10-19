@@ -57,6 +57,8 @@ def test_car_specs_through_the_graph(data):
     script = [call("car_specs", {"car": "BYD DOLPHIN"}), AIMessage(content="סיום")]
     out, _ = run(data, script)
     [res] = tool_results(out, "car_specs")
+    [msg] = [m for m in out["messages"] if isinstance(m, ToolMessage) and m.name == "car_specs"]
+    assert msg.artifact["type"] == "specs" and msg.artifact["car"] == "BYD DOLPHIN"  # the card for the screen
     assert res["status"] == "ok"
     assert res["specs"]["electric_consumption"]["provisional"] is True
 

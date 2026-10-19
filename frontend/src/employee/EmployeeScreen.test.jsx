@@ -473,4 +473,15 @@ describe('ranking card', () => {
     expect(await within(cards).findByRole('heading', { name: /סידרתי לפי/ })).toBeInTheDocument()
     expect(within(cards).getAllByRole('article')).toHaveLength(ranking.card.options.length)
   })
+
+  it('shows the car_specs card beside the chat', async () => {
+    const { default: specs } = await import('../test-fixtures/card-specs.json')
+    setup({ chatEvents: [['thread', { thread_id: TID }], ['card', specs], ['token', { text: 'הנה' }], ['done', {}]] })
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), 'מה הצריכה של דולפין?')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    const cards = await screen.findByRole('complementary', { name: 'כרטיס השוואה' })
+    expect(await within(cards).findByRole('region', { name: 'מפרט הרכב' })).toBeInTheDocument()
+    expect(within(cards).getByRole('heading', { name: 'BYD DOLPHIN' })).toBeInTheDocument()
+  })
 })

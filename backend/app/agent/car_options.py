@@ -122,6 +122,24 @@ class CarOptions:
                 specs[name] = item
         return specs
 
+    def _sources(self, raw: dict) -> list[dict]:
+        """The sources this car has data from, short name and date - for the card's "מקור" line."""
+        short = self.cfg["sourceShort"]
+        return [{"name": short[name], "fetched_at": raw[name]["fetched_at"]}
+                for name in ("mot", "eea") if raw.get(name)]
+
+    def specs_card(self, result: dict) -> Optional[dict]:
+        """The car_specs card for the screen (the tool's artifact). None for a car outside the catalog."""
+        if result.get("status") not in ("ok", "no_official_data"):
+            return None
+        car = self.advisor._catalog_match(result["car"])
+        card = {"type": "specs", "car": result["car"], "specs": result.get("specs", {}),
+                "sources": self._sources(self.store.for_car(car["id"])) if result.get("specs") else [],
+                "importer_url": result.get("importer_url")}
+        if "message" in result:
+            card["message"] = result["message"]
+        return card
+
     def car_specs(self, name: str) -> dict:
         car = self.advisor._catalog_match(name)
         if car is None:
@@ -333,7 +351,8 @@ class CarOptions:
             card_options.append({"rank": i, "car": car["name"], "group": car["group"], "kind": kind,
                                  "participation": car["defaultParticipation"], "net": net(card),
                                  "diff": card["diff"], "sort_value": sort_value, "tie_broken_by_net": tie,
-                                 "specs": specs, "importer_url": raw.get("importer_url")})
+                                 "specs": specs, "sources": self._sources(raw),
+                                 "importer_url": raw.get("importer_url")})
 
         result = {"status": "ok" if options else "no_match", "sort_by": sort_by, "direction": direction,
                   "applied_filters": filters, "options": options, "excluded_missing_data": excluded,

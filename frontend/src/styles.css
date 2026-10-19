@@ -256,6 +256,16 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .rank__spec { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
 .rank__spec dt { color: var(--muted); }
 .rank__spec dd { margin: 0; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+/* spec tags, the source line and the importer button (ranking and specs cards) */
+.tags { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.tags li { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; font-size: 0.85rem; }
+.sources { margin: 0; color: var(--muted); font-size: 0.8rem; }
+.importer { align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--cyan); border-radius: 999px; color: var(--text); font-weight: 600; text-decoration: none; }
+.importer:hover { background: var(--surface); }
+.importer:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+.waiting-rep { border: 1px dashed var(--line); border-radius: var(--radius); padding: 8px 16px; display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+.waiting-rep__row { display: flex; gap: 8px; align-items: baseline; }
+.specs-card h3 { font-size: 1rem; font-weight: 700; }
 .card__scroll { border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; }
 .card__table { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
 .card__table th, .card__table td { text-align: start; padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: top; }

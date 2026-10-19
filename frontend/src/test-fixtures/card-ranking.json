@@ -146,6 +146,16 @@
       "varies_by_trim": true
      }
     },
+    "sources": [
+     {
+      "name": "משרד התחבורה",
+      "fetched_at": "2026-10-19T20:14:26+00:00"
+     },
+     {
+      "name": "EEA",
+      "fetched_at": "2026-10-19T20:14:38+00:00"
+     }
+    ],
     "importer_url": "https://mg-israel.co.il/model/new-mg4-x-range/"
    },
    {
@@ -286,6 +296,16 @@
       "note": "נתון ראשוני"
      }
     },
+    "sources": [
+     {
+      "name": "משרד התחבורה",
+      "fetched_at": "2026-10-19T20:14:26+00:00"
+     },
+     {
+      "name": "EEA",
+      "fetched_at": "2026-10-19T20:14:38+00:00"
+     }
+    ],
     "importer_url": "https://bydauto.co.il/model/byd-dolphin-/"
    },
    {
@@ -428,6 +448,16 @@
       "note": "נתון ראשוני"
      }
     },
+    "sources": [
+     {
+      "name": "משרד התחבורה",
+      "fetched_at": "2026-10-19T20:14:26+00:00"
+     },
+     {
+      "name": "EEA",
+      "fetched_at": "2026-10-19T20:14:38+00:00"
+     }
+    ],
     "importer_url": "https://www.colmobil.co.il/brands/hyundai/"
    }
   ],
