@@ -5,6 +5,18 @@
   "modelTimeoutSeconds": 30,
   "geminiThinkingLevel": "low",
   "sseHeartbeatSeconds": 20,
+  "usage": {
+    "note": "Cost of each question (app/usage.py): a line in the server log and a row in this file (relative to backend/, not in git). Prices in USD per million tokens, per provider; a provider without a price gets no cost. Output includes thinking tokens.",
+    "file": "logs/usage.csv",
+    "prices": {
+      "gemini": {
+        "model": "gemini-3.7-flash",
+        "inputPerMillionUsd": 0.75,
+        "outputPerMillionUsd": 3.75,
+        "source": "https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.7 - introductory price until 31/12/2026, then 1.50 / 7.50. Verify before budgeting."
+      }
+    }
+  },
   "ranges": {
     "base": [1, 500000],
     "commission": [0, 500000],
@@ -16,6 +28,7 @@
     "current_participation": [0, 10000]
   },
   "texts": {
+    "outOfScope": "אני כובי, ואני יודע לעזור רק בשאלות על רכב החברה והנטו שלכם בשטראוס. רוצים לבדוק מה יקרה לנטו אם תחליפו רכב, תעברו לחשמלי, למסלול המשפחתי או תוותרו על הרכב?",
     "repSent": "שלחתי שאלה לנציג התחבורה, והחלופה תתעדכן",
     "repAnswered": "[עדכון מהמערכת: הנציג ענה על השאלה]",
     "pending": "⏳ ממתין לנציג",

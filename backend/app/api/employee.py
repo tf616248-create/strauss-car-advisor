@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 from app.api.common import (SSE_HEADERS, UUID_RE, EventStreamResponse, cards_of, messages_of, sse,
                             text_of, thread_config)
 from app.api.events import conversation_events
+from app.usage import append_row, turn_usage
 
 log = logging.getLogger(__name__)
 timing_log = logging.getLogger("app.timing")
@@ -32,8 +33,22 @@ class ChatIn(BaseModel):
     thread_id: Optional[str] = Field(default=None, pattern=UUID_RE)
 
 
-def router(*, agent, rep_queue, notifier, cfg: dict) -> APIRouter:
+def router(*, agent, rep_queue, notifier, cfg: dict, usage_file=None) -> APIRouter:
     texts = cfg["texts"]
+    prices = cfg["usage"]["prices"]
+
+    def record_usage(thread_id: str, question: str, answers: list) -> None:
+        """Cost of the question: one line in the server log, and a row in usage_file."""
+        u = turn_usage(answers, prices)
+        cost = "-" if u["cost_usd"] is None else f"${u['cost_usd']:.5f}"
+        timing_log.info("💲 question: %d model calls, %d tokens in, %d out (%s), %s",
+                        u["calls"], u["input_tokens"], u["output_tokens"], u["models"], cost)
+        if usage_file is not None:
+            try:
+                append_row(usage_file, {**u, "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                        "question": question, "thread_id": thread_id})
+            except OSError:  # e.g. the file is open in Excel - the answer matters more than the row
+                log.exception("could not write %s", usage_file)
     r = APIRouter(tags=["employee"])
 
     def run(thread_id: str, message: str, new: bool) -> StreamingResponse:
@@ -42,6 +57,7 @@ def router(*, agent, rep_queue, notifier, cfg: dict) -> APIRouter:
                 yield sse("thread", {"thread_id": thread_id})
             start = time.perf_counter()
             first_token = None
+            answers = []  # the model's messages in this question, for its cost
             try:
                 for mode, chunk in agent.stream({"messages": [("user", message)]}, thread_config(thread_id),
                                                 stream_mode=["messages", "updates"]):
@@ -55,6 +71,7 @@ def router(*, agent, rep_queue, notifier, cfg: dict) -> APIRouter:
                                     timing_log.info("⏱ answer: first word after %.3fs", first_token)
                                 yield sse("token", {"text": text})
                     elif "agent" in chunk:
+                        answers.extend(chunk["agent"].get("messages", []))
                         for msg in chunk["agent"].get("messages", []):
                             for tc in getattr(msg, "tool_calls", []) or []:
                                 yield sse("step", {"tool": tc["name"], "label": texts["steps"].get(tc["name"], "")})
@@ -67,6 +84,9 @@ def router(*, agent, rep_queue, notifier, cfg: dict) -> APIRouter:
                 timing_log.info("⏱ answer: failed after %.3fs", time.perf_counter() - start)
                 log.exception("chat failed (thread %s)", thread_id)
                 yield sse("error", {"message": texts["overloaded"]})
+            finally:
+                if answers:
+                    record_usage(thread_id, message, answers)
 
         return StreamingResponse(stream(), media_type="text/event-stream", headers=SSE_HEADERS)
 

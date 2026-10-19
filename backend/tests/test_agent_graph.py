@@ -187,9 +187,19 @@ def test_prompt_no_tables_in_the_chat(prompt):
 
 
 def test_prompt_kobi_is_a_bot_and_says_so(prompt):
-    assert prompt.startswith("אתה כובי, בוט הרכב של שטראוס. אתה בוט, ואם שואלים – אומר זאת.")
-    assert "הטון: חם וענייני. בלי אימוג'י ובלי בדיחות בתשובות על כסף." in prompt
+    assert "אתה כובי, בוט הרכב של שטראוס. אתה בוט, ואם שואלים – אומר זאת." in prompt
     assert "יועץ הרכב של שטראוס" not in prompt
+
+
+def test_prompt_tone_section(prompt):
+    """Like a friendly colleague: short opening, the point, one clear question; no flattery."""
+    assert "## טון" in prompt
+    assert "מדבר כמו עמית נחמד מהעבודה" in prompt
+    assert "פונה בלשון שבה העובד כותב (זכר או נקבה). אם אין סימן, ברבים." in prompt
+    assert "בלי חנופה" in prompt and "בלי אימוג'י" in prompt
+    assert "אורך: 2–5 משפטים, אלא כשמציגים תוצאת חישוב." in prompt
+    assert "הטון: חם וענייני" not in prompt
+    assert "קצר וברור" not in prompt
 
 
 def test_statuses_and_errors_speak_as_kobi():

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -425,5 +426,37 @@ describe('EmployeeScreen', () => {
       await screen.findByText('שאלה')
       expect(screen.queryByRole('button', { name: 'לעבור לרכב חשמלי' })).toBeNull()
     })
+  })
+})
+
+// the message box grows with each line, like other chats; past ~7 lines it scrolls (styles.css)
+describe('message box grows with the text', () => {
+  const LINE = 24
+  beforeEach(() => {
+    // jsdom has no layout: the content height is one LINE per line of text
+    Object.defineProperty(HTMLTextAreaElement.prototype, 'scrollHeight', {
+      configurable: true, get() { return this.value.split('\n').length * LINE },
+    })
+  })
+  afterEach(() => { delete HTMLTextAreaElement.prototype.scrollHeight })
+
+  it('takes the height of its text, and goes back to one line after sending', async () => {
+    setup({ chatEvents: [['done', {}]] })
+    const user = userEvent.setup()
+    const box = screen.getByLabelText('הודעה')
+    await user.type(box, 'שורה 1{Shift>}{Enter}{/Shift}שורה 2{Shift>}{Enter}{/Shift}שורה 3')
+    expect(box.style.height).toBe(`${3 * LINE}px`)
+    await user.type(box, '{Enter}')
+    await waitFor(() => expect(box.style.height).toBe(`${LINE}px`))
+  })
+
+  it('stops growing at about 7 lines and scrolls from there; the buttons stay at the bottom', () => {
+    const css = readFileSync('src/styles.css', 'utf8')
+    const rule = css.match(/\.chat__form textarea \{([^}]*)\}/)[1]
+    expect(rule).toMatch(/max-height:\s*calc\(7 \* 1\.5em/)
+    expect(rule).toMatch(/overflow-y:\s*auto/)
+    expect(rule).toMatch(/line-height:\s*1\.5/)
+    expect(rule).not.toMatch(/border-radius:\s*999px/) // a pill looks wrong at 7 lines
+    expect(css).toMatch(/\.chat__form \{[^}]*align-items:\s*flex-end/)
   })
 })

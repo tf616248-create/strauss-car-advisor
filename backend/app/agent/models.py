@@ -161,6 +161,9 @@ class WithTimeout(BaseChatModel):
                     raise item
                 if first_word is None:
                     first_word = time.perf_counter() - started
+                    # which model answered, for the cost of the question (app/usage.py); first chunk
+                    # only, since chunks are merged and strings in response_metadata would concatenate
+                    item.response_metadata = {**item.response_metadata, "kobi_model": self.label}
                 yield ChatGenerationChunk(message=item)
         finally:
             abandoned.set()

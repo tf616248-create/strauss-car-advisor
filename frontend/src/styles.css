@@ -138,8 +138,13 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .welcome__choice:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
 .welcome__more { margin-top: 6px; color: var(--muted); font-size: 0.9rem; }
 @media (max-width: 420px) { .welcome__choices { grid-template-columns: 1fr; } }
-.chat__form { display: flex; align-items: center; gap: 10px; }
-.chat__form textarea { flex: 1; min-width: 0; resize: none; border-radius: 999px; padding: 13px 22px; min-height: 52px; }
+.chat__form { display: flex; align-items: flex-end; gap: 10px; }
+/* grows with each line (EmployeeScreen sets the height); from 7 lines on it scrolls. 26px = one line's
+   pill, rounded corners once it grows */
+.chat__form textarea {
+  flex: 1; min-width: 0; resize: none; border-radius: 26px; padding: 13px 22px; min-height: 52px;
+  line-height: 1.5; max-height: calc(7 * 1.5em + 26px + 3px); overflow-y: auto;
+}
 .chat__form button { min-height: 52px; padding: 0 28px; }
 
 /* edge toggle on the border between chat and panel */

@@ -1,0 +1,12 @@
+[
+  {"id": "value-of-use", "kind": "term", "question": "מה זה שווי שימוש?"},
+  {"id": "gross-up", "kind": "term", "question": "מה זה גילום?"},
+  {"id": "net-vs-gross", "kind": "term", "question": "מה ההבדל בין נטו לברוטו?"},
+  {"id": "maintenance", "kind": "term", "question": "מה אלה דמי אחזקה כשמוותרים על הרכב?"},
+  {"id": "family-track", "kind": "term", "question": "מה זה המסלול המשפחתי?"},
+  {"id": "what-to-provide", "kind": "process", "question": "מה אני צריך למסור לך כדי שתחשב לי?"},
+  {"id": "rep-question", "kind": "process", "question": "מה קורה עם השאלה ששלחת לנציג?"},
+  {"id": "talk-to-human", "kind": "process", "question": "אני רוצה לדבר עם בן אדם."},
+  {"id": "electric", "kind": "comparison", "question": "מה יקרה לנטו שלי אם אעבור לרכב חשמלי?"},
+  {"id": "most-worth-it", "kind": "comparison", "question": "איזה רכב הכי משתלם לי?"}
+]

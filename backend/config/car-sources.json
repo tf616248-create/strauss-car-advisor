@@ -1,0 +1,191 @@
+{
+  "_readme": {
+    "purpose": "Links to the full spec page at the importer, plus how each EV/plug-in car is found in the EEA database (electricity consumption and range). Catalog cars only.",
+    "importer_url": "Model page on the Israeli importer's site. verified=true means it was opened and checked to be the right page. null = still needs to be filled in.",
+    "eea": "Only for electric and plug-in cars. Search in the EEA database by make (mk) and commercial name (cn, partial match), filtered by fuel type (ft). Several versions -> show a range (min-max), not a single value.",
+    "eea_verified": "false = the code has to check (in a test) that the search returns at least one row. Until it does, show nothing from EEA.",
+    "updated": "2026-10-19",
+    "verified": "true = checked (the page opened, or appears in the importer's site menu). false = provided by the user, still to be checked in code (status 200). generic=true = a general brand page, not a model page."
+  },
+  "cars": {
+    "CAR-01": {
+      "name": "PICANTO",
+      "importer": "Kia Israel",
+      "importer_url": "https://kia-israel.co.il/%D7%A8%D7%9B%D7%91/%D7%A4%D7%99%D7%A7%D7%A0%D7%98%D7%95-%D7%94%D7%97%D7%93%D7%A9%D7%94",
+      "verified": false
+    },
+    "CAR-02": {
+      "name": "YARIS CROSS HSD",
+      "importer": "Toyota (Union Motors)",
+      "importer_url": "https://www.toyota.co.il/new-cars/yaris-cross",
+      "verified": true
+    },
+    "CAR-03": {
+      "name": "BYD DOLPHIN",
+      "importer": "BYD (Shlomo Motors)",
+      "importer_url": "https://bydauto.co.il/model/byd-dolphin-/",
+      "verified": false,
+      "eea": {
+        "mk": "BYD",
+        "cn": "DOLPHIN",
+        "ft": "electric",
+        "eea_verified": false
+      }
+    },
+    "CAR-04": {
+      "name": "LEON",
+      "importer": "SEAT (Champion Motors)",
+      "importer_url": "https://www.seat.co.il/",
+      "verified": false,
+      "generic": true
+    },
+    "CAR-05": {
+      "name": "NIRO",
+      "importer": "Kia Israel",
+      "importer_url": "https://kia-israel.co.il/%D7%A8%D7%9B%D7%91/%D7%A0%D7%99%D7%A8%D7%95-%D7%94%D7%99%D7%99%D7%91%D7%A8%D7%99%D7%93",
+      "verified": false
+    },
+    "CAR-06": {
+      "name": "MG4",
+      "importer": "MG (Lubinski)",
+      "importer_url": "https://mg-israel.co.il/model/new-mg4-x-range/",
+      "verified": false,
+      "eea": {
+        "mk": "MG",
+        "cn": "MG4",
+        "ft": "electric",
+        "eea_verified": false
+      },
+      "note": "The link that was provided (mg4-urban) is a different model (MG4 Urban). The site's MG4 page is 'MG4 X RANGE', but it's not certain it's the version in the catalog (2025, WH40). Check."
+    },
+    "CAR-07": {
+      "name": "COROLLA",
+      "importer": "Toyota (Union Motors)",
+      "importer_url": "https://www.toyota.co.il/new-cars/corolla-sedan",
+      "verified": true
+    },
+    "CAR-08": {
+      "name": "KONA EV",
+      "importer": "Hyundai (Colmobil)",
+      "importer_url": "https://www.colmobil.co.il/brands/hyundai/",
+      "verified": false,
+      "eea": {
+        "mk": "HYUNDAI",
+        "cn": "KONA",
+        "ft": "electric",
+        "eea_verified": false
+      },
+      "generic": true
+    },
+    "CAR-09": {
+      "name": "COROLLA CROSS",
+      "importer": "Toyota (Union Motors)",
+      "importer_url": "https://www.toyota.co.il/new-cars/corolla-cross",
+      "verified": true
+    },
+    "CAR-10": {
+      "name": "ATTO 3",
+      "importer": "BYD (Shlomo Motors)",
+      "importer_url": "https://bydauto.co.il/model/byd-atto-3-evo/",
+      "verified": false,
+      "eea": {
+        "mk": "BYD",
+        "cn": "ATTO 3",
+        "ft": "electric",
+        "eea_verified": false
+      },
+      "note": "Page for ATTO 3 EVO, which may be a newer version than the one in the catalog (2025). Check."
+    },
+    "CAR-11": {
+      "name": "EV3",
+      "importer": "Kia Israel",
+      "importer_url": "https://kia-israel.co.il/%D7%A8%D7%9B%D7%91/ev3",
+      "verified": true,
+      "eea": {
+        "mk": "KIA",
+        "cn": "EV3",
+        "ft": "electric",
+        "eea_verified": false
+      }
+    },
+    "CAR-12": {
+      "name": "TUCSON",
+      "importer": "Hyundai (Colmobil)",
+      "importer_url": "https://www.colmobil.co.il/brands/hyundai/",
+      "verified": false,
+      "generic": true
+    },
+    "CAR-13": {
+      "name": "MAZDA 3",
+      "importer": "Mazda (Delek Motors)",
+      "importer_url": "https://www.mazda.co.il/model/2/mazda3-hatchback",
+      "verified": true,
+      "note": "There's also a sedan page: https://www.mazda.co.il/model/3/mazda3-sedan. Model code BP covers both, so check with the catalog which one is meant."
+    },
+    "CAR-14": {
+      "name": "MODEL 3",
+      "importer": "Tesla (direct)",
+      "importer_url": "https://www.tesla.com/he_il/model3",
+      "verified": true,
+      "eea": {
+        "mk": "TESLA",
+        "cn": "MODEL 3",
+        "ft": "electric",
+        "eea_verified": false
+      }
+    },
+    "CAR-15": {
+      "name": "OCTAVIA",
+      "importer": "Skoda (Champion Motors)",
+      "importer_url": "https://www.skoda.co.il/car-specs/",
+      "verified": false,
+      "generic": true
+    },
+    "CAR-16": {
+      "name": "SPORTAGE HEV",
+      "importer": "Kia Israel",
+      "importer_url": "https://kia-israel.co.il/%D7%A8%D7%9B%D7%91/%D7%A1%D7%A4%D7%95%D7%A8%D7%98%D7%90%D7%96-%D7%A4%D7%9C%D7%90%D7%92-%D7%90%D7%99%D7%9F-%D7%94%D7%99%D7%91%D7%A8%D7%99%D7%93%D7%99",
+      "verified": true,
+      "eea": {
+        "mk": "KIA",
+        "cn": "SPORTAGE",
+        "ft": "petrol/electric",
+        "eea_verified": false
+      },
+      "note": "The commercial name says HEV, but the Tax Authority codes it as plug-in (drive 2, fuel 7). Go by the codes."
+    },
+    "CAR-17": {
+      "name": "SEAL",
+      "importer": "BYD (Shlomo Motors)",
+      "importer_url": "https://bydauto.co.il/model/byd-seal/",
+      "verified": false,
+      "eea": {
+        "mk": "BYD",
+        "cn": "SEAL",
+        "ft": "electric",
+        "eea_verified": false
+      },
+      "note": "Watch out: in EEA, 'SEAL' may also match SEAL U or SEALION. Use an exact match or filter them out."
+    },
+    "CAR-18": {
+      "name": "RAV4",
+      "importer": "Toyota (Union Motors)",
+      "importer_url": "https://www.toyota.co.il/new-cars/rav4",
+      "verified": true
+    },
+    "CAR-19": {
+      "name": "CARNIVAL",
+      "importer": "Kia Israel",
+      "importer_url": "https://kia-israel.co.il/%D7%A8%D7%9B%D7%91/%D7%A7%D7%A8%D7%A0%D7%99%D7%91%D7%9C",
+      "verified": true,
+      "note": "The catalog Carnival is petrol. The site has a single Carnival page, which also covers the hybrid."
+    },
+    "CAR-20": {
+      "name": "SANTA FE",
+      "importer": "Hyundai (Colmobil)",
+      "importer_url": "https://www.colmobil.co.il/brands/hyundai/",
+      "verified": false,
+      "generic": true
+    }
+  }
+}

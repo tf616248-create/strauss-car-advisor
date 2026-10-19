@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import * as realApi from '../lib/api'
 import { EMPLOYEE_TITLE, notifier as realNotifier } from '../lib/notify'
 import { subscribeChanges } from '../lib/realtime'
@@ -31,6 +31,15 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const [step, setStep] = useState(null)
   const [busy, setBusy] = useState(false)
   const [input, setInput] = useState('')
+  const boxRef = useRef(null)
+
+  // the message box grows with its text, like other chats (CSS caps it at ~7 lines, then it scrolls)
+  useLayoutEffect(() => {
+    const box = boxRef.current
+    if (!box) return
+    box.style.height = 'auto'
+    box.style.height = `${box.scrollHeight + box.offsetHeight - box.clientHeight}px` // + the borders
+  }, [input])
   const [panelOpen, setPanelOpen] = useState(true)
   const [stops, setStops] = useState([]) // tools really called in this answer, in order
   const [parked, setParked] = useState(false)
@@ -241,7 +250,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         <form className="chat__form" onSubmit={send}>
           <ContactRep />
           <label htmlFor="msg" className="visually-hidden">הודעה</label>
-          <textarea id="msg" rows={1} value={input} onChange={(e) => setInput(e.target.value)}
+          <textarea id="msg" ref={boxRef} rows={1} value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) send(e) }}
             placeholder="כתבו שאלה…" />
           <button type="submit" disabled={busy}>שליחה</button>

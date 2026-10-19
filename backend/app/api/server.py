@@ -57,4 +57,5 @@ app = create_app(
     rep_passcode=os.environ.get("REP_PASSCODE") or None,
     checkpointer=checkpointer,
     origins=origins,
+    usage_file=BACKEND_DIR / cfg["usage"]["file"],  # cost of each question, not in git
 )

@@ -19,7 +19,9 @@ from app.api import debug_mot, employee, rep
 
 
 def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Optional[str],
-               checkpointer=None, origins: tuple[str, ...] = ("http://localhost:5173",)) -> FastAPI:
+               checkpointer=None, origins: tuple[str, ...] = ("http://localhost:5173",),
+               usage_file=None) -> FastAPI:
+    """usage_file: a CSV with the cost of each question (app/usage.py); None writes nothing (tests)."""
     agent = build_agent(model, data, rep_queue, cfg, checkpointer)
     app = FastAPI(title="Strauss car advisor")
     app.add_middleware(CORSMiddleware, allow_origins=list(origins), allow_methods=["*"], allow_headers=["*"])
@@ -30,6 +32,7 @@ def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Opt
 
     app.include_router(debug_mot.router)  # TEMPORARY: MOT API reachability check
 
-    app.include_router(employee.router(agent=agent, rep_queue=rep_queue, notifier=notifier, cfg=cfg))
+    app.include_router(employee.router(agent=agent, rep_queue=rep_queue, notifier=notifier, cfg=cfg,
+                                        usage_file=usage_file))
     app.include_router(rep.router(agent=agent, rep_queue=rep_queue, notifier=notifier, rep_passcode=rep_passcode))
     return app
