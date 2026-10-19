@@ -3,183 +3,310 @@
     "cars": {
       "CAR-03": {
         "consumptionWhKm": {
-          "max": 427,
-          "min": 15
+          "p5": 159,
+          "p95": 159,
+          "provisional": true,
+          "ratio": 1.0,
+          "registrations": 8155,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "BYD DOLPHIN",
+            "BYD DOLPHIN-DOLPHIN-BYD DOLPHI",
+            "DOLPHIN"
+          ],
+          "year": 2025
         },
-        "provisional": true,
         "rangeKm": {
-          "max": 570,
-          "min": 155
-        },
-        "status": "P",
-        "versions": [
-          "BYD DOLPHIN",
-          "BYD DOLPHIN SUF",
-          "BYD DOLPHIN SURF",
-          "BYD DOLPHIN-DOLPHIN-BYD DOLPHI",
-          "BYD DOLPHINA SURF",
-          "BYD DOLPHINSURF",
-          "DOLPHIN",
-          "DOLPHIN SURF"
-        ],
-        "year": 2025
+          "p5": 420,
+          "p95": 427,
+          "provisional": true,
+          "ratio": 1.02,
+          "registrations": 8155,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "BYD DOLPHIN",
+            "BYD DOLPHIN-DOLPHIN-BYD DOLPHI",
+            "DOLPHIN"
+          ],
+          "year": 2025
+        }
       },
       "CAR-06": {
         "consumptionWhKm": {
-          "max": 465,
-          "min": 15
+          "p5": 160,
+          "p95": 187,
+          "provisional": false,
+          "ratio": 1.17,
+          "registrations": 35387,
+          "reliable": true,
+          "status": "F",
+          "versions": [
+            "MG4",
+            "MG4 ELECTRIC",
+            "MG4 ELECTRIC / /"
+          ],
+          "year": 2024
         },
-        "provisional": true,
         "rangeKm": {
-          "max": 565,
-          "min": 160
-        },
-        "status": "P",
-        "versions": [
-          "MG4",
-          "MG4 ELECTRIC"
-        ],
-        "year": 2025
+          "p5": 350,
+          "p95": 465,
+          "provisional": false,
+          "ratio": 1.33,
+          "registrations": 35327,
+          "reliable": true,
+          "status": "F",
+          "versions": [
+            "MG4 ELECTRIC",
+            "MG4 ELECTRIC / /"
+          ],
+          "year": 2024
+        }
       },
       "CAR-08": {
         "consumptionWhKm": {
-          "max": 512,
-          "min": 15
+          "p5": 146,
+          "p95": 168,
+          "provisional": true,
+          "ratio": 1.15,
+          "registrations": 23150,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "KONA",
+            "KONA   115   EV",
+            "KONA   150   EV",
+            "KONA   150   EV N-LINE",
+            "KONA   160   EV",
+            "KONA   160   EV N-LINE",
+            "KONA   99   EV",
+            "KONA . KAUAI",
+            "KONA EV",
+            "KONA KAUAI",
+            "KONA, KAUAI",
+            "KONA,KAUAI",
+            "KONA- KAUAI",
+            "KONA. KAUAI"
+          ],
+          "year": 2025
         },
-        "provisional": true,
         "rangeKm": {
-          "max": 682,
-          "min": 146
-        },
-        "status": "P",
-        "versions": [
-          "KONA",
-          "KONA   115   EV",
-          "KONA   150   EV",
-          "KONA   150   EV N-LINE",
-          "KONA   160   EV",
-          "KONA   160   EV N-LINE",
-          "KONA   99   EV",
-          "KONA . KAUAI",
-          "KONA EV",
-          "KONA KAUAI",
-          "KONA, KAUAI",
-          "KONA,KAUAI",
-          "KONA- KAUAI",
-          "KONA. KAUAI"
-        ],
-        "year": 2025
+          "p5": 377,
+          "p95": 513,
+          "provisional": true,
+          "ratio": 1.36,
+          "registrations": 23889,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "KONA",
+            "KONA   115   EV",
+            "KONA   150   EV",
+            "KONA   150   EV N-LINE",
+            "KONA   160   EV",
+            "KONA   160   EV N-LINE",
+            "KONA   99   EV",
+            "KONA . KAUAI",
+            "KONA EV",
+            "KONA KAUAI",
+            "KONA, KAUAI",
+            "KONA,KAUAI",
+            "KONA- KAUAI",
+            "KONA. KAUAI"
+          ],
+          "year": 2025
+        }
       },
       "CAR-10": {
         "consumptionWhKm": {
-          "max": 420,
-          "min": 156
+          "p5": 160,
+          "p95": 160,
+          "provisional": true,
+          "ratio": 1.0,
+          "registrations": 8864,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "ATTO 3",
+            "BYD ATTO 3"
+          ],
+          "year": 2025
         },
-        "provisional": true,
         "rangeKm": {
-          "max": 565,
-          "min": 160
-        },
-        "status": "P",
-        "versions": [
-          "ATTO 3",
-          "BYD ATTO 3"
-        ],
-        "year": 2025
+          "p5": 420,
+          "p95": 420,
+          "provisional": true,
+          "ratio": 1.0,
+          "registrations": 8864,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "ATTO 3",
+            "BYD ATTO 3"
+          ],
+          "year": 2025
+        }
       },
       "CAR-11": {
         "consumptionWhKm": {
-          "max": 436,
-          "min": 15
+          "p5": 149,
+          "p95": 156,
+          "provisional": true,
+          "ratio": 1.05,
+          "registrations": 54088,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "EV3",
+            "EV3   LONG RANGE   2WD",
+            "EV3   STANDARD RANGE   2WD",
+            "EV3 AIR 56,7KWH AT FWD 204",
+            "EV3 AIR 56,7KWH AT FWD 204 HP",
+            "EV3 AIR 81,4KWH AT FWD 204",
+            "EV3 AIR 81,4KWH AT FWD 204 MY2",
+            "EV3 BIZ 81,4KWH AT FWD 204",
+            "EV3 BIZ 81,4KWH AT FWD 204 BIZ",
+            "EV3 EARTH 81,4KWH AT FWD 204",
+            "EV3 EARTH 81,4KWH AT FWD 204 M",
+            "EV3 EARTH PLUS 81,4KWH AT FWD",
+            "EV3 GT-LINE 81,4KWH AT FWD 204"
+          ],
+          "year": 2025
         },
-        "provisional": true,
         "rangeKm": {
-          "max": 772,
-          "min": 149
-        },
-        "status": "P",
-        "versions": [
-          "EV3",
-          "EV3   LONG RANGE   2WD",
-          "EV3   STANDARD RANGE   2WD",
-          "EV3 AIR 56,7KWH AT FWD 204",
-          "EV3 AIR 56,7KWH AT FWD 204 HP",
-          "EV3 AIR 81,4KWH AT FWD 204",
-          "EV3 AIR 81,4KWH AT FWD 204 MY2",
-          "EV3 BIZ 81,4KWH AT FWD 204",
-          "EV3 BIZ 81,4KWH AT FWD 204 BIZ",
-          "EV3 EARTH 81,4KWH AT FWD 204",
-          "EV3 EARTH 81,4KWH AT FWD 204 M",
-          "EV3 EARTH PLUS 81,4KWH AT FWD",
-          "EV3 GT-LINE 81,4KWH AT FWD 204"
-        ],
-        "year": 2025
+          "p5": 430,
+          "p95": 604,
+          "provisional": true,
+          "ratio": 1.4,
+          "registrations": 54018,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "EV3",
+            "EV3   LONG RANGE   2WD",
+            "EV3   STANDARD RANGE   2WD",
+            "EV3 AIR 56,7KWH AT FWD 204",
+            "EV3 AIR 56,7KWH AT FWD 204 HP",
+            "EV3 AIR 81,4KWH AT FWD 204",
+            "EV3 AIR 81,4KWH AT FWD 204 MY2",
+            "EV3 BIZ 81,4KWH AT FWD 204",
+            "EV3 BIZ 81,4KWH AT FWD 204 BIZ",
+            "EV3 EARTH 81,4KWH AT FWD 204",
+            "EV3 EARTH 81,4KWH AT FWD 204 M",
+            "EV3 EARTH PLUS 81,4KWH AT FWD",
+            "EV3 GT-LINE 81,4KWH AT FWD 204"
+          ],
+          "year": 2025
+        }
       },
       "CAR-14": {
         "consumptionWhKm": {
-          "max": 520,
-          "min": 15
+          "p5": 125,
+          "p95": 165,
+          "provisional": true,
+          "ratio": 1.32,
+          "registrations": 59333,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "MODEL 3",
+            "MODEL 3     LONG RANGE AWD",
+            "MODEL 3     LONG RANGE RWD",
+            "MODEL 3     PERFORMANCE AWD",
+            "MODEL 3     RWD"
+          ],
+          "year": 2025
         },
-        "provisional": true,
         "rangeKm": {
-          "max": 894,
-          "min": 400
-        },
-        "status": "P",
-        "versions": [
-          "MODEL 3",
-          "MODEL 3     LONG RANGE AWD",
-          "MODEL 3     LONG RANGE RWD",
-          "MODEL 3     PERFORMANCE AWD",
-          "MODEL 3     RWD",
-          "MODEL 3 RUSTVOGN"
-        ],
-        "year": 2025
+          "p5": 513,
+          "p95": 750,
+          "provisional": true,
+          "ratio": 1.46,
+          "registrations": 58730,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "MODEL 3",
+            "MODEL 3     LONG RANGE AWD",
+            "MODEL 3     LONG RANGE RWD",
+            "MODEL 3     PERFORMANCE AWD",
+            "MODEL 3     RWD"
+          ],
+          "year": 2025
+        }
       },
       "CAR-16": {
         "consumptionWhKm": {
-          "max": 275,
-          "min": 11
+          "p5": 169,
+          "p95": 188,
+          "provisional": false,
+          "ratio": 1.11,
+          "registrations": 15141,
+          "reliable": true,
+          "status": "F",
+          "versions": [
+            "SPORTAGE"
+          ],
+          "year": 2024
         },
-        "provisional": true,
         "rangeKm": {
-          "max": 187,
-          "min": 64
-        },
-        "status": "P",
-        "versions": [
-          "SPORTAGE",
-          "SPORTAGE   1.6   T PHEV AWD AUT",
-          "SPORTAGE PHEV 2F GT-LINE 1.6 T",
-          "SPORTAGE PHEV 2F GT-LINE UVO 1",
-          "SPORTAGE PHEV GOLD UVO 1.6 TGD",
-          "SPORTAGE PHEV GT-LINE 1.6 TGDI",
-          "SPORTAGE PHEV GT-LINE UVO 1.6",
-          "SPORTAGE PHEV SILBER UVO 1.6 T"
-        ],
-        "year": 2025
+          "p5": 64,
+          "p95": 68,
+          "provisional": true,
+          "ratio": 1.06,
+          "registrations": 9536,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "SPORTAGE",
+            "SPORTAGE   1.6   T PHEV AWD AUT",
+            "SPORTAGE PHEV 2F GT-LINE 1.6 T",
+            "SPORTAGE PHEV 2F GT-LINE UVO 1",
+            "SPORTAGE PHEV GOLD UVO 1.6 TGD",
+            "SPORTAGE PHEV GT-LINE 1.6 TGDI",
+            "SPORTAGE PHEV GT-LINE UVO 1.6",
+            "SPORTAGE PHEV SILBER UVO 1.6 T"
+          ],
+          "year": 2025
+        }
       },
       "CAR-17": {
         "consumptionWhKm": {
-          "max": 520,
-          "min": 15
+          "p5": 154,
+          "p95": 182,
+          "provisional": true,
+          "ratio": 1.18,
+          "registrations": 10394,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "BYD SEAL",
+            "BYD SEAL- SEAL- HALO 1-HALO 2-",
+            "SEAL",
+            "SEAL AWD"
+          ],
+          "year": 2025
         },
-        "provisional": true,
         "rangeKm": {
-          "max": 600,
-          "min": 400
-        },
-        "status": "P",
-        "versions": [
-          "BYD SEAL",
-          "BYD SEAL- SEAL- HALO 1-HALO 2-",
-          "SEAL",
-          "SEAL AWD"
-        ],
-        "year": 2025
+          "p5": 460,
+          "p95": 570,
+          "provisional": true,
+          "ratio": 1.24,
+          "registrations": 10385,
+          "reliable": true,
+          "status": "P",
+          "versions": [
+            "BYD SEAL",
+            "BYD SEAL- SEAL- HALO 1-HALO 2-",
+            "SEAL",
+            "SEAL AWD"
+          ],
+          "year": 2025
+        }
       }
     },
-    "fetched_at": "2026-10-19T17:30:42+00:00",
+    "fetched_at": "2026-10-19T20:14:38+00:00",
     "missing": [],
     "source": "EEA, CO2 emissions from new passenger cars (discodata). Updated once a year; provisional data (P) is replaced by final (F) about a year later",
     "verified": {
@@ -2036,7 +2163,7 @@
         "rows": 1
       }
     },
-    "fetched_at": "2026-10-19T17:30:36+00:00",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
     "missing": [
       "CAR-20"
     ],

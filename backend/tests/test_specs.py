@@ -190,22 +190,37 @@ def test_index_directions_have_a_source_and_are_used(cfg):
 
 # --- EEA ---------------------------------------------------------------------------
 
+KEY = {"mk": "BYD", "cn": "SEAL", "ft": "electric"}
+
 
 def test_every_selected_column_has_an_alias():
     """discodata: error 10004 'Please specify an alias for the first column'."""
-    sql = eea_specs.car_query({"mk": "BYD", "cn": "SEAL", "ft": "electric"}, 2021, "[CO2Emission].[latest].[co2cars]")
+    sql = eea_specs.distribution_query(KEY, {"table": "[t]", "year": 2025, "status": "P"}, "[Z (Wh/km)]")
     select = sql.split(" FROM ")[0].removeprefix("SELECT ")
     for column in select.split(", "):
         assert " AS " in column, column
-    assert "Year=2021" in sql and "Status='F'" in sql
-    assert "Status='P'" in eea_specs.car_query({"mk": "BYD", "cn": "SEAL", "ft": "electric"}, 2025, "[t]", status="P")
+    assert "Year=2025" in sql and "Status='P'" in sql
     assert "Cn LIKE '%SEAL%'" in sql and "Mk='BYD'" in sql and "Ft='electric'" in sql
-    assert "[Z (Wh/km)]" in sql and "Zr" in sql
+    assert "GROUP BY Cn, [Z (Wh/km)]" in sql
 
 
 def test_quotes_in_search_values_are_escaped():
-    sql = eea_specs.car_query({"mk": "O'X", "cn": "A", "ft": "electric"}, 2021, "[t]")
+    sql = eea_specs.distribution_query({"mk": "O'X", "cn": "A", "ft": "electric"},
+                                       {"table": "[t]", "year": 2025, "status": "F"}, "Zr")
     assert "Mk='O''X'" in sql
+
+
+def test_a_full_page_asks_for_the_next_one():
+    pages = {1: [{"cn": "SEAL", "v": i, "n": 1} for i in range(3)], 2: [{"cn": "SEAL", "v": 99, "n": 1}]}
+    asked = []
+
+    def get_json(url, params):
+        asked.append(params["p"])
+        return {"results": pages.get(params["p"], [])}
+
+    rows = eea_specs.fetch_distribution(KEY, {"table": "[t]", "year": 2025, "status": "P"}, "Zr",
+                                        {"url": "u"}, get_json, page_size=3)
+    assert len(rows) == 4 and asked == [1, 2]
 
 
 def test_tables_cover_2022_to_2025_newest_first(cfg):
@@ -216,61 +231,130 @@ def test_tables_cover_2022_to_2025_newest_first(cfg):
     assert cfg["eea"]["provisionalLabel"] == "נתון ראשוני"
 
 
-def eea_row(cn, zmin, zmax, rmin, rmax):
-    return {"cn": cn, "zmin": zmin, "zmax": zmax, "rmin": rmin, "rmax": rmax, "n": 1}
+def test_reliability_settings_are_in_the_config(cfg):
+    eea = cfg["eea"]
+    assert eea["percentiles"] == [5, 95]
+    assert eea["maxSpreadRatio"] == 1.5
+    assert eea["unreliableLabel"] == "טווח לא אמין"
+    assert eea["sanityWhKm"] == [100, 300]
 
 
-def test_versions_give_a_min_max_range():
-    spec = eea_specs.build_eea_spec([eea_row("MODEL 3", 140, 166, 409, 743), eea_row("MODEL 3 / / RWD", 144, 144, 495, 495)], [])
-    assert spec["consumptionWhKm"] == {"min": 140, "max": 166}
-    assert spec["rangeKm"] == {"min": 409, "max": 743}
-    assert spec["versions"] == ["MODEL 3", "MODEL 3 / / RWD"]
+def test_weighted_percentile_counts_registrations():
+    pairs = [(150, 90), (200, 10)]
+    assert eea_specs.weighted_percentile(pairs, 5) == 150
+    assert eea_specs.weighted_percentile(pairs, 95) == 200
+    assert eea_specs.weighted_percentile([(150, 96), (200, 4)], 95) == 150
 
 
-def test_seal_u_and_sealion_are_left_out():
-    rows = [eea_row("SEAL", 150, 160, 500, 570), eea_row("SEAL U", 190, 200, 420, 500),
-            eea_row("Seal  U DM-i", 1, 1, 1, 1), eea_row("SEALION 7", 200, 210, 400, 450)]
-    spec = eea_specs.build_eea_spec(rows, ["SEAL U", "SEALION"])
-    assert spec["versions"] == ["SEAL"]
-    assert spec["rangeKm"] == {"min": 500, "max": 570}
+def test_none_and_zero_are_not_values():
+    assert eea_specs.weighted_percentile([(None, 1000), (0, 1000), (160, 1)], 5) == 160
+    assert eea_specs.weighted_percentile([(None, 5), (0, 5)], 5) is None
 
 
-def test_seal_exclusions_are_in_the_config(cfg):
-    assert set(cfg["eea"]["exclude"]["CAR-17"]) == {"SEAL U", "SEALION"}
+def test_junk_registrations_do_not_move_the_range(cfg):
+    """MODEL 3 in 2025: 1,756 registrations of 15 Wh/km (a unit error) and one of 520, among 63,000."""
+    pairs = [(15, 1756), (125, 8196), (132, 10210), (138, 20276), (140, 5978), (143, 3528), (167, 12000), (520, 1)]
+    m = eea_specs.measure(pairs, cfg["eea"])
+    assert m["p5"] == 125 and m["p95"] == 167
+    assert m["reliable"] is True
+    assert m["registrations"] == sum(n for _, n in pairs)
 
 
-def test_no_rows_or_only_empty_values_means_no_eea_data():
-    assert eea_specs.build_eea_spec([], []) is None
-    assert eea_specs.build_eea_spec([eea_row("SPORTAGE", None, None, None, None)], []) is None
+def test_a_wide_range_is_unreliable_and_exactly_the_threshold_is_not(cfg):
+    assert eea_specs.measure([(100, 50), (151, 50)], cfg["eea"])["reliable"] is False
+    assert eea_specs.measure([(100, 50), (150, 50)], cfg["eea"])["reliable"] is True
+    assert eea_specs.measure([(100, 50), (151, 50)], {**cfg["eea"], "maxSpreadRatio": 2})["reliable"] is True
 
 
-TABLES = [{"table": "[t2025]", "year": 2025, "status": "P"}, {"table": "[t2024]", "year": 2024, "status": "F"},
-          {"table": "[t2023]", "year": 2023, "status": "F"}]
+def test_no_values_is_no_measure(cfg):
+    assert eea_specs.measure([], cfg["eea"]) is None
+    assert eea_specs.measure([(None, 3)], cfg["eea"]) is None
 
 
-def test_each_car_gets_the_newest_year_with_data(cfg):
-    sources = {"CAR-14": {"eea": {"mk": "TESLA", "cn": "MODEL 3", "ft": "electric"}},
-               "CAR-03": {"eea": {"mk": "BYD", "cn": "DOLPHIN", "ft": "electric"}},
-               "CAR-11": {"eea": {"mk": "KIA", "cn": "EV3", "ft": "electric"}},
-               "CAR-07": {}}
+def drow(cn, v, n):
+    return {"cn": cn, "v": v, "n": n}
+
+
+def test_dolphin_leaves_out_dolphin_surf(cfg):
+    """DOLPHIN SURF is another model: 17,600 of 25,800 registrations in 2025 matched '%DOLPHIN%'."""
+    rows = [drow("BYD DOLPHIN", 159, 5798), drow("DOLPHIN", 159, 1742), drow("BYD DOLPHIN SURF", 140, 16212),
+            drow("DOLPHIN SURF", 140, 1406), drow("BYD DOLPHINA SURF", 160, 16), drow("BYD DOLPHINSURF", 160, 3),
+            drow("BYD DOLPHIN SUF", 15, 1)]
+    kept = eea_specs.keep_rows(rows, cfg["eea"]["exclude"]["CAR-03"])
+    assert {r["cn"] for r in kept} == {"BYD DOLPHIN", "DOLPHIN"}
+
+
+def test_seal_leaves_out_seal_u_sealion_and_seal_6(cfg):
+    rows = [drow("BYD SEAL", 169, 9124), drow("SEAL AWD", 182, 10), drow("BYD SEAL U", 203, 5486),
+            drow("Seal  U DM-i", 181, 9683), drow("BYD SEALION 7", 203, 11659), drow("SEALION", 219, 3582),
+            drow("BYD SEAL 6 DM-I TOURING", 102, 3463), drow("SEAL 06 GT", 150, 5)]
+    kept = eea_specs.keep_rows(rows, cfg["eea"]["exclude"]["CAR-17"])
+    assert {r["cn"] for r in kept} == {"BYD SEAL", "SEAL AWD"}
+
+
+T2025, T2024, T2023 = ({"table": "[t2025]", "year": 2025, "status": "P"},
+                       {"table": "[t2024]", "year": 2024, "status": "F"},
+                       {"table": "[t2023]", "year": 2023, "status": "F"})
+
+
+def fake_eea(data):
+    """data: {(table, column alias): rows}. Records what was asked."""
     asked = []
 
     def get_json(url, params):
         q = params["query"]
-        asked.append(q)
-        if "TESLA" in q and "[t2025]" in q:
-            return {"results": [eea_row("MODEL 3", 140, 166, 409, 743)]}
-        if "BYD" in q and "[t2023]" in q:
-            return {"results": [eea_row("DOLPHIN", 150, 160, 400, 420)]}
-        return {"results": []}
+        table = re.search(r"FROM (\[t\d+\])", q).group(1)
+        column = "z" if "[Z (Wh/km)]" in q else "r"
+        asked.append((table, column))
+        return {"results": data.get((table, column), [])}
 
-    out = eea_specs.load_eea(sources, {**cfg, "eea": {**cfg["eea"], "tables": TABLES}}, get_json)
-    tesla, byd = out["cars"]["CAR-14"], out["cars"]["CAR-03"]
-    assert (tesla["year"], tesla["status"], tesla["provisional"]) == (2025, "P", True)
-    assert (byd["year"], byd["status"], byd["provisional"]) == (2023, "F", False)
+    return get_json, asked
+
+
+def eea_cfg(cfg):
+    return {**cfg["eea"], "tables": [T2025, T2024, T2023]}
+
+
+def test_each_measure_takes_the_newest_reliable_year(cfg):
+    """MG4 2025: consumption 161-350 (unreliable) -> 2024 final. Range reliable in 2025 -> stays 2025."""
+    get_json, asked = fake_eea({
+        ("[t2025]", "z"): [drow("MG4", 161, 50), drow("MG4", 350, 50)],
+        ("[t2024]", "z"): [drow("MG4", 160, 50), drow("MG4", 187, 50)],
+        ("[t2025]", "r"): [drow("MG4", 350, 50), drow("MG4", 465, 50)],
+    })
+    spec = eea_specs.find_car({"mk": "MG", "cn": "MG4", "ft": "electric"}, [], eea_cfg(cfg), get_json)
+    z, r = spec["consumptionWhKm"], spec["rangeKm"]
+    assert (z["p5"], z["p95"], z["year"], z["provisional"], z["reliable"]) == (160, 187, 2024, False, True)
+    assert (r["p5"], r["p95"], r["year"], r["provisional"], r["reliable"]) == (350, 465, 2025, True, True)
+    assert ("[t2023]", "z") not in asked and ("[t2024]", "r") not in asked  # stops at the first reliable year
+
+
+def test_unreliable_in_every_year_is_marked_from_the_newest(cfg):
+    get_json, _ = fake_eea({
+        ("[t2025]", "z"): [drow("X", 100, 50), drow("X", 300, 50)],
+        ("[t2023]", "z"): [drow("X", 100, 50), drow("X", 250, 50)],
+    })
+    z = eea_specs.find_car({"mk": "A", "cn": "X", "ft": "electric"}, [], eea_cfg(cfg), get_json)["consumptionWhKm"]
+    assert (z["year"], z["reliable"]) == (2025, False)
+
+
+def test_no_rows_in_any_year_is_no_eea_data(cfg):
+    get_json, _ = fake_eea({})
+    assert eea_specs.find_car({"mk": "A", "cn": "X", "ft": "electric"}, [], eea_cfg(cfg), get_json) is None
+
+
+def test_load_eea_lists_found_and_missing(cfg):
+    sources = {"CAR-14": {"eea": {"mk": "TESLA", "cn": "MODEL 3", "ft": "electric"}},
+               "CAR-11": {"eea": {"mk": "KIA", "cn": "EV3", "ft": "electric"}}, "CAR-07": {}}
+
+    def get_json(url, params):
+        q = params["query"]
+        return {"results": [drow("MODEL 3", 140, 10)] if "TESLA" in q else []}
+
+    out = eea_specs.load_eea(sources, {**cfg, "eea": eea_cfg(cfg)}, get_json)
+    assert set(out["cars"]) == {"CAR-14"}
     assert out["missing"] == ["CAR-11"]
-    assert out["verified"] == {"CAR-14": True, "CAR-03": True, "CAR-11": False}
-    assert sum("TESLA" in q for q in asked) == 1  # stops at the first year with data
+    assert out["verified"] == {"CAR-14": True, "CAR-11": False}
 
 
 def test_an_eea_error_is_raised_not_read_as_no_rows():
@@ -400,7 +484,24 @@ def test_every_eea_key_has_rows_or_is_listed_as_missing(snapshot, cfg):
     assert not found & missing
     assert snapshot["eea"]["verified"] == {cid: cid in found for cid in keys}
     for car in snapshot["eea"]["cars"].values():
-        assert car["provisional"] == (car["status"] == "P")
+        for m in (car["consumptionWhKm"], car["rangeKm"]):
+            if m is not None:
+                assert m["provisional"] == (m["status"] == "P")
+                assert isinstance(m["reliable"], bool)
+
+
+def test_snapshot_electric_consumption_is_sane_when_shown(snapshot, cfg):
+    """Sanity check only (not a filter): a shown consumption of an electric car is 100-300 Wh/km."""
+    lo, hi = cfg["eea"]["sanityWhKm"]
+    for cid, car in snapshot["eea"]["cars"].items():
+        z = car["consumptionWhKm"]
+        if SOURCES[cid]["eea"]["ft"] == "electric" and z and z["reliable"]:
+            assert lo <= z["p5"] <= z["p95"] <= hi, (cid, z)
+
+
+def test_snapshot_dolphin_has_no_dolphin_surf(snapshot):
+    versions = snapshot["eea"]["cars"]["CAR-03"]["consumptionWhKm"]["versions"]
+    assert not any("SURF" in v.upper() for v in versions)
 
 
 def test_atto3_in_the_snapshot_has_no_tang_data(snapshot):

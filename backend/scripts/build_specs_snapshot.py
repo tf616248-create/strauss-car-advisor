@@ -32,9 +32,17 @@ def main() -> None:
     print(f"MOT: {len(mot['cars'])}/{len(data.catalog)} found, missing: {mot['missing']}")
     print("MOT rows of other names dropped:",
           {cid: c["otherNamesDropped"] for cid, c in mot["cars"].items() if c["otherNamesDropped"]})
+    def show(m, unit):
+        if m is None:
+            return "-"
+        state = "shown" if m["reliable"] else cfg["eea"]["unreliableLabel"]
+        kind = "P" if m["provisional"] else "F"
+        return f"{m['p5']}-{m['p95']} {unit} ({m['year']}{kind}, x{m['ratio']}, {state})"
+
+    print("EEA (P5-P95):")
     for cid, c in sorted(eea["cars"].items()):
-        print(f"EEA {cid} {data.catalog[cid]['name']}: {c['year']} {'provisional' if c['provisional'] else 'final'}, "
-              f"{c['consumptionWhKm']} Wh/km, range {c['rangeKm']} km")
+        print(f"  {cid} {data.catalog[cid]['name']:<14} {show(c['consumptionWhKm'], 'Wh/km'):<45} "
+              f"{show(c['rangeKm'], 'km')}")
     print(f"EEA missing: {eea['missing']}")
 
 

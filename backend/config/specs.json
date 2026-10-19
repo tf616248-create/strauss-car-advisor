@@ -25,6 +25,12 @@
     ],
     "_tables": "Newest first; each car gets the first table with data. Checked 2026-10-19: co2cars holds 2010-2022 (2022 provisional only); 2023 and 2024 have final tables (co2cars_2023Fv28, co2cars_2024Fv30, named in the EEA catalogue); 2025 provisional only. The version suffix changes with each release.",
     "provisionalLabel": "נתון ראשוני",
+    "percentiles": [5, 95],
+    "maxSpreadRatio": 1.5,
+    "unreliableLabel": "טווח לא אמין",
+    "_reliability": "Each EEA row is one registration, and some are junk (15 Wh/km is a kWh/100km unit error; 420-520 in the consumption column are range values). A measure is P5-P95 weighted by registrations. If P95 > maxSpreadRatio x P5 it is unreliable and not shown; each measure takes the newest year where it is reliable.",
+    "sanityWhKm": [100, 300],
+    "_sanity": "Used only by a test (shown consumption of an electric car is in this range). Never used to filter.",
     "timeoutSeconds": 120,
     "columns": {
       "consumption": "[Z (Wh/km)]",
@@ -32,7 +38,8 @@
       "_checked": "2026-10-19 against the API: 'Z (Wh/km)' = electric energy consumption, 'Zr' = electric range (km). There is no 'Electric range (km)' column (error 10003)."
     },
     "exclude": {
-      "CAR-17": ["SEAL U", "SEALION"]
+      "CAR-03": ["SURF", "DOLPHIN SUF"],
+      "CAR-17": ["SEAL U", "SEALION", "SEAL 6", "SEAL 06"]
     }
   },
   "fuel": {
