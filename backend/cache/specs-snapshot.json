@@ -1,0 +1,1921 @@
+{
+  "eea": {
+    "cars": {
+      "CAR-08": {
+        "consumptionWhKm": {
+          "max": 154,
+          "min": 143
+        },
+        "rangeKm": {
+          "max": 484,
+          "min": 289
+        },
+        "versions": [
+          "HyundaiKonaKauai",
+          "KONA",
+          "KONA,",
+          "KONA,KAUAI",
+          "KONA.KAUAI",
+          "KONA/100/EV",
+          "KONA/150/EV",
+          "KONAKAUAI"
+        ],
+        "year": 2021
+      },
+      "CAR-14": {
+        "consumptionWhKm": {
+          "max": 166,
+          "min": 140
+        },
+        "rangeKm": {
+          "max": 743,
+          "min": 409
+        },
+        "versions": [
+          "MODEL 3 / / LONGRANGE",
+          "MODEL 3 / / PERFORMANCE",
+          "MODEL 3 / / RWD",
+          "MODEL 3 / / STANDARDRANGE",
+          "Model 3"
+        ],
+        "year": 2021
+      }
+    },
+    "fetched_at": "2026-10-19T16:03:47+00:00",
+    "missing": [
+      "CAR-03",
+      "CAR-06",
+      "CAR-10",
+      "CAR-11",
+      "CAR-16",
+      "CAR-17"
+    ],
+    "source": "EEA, CO2 emissions from new passenger cars ([CO2Emission].[latest].[co2cars] in discodata). Final data, updated once a year",
+    "verified": {
+      "CAR-03": false,
+      "CAR-06": false,
+      "CAR-08": true,
+      "CAR-10": false,
+      "CAR-11": false,
+      "CAR-14": true,
+      "CAR-16": false,
+      "CAR-17": false
+    },
+    "year": 2021
+  },
+  "mot": {
+    "cars": {
+      "CAR-01": {
+        "fields": {
+          "CO2_WLTP": {
+            "max": 131,
+            "min": 131,
+            "variesByTrim": false
+          },
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 0,
+            "min": 0,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "בנזין"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "PICANTO"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 79,
+            "min": 79,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": {
+            "max": 11,
+            "min": 11,
+            "variesByTrim": false
+          },
+          "madad_yarok": {
+            "max": 201.0,
+            "min": 201.0,
+            "variesByTrim": false
+          },
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "הצ'בק"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 1.0,
+            "min": 1.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "LX"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "הנעה רגילה"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "maxL100km": 5.58,
+          "minL100km": 5.58,
+          "status": "computed",
+          "variesByTrim": false
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-02": {
+        "fields": {
+          "CO2_WLTP": {
+            "max": 100,
+            "min": 100,
+            "variesByTrim": false
+          },
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "בנזין"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "YARIS CROSS HSD"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 92,
+            "min": 92,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": {
+            "max": 3,
+            "min": 3,
+            "variesByTrim": false
+          },
+          "madad_yarok": {
+            "max": 147.0,
+            "min": 147.0,
+            "variesByTrim": false
+          },
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "פנאי-שטח"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 2.5,
+            "min": 2.5,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 2,
+            "min": 2,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "URBAN"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "היברידי רגיל"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "maxL100km": 4.26,
+          "minL100km": 4.26,
+          "status": "computed",
+          "variesByTrim": false
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-03": {
+        "fields": {
+          "CO2_WLTP": null,
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "חשמל"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "BYD DOLPHIN"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 204,
+            "min": 204,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": null,
+          "madad_yarok": null,
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "הצ'בק"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 9.5,
+            "min": 9.5,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 7,
+            "min": 7,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "DESIGN"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "רכב חשמלי"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "status": "not_applicable"
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-04": {
+        "fields": {
+          "CO2_WLTP": {
+            "max": 126,
+            "min": 126,
+            "variesByTrim": false
+          },
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "בנזין"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "LEON"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 110,
+            "min": 110,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": {
+            "max": 13,
+            "min": 13,
+            "variesByTrim": false
+          },
+          "madad_yarok": {
+            "max": 214.0,
+            "min": 214.0,
+            "variesByTrim": false
+          },
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "הצ'בק"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 1.0,
+            "min": 1.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "STYLE"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "הנעה רגילה"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "maxL100km": 5.37,
+          "minL100km": 5.37,
+          "status": "computed",
+          "variesByTrim": false
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-05": {
+        "fields": {
+          "CO2_WLTP": {
+            "max": 100,
+            "min": 100,
+            "variesByTrim": false
+          },
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "בנזין"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "NIRO"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 105,
+            "min": 105,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": {
+            "max": 4,
+            "min": 4,
+            "variesByTrim": false
+          },
+          "madad_yarok": {
+            "max": 151.0,
+            "min": 151.0,
+            "variesByTrim": false
+          },
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "הצ'בק"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 2.0,
+            "min": 2.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 2,
+            "min": 2,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "SILVER"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "היברידי רגיל"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "maxL100km": 4.26,
+          "minL100km": 4.26,
+          "status": "computed",
+          "variesByTrim": false
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-06": {
+        "fields": {
+          "CO2_WLTP": null,
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "חשמל"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "MG4"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 204,
+            "min": 204,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": null,
+          "madad_yarok": null,
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "הצ'בק"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 3.0,
+            "min": 3.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 3,
+            "min": 3,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "LUXURY"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "רכב חשמלי"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "status": "not_applicable"
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-07": {
+        "fields": {
+          "CO2_WLTP": {
+            "max": 135,
+            "min": 135,
+            "variesByTrim": false
+          },
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "בנזין"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "COROLLA"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 125,
+            "min": 125,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": {
+            "max": 10,
+            "min": 10,
+            "variesByTrim": false
+          },
+          "madad_yarok": {
+            "max": 197.0,
+            "min": 197.0,
+            "variesByTrim": false
+          },
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "סדאן"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 4,
+            "min": 4,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 1.0,
+            "min": 1.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "COMFORT"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "הנעה רגילה"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "maxL100km": 5.75,
+          "minL100km": 5.75,
+          "status": "computed",
+          "variesByTrim": false
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-08": {
+        "fields": {
+          "CO2_WLTP": null,
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "חשמל"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "KONA EV"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 214,
+            "min": 214,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": null,
+          "madad_yarok": null,
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "פנאי-שטח"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 10.5,
+            "min": 10.5,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 8,
+            "min": 8,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "PURE EV"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "רכב חשמלי"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "status": "not_applicable"
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-09": {
+        "fields": {
+          "CO2_WLTP": {
+            "max": 115,
+            "min": 115,
+            "variesByTrim": false
+          },
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "בנזין"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "COROLLA CROSS"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 97,
+            "min": 97,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": {
+            "max": 4,
+            "min": 4,
+            "variesByTrim": false
+          },
+          "madad_yarok": {
+            "max": 162.0,
+            "min": 162.0,
+            "variesByTrim": false
+          },
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "פנאי-שטח"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 4.0,
+            "min": 4.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 4,
+            "min": 4,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "DYNAMIC"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "היברידי רגיל"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "maxL100km": 4.9,
+          "minL100km": 4.9,
+          "status": "computed",
+          "variesByTrim": false
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-10": {
+        "fields": {
+          "CO2_WLTP": null,
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "חשמל"
+            ],
+            "variesByTrim": false
+          },
+          "gova": {
+            "max": 0,
+            "min": 0,
+            "variesByTrim": false
+          },
+          "kinuy_mishari": {
+            "values": [
+              "ATTO 3",
+              "TANG"
+            ],
+            "variesByTrim": true
+          },
+          "koah_sus": {
+            "max": 516,
+            "min": 204,
+            "variesByTrim": true
+          },
+          "kvutzat_zihum": null,
+          "madad_yarok": null,
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "פנאי-שטח"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 7,
+            "min": 5,
+            "variesByTrim": true
+          },
+          "nikud_betihut": {
+            "max": 10.5,
+            "min": 6.5,
+            "variesByTrim": true
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 8,
+            "min": 6,
+            "variesByTrim": true
+          },
+          "ramat_gimur": {
+            "values": [
+              "DESIGN",
+              "FLAGSHIP"
+            ],
+            "variesByTrim": true
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "רכב חשמלי"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "status": "not_applicable"
+        },
+        "mixedModels": true,
+        "rows": 2
+      },
+      "CAR-11": {
+        "fields": {
+          "CO2_WLTP": null,
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "חשמל"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "EV3"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 204,
+            "min": 204,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": null,
+          "madad_yarok": null,
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "פנאי-שטח"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 9.0,
+            "min": 9.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 7,
+            "min": 7,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "PREMIUM SR"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "רכב חשמלי"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "status": "not_applicable"
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-12": {
+        "fields": {
+          "CO2_WLTP": {
+            "max": 160,
+            "min": 160,
+            "variesByTrim": false
+          },
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 0,
+            "min": 0,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "בנזין"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "TUCSON"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 160,
+            "min": 160,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": {
+            "max": 14,
+            "min": 14,
+            "variesByTrim": false
+          },
+          "madad_yarok": {
+            "max": 235.0,
+            "min": 235.0,
+            "variesByTrim": false
+          },
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "פנאי-שטח"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 2.5,
+            "min": 2.5,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 2,
+            "min": 2,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "PREMIUM FL"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "הנעה רגילה"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "maxL100km": 6.81,
+          "minL100km": 6.81,
+          "status": "computed",
+          "variesByTrim": false
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-13": {
+        "fields": {
+          "CO2_WLTP": null,
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "בנזין"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "MAZDA 3"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 191,
+            "min": 191,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": {
+            "max": 15,
+            "min": 15,
+            "variesByTrim": false
+          },
+          "madad_yarok": {
+            "max": 357.0,
+            "min": 357.0,
+            "variesByTrim": false
+          },
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "סדאן"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 4,
+            "min": 4,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 2.0,
+            "min": 2.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 2,
+            "min": 2,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "SPIRIT"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "הנעה רגילה"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "status": "no_data"
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-14": {
+        "fields": {
+          "CO2_WLTP": null,
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "חשמל"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "MODEL 3"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 0,
+            "min": 0,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": null,
+          "madad_yarok": null,
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "סדאן"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 4,
+            "min": 4,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 8.0,
+            "min": 8.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 7,
+            "min": 7,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "RWD"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "רכב חשמלי"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "status": "not_applicable"
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-15": {
+        "fields": {
+          "CO2_WLTP": {
+            "max": 117,
+            "min": 117,
+            "variesByTrim": false
+          },
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "דיזל"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "OCTAVIA"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 150,
+            "min": 150,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": {
+            "max": 9,
+            "min": 9,
+            "variesByTrim": false
+          },
+          "madad_yarok": {
+            "max": 193.0,
+            "min": 193.0,
+            "variesByTrim": false
+          },
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "סדאן"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 4,
+            "min": 4,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 1.0,
+            "min": 1.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "AMBITION"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "הנעה רגילה"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "fuel": "דיזל",
+          "status": "not_computed"
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-16": {
+        "fields": {
+          "CO2_WLTP": {
+            "max": 63,
+            "min": 63,
+            "variesByTrim": false
+          },
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "חשמל/בנזין"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "SPORTAGE HEV"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 288,
+            "min": 288,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": {
+            "max": 2,
+            "min": 2,
+            "variesByTrim": false
+          },
+          "madad_yarok": {
+            "max": 106.0,
+            "min": 106.0,
+            "variesByTrim": false
+          },
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "פנאי-שטח"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 8.0,
+            "min": 8.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 7,
+            "min": 7,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "PREMIUM"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "PLUG IN"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "status": "depends_on_charging"
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-17": {
+        "fields": {
+          "CO2_WLTP": null,
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "חשמל"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "SEAL"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 530,
+            "min": 530,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": null,
+          "madad_yarok": null,
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "סדאן"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 4.5,
+            "min": 4.5,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 4,
+            "min": 4,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "DESIGN 4-4"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "רכב חשמלי"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "status": "not_applicable"
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-18": {
+        "fields": {
+          "CO2_WLTP": {
+            "max": 126,
+            "min": 126,
+            "variesByTrim": false
+          },
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "בנזין"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "RAV4"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 178,
+            "min": 178,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": {
+            "max": 6,
+            "min": 6,
+            "variesByTrim": false
+          },
+          "madad_yarok": {
+            "max": 178.0,
+            "min": 178.0,
+            "variesByTrim": false
+          },
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "פנאי-שטח"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 1.0,
+            "min": 1.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "COMFORT"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "היברידי רגיל"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "maxL100km": 5.37,
+          "minL100km": 5.37,
+          "status": "computed",
+          "variesByTrim": false
+        },
+        "mixedModels": false,
+        "rows": 1
+      },
+      "CAR-19": {
+        "fields": {
+          "CO2_WLTP": {
+            "max": 241,
+            "min": 241,
+            "variesByTrim": false
+          },
+          "automatic_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "bakarat_shyut_adaptivit_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "delek_nm": {
+            "values": [
+              "בנזין"
+            ],
+            "variesByTrim": false
+          },
+          "gova": null,
+          "kinuy_mishari": {
+            "values": [
+              "CARNIVAL"
+            ],
+            "variesByTrim": false
+          },
+          "koah_sus": {
+            "max": 291,
+            "min": 291,
+            "variesByTrim": false
+          },
+          "kvutzat_zihum": {
+            "max": 15,
+            "min": 15,
+            "variesByTrim": false
+          },
+          "madad_yarok": {
+            "max": 374.0,
+            "min": 374.0,
+            "variesByTrim": false
+          },
+          "matzlemat_reverse_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "mazgan_ind": {
+            "max": 1,
+            "min": 1,
+            "variesByTrim": false
+          },
+          "merkav": {
+            "values": [
+              "MPV"
+            ],
+            "variesByTrim": false
+          },
+          "mispar_dlatot": {
+            "max": 5,
+            "min": 5,
+            "variesByTrim": false
+          },
+          "mispar_moshavim": {
+            "max": 8,
+            "min": 8,
+            "variesByTrim": false
+          },
+          "nikud_betihut": {
+            "max": 8.0,
+            "min": 8.0,
+            "variesByTrim": false
+          },
+          "ramat_eivzur_betihuty": {
+            "max": 7,
+            "min": 7,
+            "variesByTrim": false
+          },
+          "ramat_gimur": {
+            "values": [
+              "EX"
+            ],
+            "variesByTrim": false
+          },
+          "technologiat_hanaa_nm": {
+            "values": [
+              "הנעה רגילה"
+            ],
+            "variesByTrim": false
+          }
+        },
+        "fuelConsumption": {
+          "maxL100km": 10.26,
+          "minL100km": 10.26,
+          "status": "computed",
+          "variesByTrim": false
+        },
+        "mixedModels": false,
+        "rows": 1
+      }
+    },
+    "fetched_at": "2026-10-19T16:03:40+00:00",
+    "missing": [
+      "CAR-20"
+    ],
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)"
+  }
+}

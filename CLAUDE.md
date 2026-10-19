@@ -107,6 +107,7 @@
 | סדר עבודה בשלב 7 | מקומי קודם: שרת ובדיקות ← ממשק עובד ← מסך נציג ← העלאה לאוויר בסוף השלב |
 | מצב | המודל לא כותב למסד הנתונים. רק כלים כותבים. כל ערך נשמר עם המקור שלו: עובד, קטלוג, רשות המסים או נציג |
 | עלות לשאלה | `app/usage.py`: הטוקנים של כל קריאה למודל בשאלה (`usage_metadata`) מסוכמים לשאלה. `WithTimeout` מסמן איזה מודל ענה (`kobi_model`). אחרי כל שאלה: שורה ביומן השרת ("💲 question: ...") ושורה ב-`backend/logs/usage.csv` (לא בגיט, נפתח באקסל): זמן, השאלה, מספר קריאות, טוקנים נכנסים ויוצאים, מודל, עלות בדולרים. המחירים ב-`usage.prices` ב-`agent.json`. ספק בלי מחיר מקבל עלות ריקה, לא ניחוש. טוקני חשיבה נכללים ביוצאים. **לאמת:** מחיר Gemini 3.7 Flash ($0.75 / $3.75 למיליון) הוא מחיר מבוא עד 31/12/2026. ב-Render הקובץ נמחק בכל העלאה, ונשארת רק שורת היומן |
+| מפרט רכב | שכבת נתונים בלבד (עוד בלי כלי לאיג'נט ובלי ממשק). מידע לתצוגה, לא נכנס לנטו. **משרד התחבורה** (`app/data/mot_specs.py`): data.gov.il, `resource_id=142afde2-…`, מתעדכן כל יום. בקשה אחת לכל הקטלוג. מפתח: `tozeret_cd`+`degem_cd`+`shnat_yitzur` מול קוד תוצר, קוד דגם ושנת רישום, בלי אפסים מובילים (`01014`==`1014`), אף פעם לא לפי שם. כמה רמות גימור ← מינימום–מקסימום ו-`variesByTrim`. שם מסחרי אחר באותם קודים מסומן `mixedModels`. צריכת דלק לבנזין ולהיברידי מחושבת מ-`CO2_WLTP` במקדם שב-`config/specs.json` (EPA, 2,348 גרם CO2 לליטר, קירוב, **לאמת**). פלאג-אין: "תלוי בטעינה". דיזל: לא מחושב. **EEA** (`app/data/eea_specs.py`): discodata, `[CO2Emission].[latest].[co2cars]`, השנה האחרונה עם נתונים סופיים (`Status='F'`), רק לרכבים עם `eea` ב-`config/car-sources.json`. צריכה `[Z (Wh/km)]` וטווח `Zr` (נבדק מול ה-API). כל עמודה צריכה alias. כמה גרסאות ← טווח. ל-SEAL מסננים SEAL U ו-SEALION (`eea.exclude`). **מטמון** (`app/data/specs_store.py`): נטען ב-thread ברקע בעליית השרת (לא מעכב את `/health`), ומתרענן כל 24 שעות. מקור שנכשל ← `backend/cache/specs-snapshot.json` (בגיט, נוצר ב-`python -m scripts.build_specs_snapshot`). בלוג: "נטען מה-API" או "נטען מהגיבוי". לכל מקור: `source`, `fetched_at`, `origin` (live/snapshot). `eea_verified` נשמר בגיבוי (`eea.verified`), ולא ב-`car-sources.json`, שלא משנים. **כיוון המדדים** (`madad_yarok`, `kvutzat_zihum`, `nikud_betihut`, `ramat_eivzur_betihuty`) לא מתועד במאגר. לכן `useForFiltering: false` |
 | אנימציה | מכונית קטנה, והשלב האמיתי שרץ ("בודק זכאות…", "מחשב נטו…"). כיבוד הגדרת `prefers-reduced-motion`. התשובה נכתבת אות-אחר-אות (streaming) |
 
 ### NICE TO HAVE (לא עכשיו)
@@ -135,6 +136,9 @@
 ```
 backend/
   app/data/loader.py      טעינת הקבצים, VehicleIndex
+  app/data/mot_specs.py   מפרט רכב ממשרד התחבורה (data.gov.il)
+  app/data/eea_specs.py   צריכת חשמל וטווח מ-EEA
+  app/data/specs_store.py מטמון המפרט: טעינה ברקע, רענון יומי, גיבוי
   app/engine/net.py       מנוע הנטו (פונקציות טהורות), compute_net = נקודת הכניסה
   app/engine/scenario.py  זכאות ובניית תרחיש, build_scenario = נקודת הכניסה, מחזיר missing במקום ניחוש
   app/agent/advisor.py    הלוגיקה של 4 הכלים והשמירה שבתוכם (בלי מודל). כל תוצאה עם status
@@ -152,6 +156,10 @@ backend/
   app/api/events.py       Notifier (publish/subscribe בזיכרון) וזרם ה-SSE: "changed" ודופק
   app/api/server.py       הפעלה עם הגדרות מ-.env: uvicorn app.api.server:app. עם DATABASE_URL: Neon, בלעדיו: זיכרון
   config/column-map.json
+  config/specs.json       מקורות המפרט, מקדם הדלק, כיוון המדדים, רכבים שחסרים במקור
+  config/car-sources.json קישור לעמוד הרכב אצל היבואן, ומפתח חיפוש ב-EEA (לא משנים)
+  cache/specs-snapshot.json  גיבוי המפרט (בגיט)
+  scripts/build_specs_snapshot.py  יוצר את הגיבוי מה-API
   config/agent.json       ספים (maxAttempts, טווחים) וטקסטים לעובד (כולל המשפט הקבוע מחוץ לתחום)
   evals/                  שאלות בתחום ומחוץ לתחום, ו-run_off_topic.py שמריץ אותן מול המודל האמיתי
   tests/                  בדיקות ייחוס (6 עובדים), זכאות, שליפה מה-CSV, כלים, גרף (מודל מזויף), מודלים, API, אירועים.
@@ -180,6 +188,8 @@ pip install -r requirements.txt
 python -m pytest -q
 python -m app.agent.chat     # ניסיון חי, דורש backend/.env
 python -m evals.run_off_topic [off_topic|in_scope]   # תחום מול המודל האמיתי, כ-10 בקשות לסט
+python -m scripts.build_specs_snapshot   # גיבוי המפרט מה-API (משרד התחבורה, EEA)
+python -m pytest -m network   # קישורי היבואנים ומפתחות EEA, מול האתרים (לא רץ בהרצה הרגילה)
 python -m uvicorn app.api.server:app --reload --port 8000   # השרת
 ```
 
@@ -204,7 +214,13 @@ python -m uvicorn app.api.server:app --reload --port 8000   # השרת
     - הטבות יישוב לא נתמכות
     - אין אכיפה בקוד של מספרים בתשובה
 
+## הנחות
+
+- הדלק והטעינה על חשבון החברה, כי בכללי שטראוס אין רכיב דלק בנטו. לכן צריכה מוצגת כמידע ולא נכנסת לנטו.
+
 ## מגבלות ידועות
+
+- **מפרט רכב:** אין תא מטען ונוחות. נתוני EEA הם טווח גרסאות ומתעדכנים פעם בשנה. השנה הסופית האחרונה ב-EEA היא 2021, ולכן רק ל-Kona EV ול-Model 3 יש נתונים. Santa Fe (`00481/00533/2025`) לא נמצא במשרד התחבורה. בקודים של ATTO 3 יש גם שורה של TANG (`mixedModels`).
 
 - אין אכיפה בקוד של מספרים בתשובה. רק הוראה בפרומפט. מודל הגיבוי (Groq) עלול לציית פחות טוב.
 - **`gemini-2.5-flash` לא זמין יותר למפתחות חדשים** (404). ברירת המחדל עכשיו `gemini-3.7-flash`. מודלי Flash החדשים מחזירים לעיתים 503 (עומס). 503 מפעיל מעבר למפתח או למודל הבא.

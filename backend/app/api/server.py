@@ -23,6 +23,7 @@ from app.api.events import InMemoryNotifier
 from app.api.main import create_app
 from app.api.settings import cors_origins
 from app.data.loader import load_all
+from app.data.specs_store import build_specs_store
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BACKEND_DIR / ".env")
@@ -32,6 +33,9 @@ _timing_handler = logging.StreamHandler()
 _timing_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s", "%H:%M:%S"))
 logging.getLogger("app.timing").addHandler(_timing_handler)
 logging.getLogger("app.timing").propagate = False
+# car specs: "נטען מה-API" / "נטען מהגיבוי" (app/data/specs_store.py)
+logging.getLogger("app.specs").addHandler(_timing_handler)
+logging.getLogger("app.specs").propagate = False
 
 origins = tuple(cors_origins(os.environ))
 
@@ -48,8 +52,10 @@ if database_url:
 else:
     rep_queue, checkpointer = InMemoryRepQueue(), None
 
+data = load_all(BACKEND_DIR)
+
 app = create_app(
-    data=load_all(BACKEND_DIR),
+    data=data,
     model=build_model(cfg["modelTimeoutSeconds"], thinking_level=cfg["geminiThinkingLevel"]),
     rep_queue=rep_queue,
     notifier=InMemoryNotifier(),
@@ -59,3 +65,7 @@ app = create_app(
     origins=origins,
     usage_file=BACKEND_DIR / cfg["usage"]["file"],  # cost of each question, not in git
 )
+
+# car specs (MOT + EEA): loaded in a background thread, so /health is not held up; refreshed daily
+app.state.specs = build_specs_store(data.catalog, BACKEND_DIR)
+app.state.specs.start_background()

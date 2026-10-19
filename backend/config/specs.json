@@ -1,0 +1,66 @@
+{
+  "_readme": "Car specs (app/data/mot_specs.py, eea_specs.py, specs_store.py). Shown as information only: the specs never enter the net calculation. The snapshot (cache/specs-snapshot.json) is made by: python -m scripts.build_specs_snapshot",
+  "refreshHours": 24,
+  "snapshot": "cache/specs-snapshot.json",
+  "mot": {
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "url": "https://data.gov.il/api/3/action/datastore_search",
+    "resourceId": "142afde2-6228-49f9-8a29-9b6c3a0cbe40",
+    "timeoutSeconds": 30,
+    "fields": [
+      "merkav", "mispar_moshavim", "mispar_dlatot", "koah_sus", "automatic_ind", "mazgan_ind",
+      "bakarat_shyut_adaptivit_ind", "matzlemat_reverse_ind", "gova", "delek_nm", "technologiat_hanaa_nm",
+      "nikud_betihut", "ramat_eivzur_betihuty", "kvutzat_zihum", "madad_yarok", "CO2_WLTP", "kinuy_mishari",
+      "ramat_gimur"
+    ]
+  },
+  "eea": {
+    "source": "EEA, CO2 emissions from new passenger cars ([CO2Emission].[latest].[co2cars] in discodata). Final data, updated once a year",
+    "url": "https://discodata.eea.europa.eu/sql",
+    "table": "[CO2Emission].[latest].[co2cars]",
+    "timeoutSeconds": 120,
+    "columns": {
+      "consumption": "[Z (Wh/km)]",
+      "range": "Zr",
+      "_checked": "2026-10-19 against the API: 'Z (Wh/km)' = electric energy consumption, 'Zr' = electric range (km). There is no 'Electric range (km)' column (error 10003)."
+    },
+    "exclude": {
+      "CAR-17": ["SEAL U", "SEALION"]
+    }
+  },
+  "fuel": {
+    "gCo2PerLitre": {
+      "בנזין": 2348
+    },
+    "source": "US EPA, 'Greenhouse Gas Emissions from a Typical Passenger Vehicle': 8,887 g CO2 per gallon of gasoline = 2,348 g per litre. An approximation: the exact WLTP carbon balance (Regulation (EU) 2017/1151, Annex XXI, Sub-Annex 7) also counts HC and CO, and the test fuel differs. To verify.",
+    "note": "Petrol and hybrid only (delek_nm = בנזין). Plug-in: not computed (WLTP CO2 depends on charging). Diesel: no factor, not computed."
+  },
+  "indices": {
+    "_note": "The data.gov.il field descriptions for these are empty (checked 2026-10-19), so the direction is not documented. 'observed' is what the data suggests, not a source. Unverified -> not used for filtering.",
+    "madad_yarok": {
+      "direction": "unverified",
+      "observed": "Range 1-999. Hybrids about 150, Carnival (petrol, large) 374, electric cars empty. Suggests lower = greener",
+      "useForFiltering": false
+    },
+    "kvutzat_zihum": {
+      "direction": "unverified",
+      "observed": "Range 1-15. Hybrids 3-6, large petrol 15, electric cars empty. Suggests lower = less polluting",
+      "useForFiltering": false
+    },
+    "nikud_betihut": {
+      "direction": "unverified",
+      "observed": "Range 1-10.5. Kona EV 10.5, Picanto 1. Suggests higher = more safety systems",
+      "useForFiltering": false
+    },
+    "ramat_eivzur_betihuty": {
+      "direction": "unverified",
+      "observed": "Range 1-8, moves with nikud_betihut. Suggests higher = more safety equipment",
+      "useForFiltering": false
+    }
+  },
+  "knownMissing": {
+    "_note": "Catalog cars the source has no rows for (checked 2026-10-19). A test checks every car is found or listed here.",
+    "mot": ["CAR-20"],
+    "eea": ["CAR-03", "CAR-06", "CAR-10", "CAR-11", "CAR-16", "CAR-17"]
+  }
+}

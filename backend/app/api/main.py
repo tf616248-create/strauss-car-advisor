@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.agent.graph import build_agent
-from app.api import debug_mot, employee, rep
+from app.api import employee, rep
 
 
 def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Optional[str],
@@ -29,8 +29,6 @@ def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Opt
     @app.get("/health")
     def health():
         return {"status": "ok"}
-
-    app.include_router(debug_mot.router)  # TEMPORARY: MOT API reachability check
 
     app.include_router(employee.router(agent=agent, rep_queue=rep_queue, notifier=notifier, cfg=cfg,
                                         usage_file=usage_file))
