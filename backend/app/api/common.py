@@ -31,13 +31,21 @@ def text_of(content) -> str:
 
 
 def cards_of(messages) -> list[dict]:
+    """The cards for the screen: the comparison card (in calculate's result) and the ranking card
+    (rank_options' artifact - the model never reads it, only its short result)."""
     out = []
     for m in messages:
         if m.type == "tool" and m.name == "calculate":
             res = json.loads(m.content)
             if "card" in res:
-                out.append({"status": res["status"], "card": res["card"]})
+                out.append({"status": res["status"], "kind": "comparison", "card": res["card"]})
+        elif m.type == "tool" and m.name == "rank_options" and getattr(m, "artifact", None):
+            out.append({"status": "ok", "kind": "ranking", "card": m.artifact})
     return out
+
+
+def comparison_cards(cards: list[dict]) -> list[dict]:
+    return [c for c in cards if c["kind"] == "comparison"]
 
 
 def thread_config(thread_id: str) -> dict:

@@ -119,7 +119,7 @@ def make_tools(data, rep_queue, cfg: dict, specs=None) -> list:
         with timed("tool car_specs"):
             return _dump(options.car_specs(car))
 
-    @tool
+    @tool(response_format="content_and_artifact")
     def rank_options(
         state: Annotated[dict, InjectedState],
         config: RunnableConfig,
@@ -148,14 +148,16 @@ def make_tools(data, rep_queue, cfg: dict, specs=None) -> list:
         min_safety_level: Annotated[Optional[int], "סינון: רמת אבזור בטיחותי מינימלית"] = None,
         max_pollution_group: Annotated[Optional[int], "סינון: קבוצת זיהום מקסימלית (1 הכי נקי)"] = None,
         max_participation: Annotated[Optional[float], "סינון: השתתפות חודשית מקסימלית"] = None,
-    ) -> str:
+    ) -> tuple[str, Optional[dict]]:
         """מסדר את הרכבים מהקטלוג שהעובד זכאי להם, לפי מה שחשוב לו, ומחשב נטו לכל אחד. מחזיר את 3 הראשונים."""
         local = locals()
         args = {k: local[k] for k in Advisor.CALCULATE_FIELDS if k in local and not k.startswith("alternative")}
         filters = {k: local[k] for k in FILTERS}
         with timed("tool rank_options"):
-            return _dump(options.rank_options(args, filters, sort_by, history=state["messages"],
-                                              thread_id=_thread(config)))
+            result, card = options.rank_options(args, filters, sort_by, history=state["messages"],
+                                                thread_id=_thread(config))
+        # the model reads the short result; the card (full specs) goes to the screen as the artifact
+        return _dump(result), card
 
     tools = [lookup_vehicle, check_eligibility, calculate, ask_rep, car_specs, rank_options]
     assert {t.name for t in tools} == TOOL_NAMES

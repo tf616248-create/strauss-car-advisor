@@ -13,7 +13,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
-from app.api.common import cards_of, messages_of
+from app.api.common import cards_of, comparison_cards, messages_of
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def router(*, agent, rep_queue, notifier, rep_passcode: Optional[str]) -> APIRou
     def rep_requests():
         out = []
         for req in rep_queue.all_pending():
-            cards = cards_of(messages_of(agent, req["thread_id"]))
+            cards = comparison_cards(cards_of(messages_of(agent, req["thread_id"])))  # not the ranking
             out.append({"id": req["id"], "thread_id": req["thread_id"], "fields": req["fields"],
                         "question": req["question"], "car_key": req["car_key"],
                         "card": cards[-1]["card"] if cards else None})

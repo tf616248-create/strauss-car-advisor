@@ -246,6 +246,16 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .card__fact dd { margin: 0; font-weight: 600; }
 .card__yours .hint { font-size: 0.8rem; }
 
+/* ranking card (rank_options): one block per car, the full specs folded */
+.ranking h3 { font-size: 1rem; font-weight: 700; }
+.rank { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.rank__name { font-size: 1rem; font-weight: 700; margin: 0; }
+.rank__main { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.9rem; }
+.rank__specs summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+.rank__specs dl { margin: 8px 0 0; display: grid; gap: 4px; font-size: 0.85rem; }
+.rank__spec { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.rank__spec dt { color: var(--muted); }
+.rank__spec dd { margin: 0; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
 .card__scroll { border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; }
 .card__table { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
 .card__table th, .card__table td { text-align: start; padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: top; }

@@ -9,7 +9,11 @@ range.
 rank_options: the catalog cars the employee may take, filtered and sorted in code. Each car goes
 through Advisor.calculate, so eligibility and the net are exactly calculate's. A car with a missing
 spec for a filter or the sort is left out and reported; a car without catalog participation is
-reported as needs_rep, outside the ranking. A tie is broken by the net.
+reported as needs_rep, outside the ranking. A tie is broken by the net, and flagged
+(tie_broken_by_net). Electric cars have no pollution group in the source: they get a separate
+category ("ללא פליטות מהמפלט"), first in a pollution sort - no group is invented for them.
+It returns (result, card): the model reads a short result, the screen gets the card with the full
+specs (the tool's artifact).
 """
 from __future__ import annotations
 
@@ -150,6 +154,10 @@ class CarOptions:
                                    "על מה שאין עליו נתון רשמי (יופי, שקט, תא מטען) - אמור זאת לעובד."}
         return None
 
+    def _zero_tailpipe(self, raw: dict) -> bool:
+        """Electric by the Ministry of Transport: no pollution group in the source, and none is invented."""
+        return self.drive_type(raw) in self.cfg["zeroTailpipe"]["drive"]
+
     def _value(self, car: dict, raw: dict, field: str, higher_is_better: bool):
         """The value every trim has: min when higher is better, max when lower is better. None = no data."""
         if field == "participation":
@@ -180,6 +188,8 @@ class CarOptions:
         if op == "min":
             v = self._value(car, raw, spec["field"], higher_is_better=True)
             return None if v is None else v >= wanted
+        if spec["field"] == "kvutzat_zihum" and self._zero_tailpipe(raw):
+            return True
         v = self._value(car, raw, spec["field"], higher_is_better=False)  # op == "max"
         return None if v is None else v <= wanted
 
@@ -187,13 +197,73 @@ class CarOptions:
         spec = self.cfg["sortBy"][sort_by]
         return self.indices[spec["field"]]["direction"] if "directionFrom" in spec else spec["direction"]
 
+    def _sort_key(self, car: dict, raw: dict, sort_by: str, higher: bool) -> Optional[tuple]:
+        """The value the employee asked to sort by, as a key (smaller first). None = no data."""
+        field = self.cfg["sortBy"][sort_by]["field"]
+        if field == "kvutzat_zihum" and self._zero_tailpipe(raw):
+            return (0, 0)  # before every pollution group
+        v = self._value(car, raw, field, higher)
+        if v is None:
+            return None
+        return (1, -v if higher else v)
+
+    def _model_fields(self, car: dict, raw: dict, specs: dict, filters: dict, sort_by: str) -> dict:
+        """The fields the employee filtered by, for the model: {source: {label: value}}. Grouped by source
+        so each source is written once (the model reads every character). The sort field is in sort_value."""
+        short = self.cfg["sourceShort"]
+        mot = f'{short["mot"]}, {car["registrationYear"]}'
+        sort_field = self.cfg["sortBy"][sort_by].get("field")
+        out: dict[str, dict] = {}
+        for name in filters:
+            spec = self.cfg["filters"][name]
+            field = spec.get("field", "drive")
+            if field == sort_field:
+                continue
+            if field == "drive":
+                out.setdefault(mot, {})[self.labels["technologiat_hanaa_nm"]] = self.drive_type(raw)
+            elif field == "participation":
+                out.setdefault(self.advisor.src["catalog"], {})[self.labels[field]] = car["defaultParticipation"]
+            elif field == "kvutzat_zihum" and self._zero_tailpipe(raw):
+                out.setdefault(mot, {})[self.labels[field]] = self.cfg["zeroTailpipe"]["label"]
+            elif field in specs:
+                item = specs[field]
+                value = item["value"] if "value" in item else {"min": item["min"], "max": item["max"]}
+                out.setdefault(mot, {})[item["label"]] = value
+        return out
+
+    def _sort_value(self, car: dict, raw: dict, specs: dict, card: dict, sort_by: str, higher: bool) -> dict:
+        short = self.cfg["sourceShort"]
+        if sort_by == "net":
+            return {"value": card["alternative"]["values"]["net"]["value"], "label": "נטו משוער",
+                    "source": self.advisor.src["calculation"]}
+        field = self.cfg["sortBy"][sort_by]["field"]
+        if field == "kvutzat_zihum" and self._zero_tailpipe(raw):
+            z = self.cfg["zeroTailpipe"]
+            return {"category": z["category"], "label": z["label"], "source": short["mot"]}
+        out = {"value": self._value(car, raw, field, higher), "label": self.labels.get(field, field)}
+        if field == "consumption":
+            c = self._consumption(raw)
+            electric = c[2] == "Wh/km"
+            item = specs.get("electric_consumption" if electric else "fuel_consumption", {})
+            out.update(unit=c[2], source=short["eea"] if electric else short["fuel"])
+            if item.get("provisional"):
+                out["provisional"] = True
+            if item.get("year"):
+                out["source"] += f', {item["year"]}'
+        else:
+            out["source"] = f'{short["mot"]}, {car["registrationYear"]}'
+        return out
+
     def rank_options(self, args: dict, filters: dict, sort_by: Optional[str],
-                     history: Iterable = (), thread_id: str = "default") -> dict:
+                     history: Iterable = (), thread_id: str = "default") -> tuple[dict, Optional[dict]]:
+        """(result for the model, card for the screen). The model reads only the result: the names, the
+        net, the diff and the fields it filtered and sorted by. The card has the full specs, and goes to
+        the screen as the tool's artifact (like the comparison card), never through the model."""
         sort_by = sort_by or "net"
         filters = {k: v for k, v in (filters or {}).items() if v not in (None, [], "")}
         problem = self._invalid(filters, sort_by)
         if problem:
-            return problem
+            return problem, None
         direction = self._direction(sort_by)
         higher = _higher_first(direction)
         family_cars = self.data.rules["familyTrack"]["cars"]
@@ -216,7 +286,7 @@ class CarOptions:
             elif status == "missing" and kind == "family_car" and res["fields"] == ["children"]:
                 needs_children.append(car["name"])
             else:  # the employee's data or today's car: the same answer calculate would give
-                return res
+                return res, None
 
         excluded, filtered_out, ranked = [], 0, []
         for car, kind, card in candidates:
@@ -227,58 +297,57 @@ class CarOptions:
                 continue
             no_data = [name for name, passed in results.items() if passed is None]
             missing_field = self.cfg["filters"][no_data[0]].get("field", no_data[0]) if no_data else None
+            key = None
             if missing_field is None and sort_by != "net":
-                if self._value(car, raw, self.cfg["sortBy"][sort_by]["field"], higher) is None:
+                key = self._sort_key(car, raw, sort_by, higher)
+                if key is None:
                     missing_field = self.cfg["sortBy"][sort_by]["field"]
             if missing_field is not None:
                 label_key = "technologiat_hanaa_nm" if missing_field == "drive" else missing_field
                 excluded.append({"car": car["name"], "field": missing_field,
                                  "label": self.labels.get(label_key, missing_field)})
                 continue
-            ranked.append((car, kind, card, raw))
+            ranked.append((car, kind, card, raw, key))
 
         if sort_by == "consumption":
-            units = {self._consumption(raw)[2] for _, _, _, raw in ranked}
+            units = {self._consumption(raw)[2] for _, _, _, raw, _ in ranked}
             if len(units) > 1:
                 return {"status": "mixed_units", "units": sorted(units),
                         "instruction": "צריכת חשמל (Wh לק\"מ) וצריכת דלק (ליטרים) לא ניתנות להשוואה. "
-                                       "שאל את העובד אם הוא מתעניין בחשמלי או ברכב על דלק, וקרא שוב עם drive."}
+                                       "שאל את העובד אם הוא מתעניין בחשמלי או ברכב על דלק, וקרא שוב עם drive."}, None
 
         def net(card):
             return card["alternative"]["values"]["net"]["value"]
 
-        def key(item):
-            car, _, card, raw = item
-            if sort_by == "net":
-                return (-net(card),)
-            v = self._value(car, raw, self.cfg["sortBy"][sort_by]["field"], higher)
-            return (-v if higher else v, -net(card))
+        ranked.sort(key=lambda r: (r[4] or (), -net(r[2])))
+        keys = [r[4] for r in ranked]
+        options, card_options = [], []
+        for i, (car, kind, card, raw, key) in enumerate(ranked[: self.cfg["top"]], start=1):
+            tie = sort_by != "net" and keys.count(key) > 1  # same value as another car: the net decided
+            specs = self.specs_of(car) or {}
+            sort_value = self._sort_value(car, raw, specs, card, sort_by, higher)
+            options.append({"rank": i, "car": car["name"], "net": net(card),
+                            "diff": {k: v for k, v in card["diff"].items() if v},  # what changed
+                            "sort_value": sort_value, "fields": self._model_fields(car, raw, specs, filters, sort_by),
+                            "tie_broken_by_net": tie})
+            card_options.append({"rank": i, "car": car["name"], "group": car["group"], "kind": kind,
+                                 "participation": car["defaultParticipation"], "net": net(card),
+                                 "diff": card["diff"], "sort_value": sort_value, "tie_broken_by_net": tie,
+                                 "specs": specs, "importer_url": raw.get("importer_url")})
 
-        ranked.sort(key=key)
-        options = []
-        for i, (car, kind, card, raw) in enumerate(ranked[: self.cfg["top"]], start=1):
-            if sort_by == "net":
-                sort_value = {"value": net(card), "label": "נטו משוער"}
-            else:
-                field = self.cfg["sortBy"][sort_by]["field"]
-                sort_value = {"value": self._value(car, raw, field, higher), "label": self.labels.get(field, field)}
-                if field == "consumption":
-                    sort_value["unit"] = self._consumption(raw)[2]
-            options.append({"rank": i, "car": car["name"], "group": car["group"], "kind": kind,
-                            "participation": car["defaultParticipation"], "net": net(card), "diff": card["diff"],
-                            "sort_value": sort_value, "specs": self.specs_of(car) or {},
-                            "importer_url": raw.get("importer_url")})
-
-        out = {"status": "ok" if options else "no_match", "sort_by": sort_by, "direction": direction,
-               "applied_filters": filters, "options": options, "excluded_missing_data": excluded,
-               "needs_rep": needs_rep, "not_eligible": not_eligible, "filtered_out": filtered_out}
+        result = {"status": "ok" if options else "no_match", "sort_by": sort_by, "direction": direction,
+                  "applied_filters": filters, "options": options, "excluded_missing_data": excluded,
+                  "needs_rep": needs_rep, "not_eligible": not_eligible, "filtered_out": filtered_out}
         if needs_children:
-            out["family_track_needs_children"] = needs_children
-        out["instruction"] = (
-            "סידרתי לפי הנתונים: הצג את הרכבים בסדר הזה, עם הנטו וההפרש (diff.net) מהתוצאה בלבד. "
-            "אמור בגלוי לפי מה מיינת ואילו סינונים הפעלת. רכבים ב-excluded_missing_data הוצאו כי חסר להם "
-            "נתון רשמי - ציין זאת. רכבים ב-needs_rep לא נכנסו לדירוג. "
-            "אל תכתוב 'שטראוס ממליצה' או 'הכי טוב לך'."
-            if options else
-            "אף רכב שמגיע לעובד לא עומד בכל הסינונים. אמור זאת, ושאל איזה סינון אפשר לרכך.")
-        return out
+            result["family_track_needs_children"] = needs_children
+        result["instruction"] = (
+            "הצג בסדר הזה, עם net ו-diff.net. אמור לפי מה סידרת ואילו סינונים. המפרט המלא בכרטיס שבצד המסך."
+            if options else "אף רכב לא עומד בכל הסינונים. שאל איזה סינון לרכך.")
+        if not options:
+            return result, None
+        sort_field = self.cfg["sortBy"][sort_by].get("field")
+        sort_label = self.labels.get(sort_field, sort_field) if sort_field else "נטו משוער"
+        card_out = {"type": "ranking", "sort_by": sort_by, "sort_label": sort_label,
+                    "direction": direction, "applied_filters": filters, "options": card_options,
+                    "excluded_missing_data": excluded, "needs_rep": needs_rep}
+        return result, card_out

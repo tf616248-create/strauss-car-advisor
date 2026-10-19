@@ -115,7 +115,7 @@ def main() -> None:
             except Exception as e:  # e.g. every model failed: counts as a fail, with the reason
                 ok, why, answer = False, f"error: {type(e).__name__}: {e}", ""
             passed += ok
-            print(f'{"PASS" if ok else "FAIL"}  [{case["kind"]}] {case["id"]}: {case["question"]}')
+            print(f'{"PASS" if ok else "FAIL"}  [{case.get("kind", title)}] {case["id"]}: {case["question"]}')
             if not ok:
                 print(f"      why: {why}\n      answer: {answer[:300]}")
         print(f"{title}: {passed}/{len(cases)} passed")

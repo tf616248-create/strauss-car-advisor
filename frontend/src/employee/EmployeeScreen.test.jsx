@@ -460,3 +460,17 @@ describe('message box grows with the text', () => {
     expect(css).toMatch(/\.chat__form \{[^}]*align-items:\s*flex-end/)
   })
 })
+
+// rank_options: its card (full specs) comes over the same "card" event, and never through the model
+describe('ranking card', () => {
+  it('shows the ranking card beside the chat', async () => {
+    const { default: ranking } = await import('../test-fixtures/card-ranking.json')
+    setup({ chatEvents: [['thread', { thread_id: TID }], ['card', ranking], ['token', { text: 'סידרתי' }], ['done', {}]] })
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), 'תסדר לי לפי זיהום')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    const cards = await screen.findByRole('complementary', { name: 'כרטיס השוואה' })
+    expect(await within(cards).findByRole('heading', { name: /סידרתי לפי/ })).toBeInTheDocument()
+    expect(within(cards).getAllByRole('article')).toHaveLength(ranking.card.options.length)
+  })
+})

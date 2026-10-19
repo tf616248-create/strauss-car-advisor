@@ -106,6 +106,10 @@
       "electric_range": "טווח חשמלי (ק\"מ)",
       "participation": "השתתפות חודשית"
     },
+    "sourceShort": {"mot": "משרד התחבורה", "eea": "EEA", "fuel": "משרד התחבורה + מקדם EPA (בקירוב)"},
+    "_sourceShort": "The model's result names the source briefly (it reads every character); the card on the screen has the full source and date.",
+    "zeroTailpipe": {"category": "zero_tailpipe", "label": "ללא פליטות מהמפלט", "drive": ["electric"],
+                     "_note": "Electric cars (delek_nm / technologiat_hanaa_nm in the Ministry of Transport) have no pollution group in the source. They are not given one: they get this separate category, first in a pollution sort, and they pass max_pollution_group. Plug-in cars keep their real group."},
     "fuelSource": "משרד התחבורה (פליטת CO2), מחושב במקדם של EPA - בקירוב",
     "plugInFuel": "תלוי בטעינה",
     "top": 3,

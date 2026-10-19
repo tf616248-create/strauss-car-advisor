@@ -66,6 +66,9 @@ def test_rank_options_through_the_graph(data):
     script = [call("rank_options", {**args, "drive": ["electric"], "sort_by": "safety"}), AIMessage(content="סיום")]
     out, _ = run(data, script)
     [res] = tool_results(out, "rank_options")
+    [msg] = [m for m in out["messages"] if isinstance(m, ToolMessage) and m.name == "rank_options"]
+    assert "specs" not in msg.content  # the model reads the short result
+    assert msg.artifact["type"] == "ranking" and msg.artifact["options"][0]["specs"]  # the card: full specs
     assert res["status"] == "ok"
     assert res["applied_filters"] == {"drive": ["electric"]}
     assert res["sort_by"] == "safety"

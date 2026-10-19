@@ -3,6 +3,7 @@ import * as realApi from '../lib/api'
 import { EMPLOYEE_TITLE, notifier as realNotifier } from '../lib/notify'
 import { subscribeChanges } from '../lib/realtime'
 import CompareCard from '../components/CompareCard'
+import RankingCard from '../components/RankingCard'
 import Road, { CarBody } from '../components/Road'
 import ContactRep from '../components/ContactRep'
 import Answer from '../components/Answer'
@@ -286,7 +287,9 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         <aside id="cmp-panel" className="cards" aria-label="כרטיס השוואה" inert={!panelOpen}>
           {cards.length === 0
             ? <EmptyPanel />
-            : cards.map((c, i) => <CompareCard key={i} result={c} />)}
+            : cards.map((c, i) => (c.kind === 'ranking'
+              ? <RankingCard key={i} result={c} />
+              : <CompareCard key={i} result={c} />))}
         </aside>
       </section>
 
