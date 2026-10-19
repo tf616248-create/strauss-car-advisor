@@ -29,3 +29,8 @@ services:
         sync: false
       - key: REP_PASSCODE
         sync: false
+      # employee login: "E01:1111,E02:2222,..." and a long random secret that signs the tokens
+      - key: EMPLOYEE_CODES
+        sync: false
+      - key: JWT_SECRET
+        sync: false

@@ -22,6 +22,7 @@ from app.agent.rep_queue import InMemoryRepQueue
 from app.api.events import InMemoryNotifier
 from app.api.main import create_app
 from app.api.settings import cors_origins
+from app.auth import EmployeeAuth
 from app.data.loader import load_all
 from app.data.specs_store import build_specs_store
 
@@ -43,14 +44,16 @@ cfg = load_agent_config(BACKEND_DIR)
 
 database_url = os.environ.get("DATABASE_URL")
 if database_url:
-    from app.db import PostgresRepQueue, make_checkpointer, make_pool
+    from app.db import PostgresRepQueue, PostgresThreads, make_checkpointer, make_pool
 
     pool = make_pool(database_url)
     rep_queue = PostgresRepQueue(pool)
     rep_queue.setup()
+    threads = PostgresThreads(pool)
+    threads.setup()
     checkpointer = make_checkpointer(pool)
 else:
-    rep_queue, checkpointer = InMemoryRepQueue(), None
+    rep_queue, checkpointer, threads = InMemoryRepQueue(), None, None  # None: create_app keeps them in memory
 
 data = load_all(BACKEND_DIR)
 
@@ -65,6 +68,9 @@ app = create_app(
     notifier=InMemoryNotifier(),
     cfg=cfg,
     rep_passcode=os.environ.get("REP_PASSCODE") or None,
+    # employee login: EMPLOYEE_CODES + JWT_SECRET (app/auth.py); no codes = the employee screen is closed
+    employee_auth=EmployeeAuth.from_env(os.environ, hours=cfg["auth"]["tokenHours"]),
+    threads=threads,
     checkpointer=checkpointer,
     origins=origins,
     usage_file=BACKEND_DIR / cfg["usage"]["file"],  # cost of each question, not in git

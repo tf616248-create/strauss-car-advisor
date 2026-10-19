@@ -99,7 +99,7 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
   grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas: "top top top top" "chat divider panel tab";
 }
-.chat { grid-area: chat; display: flex; flex-direction: column; gap: 16px; min-height: 0; padding: 20px 28px; }
+.chat { grid-area: chat; display: flex; flex-direction: column; gap: 16px; min-height: 0; padding: 20px 28px; position: relative; }
 .chat__messages { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
 .msg { max-width: 80%; font-size: 1rem; line-height: 1.65; white-space: pre-wrap; }
 .msg__who { display: block; margin-bottom: 2px; color: var(--muted); font-size: 0.8rem; font-weight: 700; }
@@ -362,7 +362,9 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
   .topbar__product { font-size: 0.8rem; }
   /* the "only a check" line: a small line of its own under the header */
   .topbar { flex-wrap: wrap; row-gap: 0; padding-bottom: 10px; }
-  .topbar__sub { flex-basis: 100%; margin-inline-start: 0; white-space: normal; font-size: 0.8rem; line-height: 1.4; }
+  .topbar__sub { flex-basis: 100%; margin-inline-start: 0; white-space: normal; font-size: 0.8rem; line-height: 1.4; order: 3; }
+  .topbar__logout { margin-inline-start: auto; }
+  .history { inset-inline: 16px; width: auto; top: 62px; }
 
   .employee { display: flex; flex-direction: column; height: auto; min-height: 100vh; }
   .chat { height: 72vh; padding: 16px; gap: 20px; }
@@ -421,7 +423,7 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .contact__close, .chat__form .contact__close { background: transparent; color: var(--muted); padding: 4px; min-height: 0; border-radius: 8px; }
 
 /* ---- "new conversation": a quiet outlined pill pinned above the messages, like the edge toggle ---- */
-.chat__top { display: flex; justify-content: flex-start; }
+.chat__top { display: flex; justify-content: flex-start; gap: 8px; flex-wrap: wrap; }
 .chat__new {
   min-height: 34px; padding: 0 14px 0 12px; display: inline-flex; align-items: center; gap: 6px;
   background: var(--bg); color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
@@ -430,3 +432,44 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .chat__new svg { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
 .chat__new:hover:not(:disabled) { color: var(--text); border-color: var(--muted); background: var(--surface); }
 @media (prefers-reduced-motion: reduce) { .chat__new { transition: none; } }
+
+/* ---- logout: a quiet text button at the end of the header ---- */
+.topbar__logout {
+  order: 2; min-height: 36px; padding: 0 14px; background: transparent; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px; font-size: 0.9rem; font-weight: 600;
+}
+.topbar__logout:hover { color: var(--text); border-color: var(--muted); }
+.topbar__sub { order: 1; }
+
+/* ---- "my conversations": a list that opens under the buttons, over the messages ---- */
+.history {
+  position: absolute; top: 66px; inset-inline-start: 28px; z-index: 5;
+  width: min(360px, calc(100% - 56px)); max-height: 60%; overflow-y: auto;
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .14); padding: 6px;
+}
+.history__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.history__item {
+  width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: start;
+  min-height: 52px; padding: 8px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--text);
+  font: inherit; cursor: pointer;
+}
+.history__item:hover { background: var(--surface); }
+.history__item[aria-current="true"] { background: var(--surface); box-shadow: inset -3px 0 0 var(--cyan); }
+.history__title { font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history__when { color: var(--muted); font-size: 0.8rem; }
+.history__empty { margin: 0; padding: 12px; color: var(--muted); }
+
+/* ---- the login screen ---- */
+.login { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: var(--surface); }
+.login__card {
+  width: min(400px, 100%); display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 28px 24px; background: var(--bg); border: 1px solid var(--line); border-radius: 20px; text-align: center;
+}
+.login__logo { height: 56px; width: auto; background: #FFFFFF; border-radius: 10px; padding: 4px 8px; }
+.login__title { display: flex; flex-direction: column; line-height: 1.15; margin: 0; }
+.login__sub { color: var(--muted); margin: 0; }
+.login__label { align-self: flex-start; font-weight: 700; }
+.login__card input { text-align: center; letter-spacing: 0.3em; font-size: 1.25rem; }
+.login__card button { width: 100%; min-height: 52px; }
+.login__card .error { margin: 0; }

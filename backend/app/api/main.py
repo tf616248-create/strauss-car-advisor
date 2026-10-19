@@ -16,13 +16,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.agent.graph import build_agent
 from app.api import employee, rep
+from app.threads import InMemoryThreads
 
 
 def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Optional[str],
                checkpointer=None, origins: tuple[str, ...] = ("http://localhost:5173",),
-               usage_file=None, specs=None) -> FastAPI:
+               usage_file=None, specs=None, employee_auth=None, threads=None) -> FastAPI:
     """usage_file: a CSV with the cost of each question (app/usage.py); None writes nothing (tests).
-    specs: the car specs store (app/data/specs_store.py); None = the snapshot in git, no network."""
+    specs: the car specs store (app/data/specs_store.py); None = the snapshot in git, no network.
+    employee_auth: app/auth.EmployeeAuth; None = the employee screen is closed (no EMPLOYEE_CODES).
+    threads: who owns which conversation (app/threads.py, app/db.py); None = in memory."""
     agent = build_agent(model, data, rep_queue, cfg, checkpointer, specs=specs)
     app = FastAPI(title="Strauss car advisor")
     app.add_middleware(CORSMiddleware, allow_origins=list(origins), allow_methods=["*"], allow_headers=["*"])
@@ -32,6 +35,7 @@ def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Opt
         return {"status": "ok"}
 
     app.include_router(employee.router(agent=agent, rep_queue=rep_queue, notifier=notifier, cfg=cfg,
-                                        usage_file=usage_file))
+                                        usage_file=usage_file, auth=employee_auth,
+                                        threads=threads if threads is not None else InMemoryThreads()))
     app.include_router(rep.router(agent=agent, rep_queue=rep_queue, notifier=notifier, rep_passcode=rep_passcode))
     return app

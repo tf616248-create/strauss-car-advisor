@@ -1,4 +1,5 @@
-"""Postgres (Neon): the connection pool, the rep queue, and LangGraph's checkpointer.
+"""Postgres (Neon): the connection pool, the rep queue, the employees' conversation list,
+and LangGraph's checkpointer.
 
 Used only when DATABASE_URL is set; without it everything stays in memory.
 
@@ -136,3 +137,56 @@ class PostgresRepQueue:
         if thread_ids:
             with self.pool.connection() as conn:
                 conn.execute("delete from rep_requests where thread_id = any(%s)", (list(thread_ids),))
+
+
+THREADS_SCHEMA = """
+create table if not exists employee_threads (
+    thread_id   text primary key,
+    employee_id text not null,
+    title       text,
+    updated_at  timestamptz not null default clock_timestamp()
+);
+create index if not exists employee_threads_list on employee_threads (employee_id, updated_at desc);
+"""
+
+
+class PostgresThreads:
+    """Same methods and behaviour as InMemoryThreads (see tests/test_threads_repository.py)."""
+
+    def __init__(self, pool: ConnectionPool):
+        self.pool = pool
+
+    def setup(self) -> None:
+        with self.pool.connection() as conn:
+            for statement in THREADS_SCHEMA.split(";"):
+                if statement.strip():
+                    conn.execute(statement)
+
+    def _all(self, sql: str, params=()) -> list[dict]:
+        with self.pool.connection() as conn:
+            cur = conn.execute(sql, params)
+            return cur.fetchall() if cur.description else []
+
+    def add(self, employee_id: str, thread_id: str) -> None:
+        self._all("insert into employee_threads (thread_id, employee_id) values (%s, %s) "
+                  "on conflict (thread_id) do nothing", (thread_id, employee_id))
+
+    def owner(self, thread_id: str) -> Optional[str]:
+        rows = self._all("select employee_id from employee_threads where thread_id = %s", (thread_id,))
+        return rows[0]["employee_id"] if rows else None
+
+    def touch(self, thread_id: str, title: Optional[str]) -> None:
+        # clock_timestamp(), not now(): with autocommit each statement is its own transaction anyway,
+        # but this keeps two quick changes in order
+        self._all("update employee_threads set title = %s, updated_at = clock_timestamp() where thread_id = %s",
+                  (title, thread_id))
+
+    def list(self, employee_id: str, limit: int = 50) -> list[dict]:
+        rows = self._all("select thread_id, title, updated_at from employee_threads where employee_id = %s "
+                         "order by updated_at desc limit %s", (employee_id, limit))
+        return [{**r, "updated_at": r["updated_at"].isoformat()} for r in rows]
+
+    def delete_threads(self, thread_ids: list[str]) -> None:
+        """For tests: remove throwaway conversations."""
+        if thread_ids:
+            self._all("delete from employee_threads where thread_id = any(%s)", (list(thread_ids),))

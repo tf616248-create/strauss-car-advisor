@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import * as realApi from '../lib/api'
 import { EMPLOYEE_TITLE, notifier as realNotifier } from '../lib/notify'
 import { subscribeChanges } from '../lib/realtime'
+import { getCurrentThread, setCurrentThread } from '../lib/session'
 import CompareCard from '../components/CompareCard'
 import RankingCard from '../components/RankingCard'
 import SpecsCard from '../components/SpecsCard'
@@ -25,9 +26,13 @@ const CHOICES = [
 const WELCOME = 'שלום, אני כובי'
 
 const fmtNet = (v) => `${v > 0 ? '+' : '−'}${Math.abs(v).toLocaleString('he-IL')} ₪`
+const fmtWhen = (iso) => new Date(iso).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
 
-export default function EmployeeScreen({ api = realApi, subscribe = subscribeChanges, notifier = realNotifier }) {
-  const [threadId, setThreadId] = useState(() => localStorage.getItem('threadId'))
+export default function EmployeeScreen({ api = realApi, subscribe = subscribeChanges, notifier = realNotifier, onLogout }) {
+  // the open conversation, kept for this tab (a reload stays on it); the list is on the server
+  const [threadId, setThreadId] = useState(() => getCurrentThread())
+  const [history, setHistory] = useState([])
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [cards, setCards] = useState([])
   const [step, setStep] = useState(null)
@@ -90,11 +95,43 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     }
   }
 
-  // after a reload
+  // my conversations, newest first (GET /threads): read on load and after every answer
+  async function loadHistory() {
+    try {
+      const list = await api.threads()
+      setHistory(list)
+      return list
+    } catch { return [] }
+  }
+
+  // after a reload: the conversation open in this tab; right after login: the newest one
   useEffect(() => {
-    refresh(localStorage.getItem('threadId'))
+    const tid = getCurrentThread()
+    if (tid) refresh(tid)
+    loadHistory().then((list) => {
+      if (!getCurrentThread() && !busyRef.current && list[0]) openThread(list[0].thread_id)
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api])
+
+  function clearScreen() {
+    setMessages([])
+    setCards([])
+    setStops([])
+    setStep(null)
+    setParked(false)
+    setHistoryOpen(false)
+    notifier.setUnread(0)
+  }
+
+  // a conversation from the list: its messages and cards come from the server
+  function openThread(tid) {
+    if (busyRef.current) return
+    setCurrentThread(tid)
+    setThreadId(tid)
+    clearScreen()
+    refresh(tid)
+  }
 
   function append(msg) {
     const m = { ...msg, id: nextId++ }
@@ -106,7 +143,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     let turnCards = []
     return (event, data) => {
       if (event === 'thread') {
-        localStorage.setItem('threadId', data.thread_id)
+        setCurrentThread(data.thread_id)
         setThreadId(data.thread_id)
       } else if (event === 'step') {
         setStep(data.label)
@@ -138,6 +175,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     setStep(null)
     busyRef.current = false
     setBusy(false)
+    loadHistory() // a new conversation, or a new title from the card
   }
 
   async function send(e) {
@@ -155,18 +193,20 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     await run((onEvent) => api.streamChat({ message: text, threadId }, onEvent))
   }
 
-  // A fresh start: forget this conversation in the browser (it stays in the database,
-  // but this browser can no longer open it). Also for a shared computer.
+  // A fresh start. The previous conversation stays in "my conversations".
   function newConversation() {
-    localStorage.removeItem('threadId')
+    setCurrentThread(null)
     setThreadId(null)
-    setMessages([])
-    setCards([])
-    setStops([])
-    setStep(null)
-    setParked(false)
-    notifier.setUnread(0)
+    clearScreen()
   }
+
+  // Escape closes the list
+  useEffect(() => {
+    if (!historyOpen) return
+    const onKey = (e) => { if (e.key === 'Escape') setHistoryOpen(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [historyOpen])
 
   // the server rang ("changed", e.g. the rep answered): beep, mark the tab, read the state
   useEffect(() => {
@@ -211,17 +251,43 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
           <span className="topbar__name">כובי</span>
           <span className="topbar__product">יועץ הרכב של שטראוס</span>
         </h1>
+        <button type="button" className="topbar__logout" onClick={() => onLogout?.()}>יציאה</button>
         <p className="topbar__sub"><strong>רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלכם</strong> · לפי כללי שטראוס ורשות המסים</p>
       </header>
 
       <main className="chat">
-        {(threadId || messages.length > 0) && (
-          <div className="chat__top">
+        <div className="chat__top">
+          <button type="button" className="chat__new" onClick={() => setHistoryOpen((o) => !o)}
+            aria-expanded={historyOpen} aria-controls="history" disabled={busy}>
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
+            השיחות שלי
+          </button>
+          {(threadId || messages.length > 0) && (
             <button type="button" className="chat__new" onClick={newConversation} disabled={busy}>
               <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
               שיחה חדשה
             </button>
-          </div>
+          )}
+        </div>
+        {historyOpen && (
+          <nav id="history" className="history" aria-label="השיחות שלי">
+            {history.length === 0
+              ? <p className="history__empty">עוד אין שיחות קודמות.</p>
+              : (
+                <ul className="history__list">
+                  {history.map((t) => (
+                    <li key={t.thread_id}>
+                      <button type="button" className="history__item" data-thread={t.thread_id}
+                        aria-current={t.thread_id === threadId ? 'true' : undefined}
+                        onClick={() => openThread(t.thread_id)}>
+                        <span className="history__title">{t.title || 'שיחה חדשה'}</span>
+                        <span className="history__when">{fmtWhen(t.updated_at)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </nav>
         )}
         {messages.length === 0 && (
           <section className="welcome" aria-labelledby="welcome-title">

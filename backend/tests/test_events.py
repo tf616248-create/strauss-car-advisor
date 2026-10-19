@@ -15,6 +15,8 @@ from app.agent.advisor import load_agent_config
 from app.agent.rep_queue import InMemoryRepQueue
 from app.api.events import InMemoryNotifier, conversation_events
 from app.api.main import create_app
+from app.threads import InMemoryThreads
+from tests.auth_helpers import authed, make_auth
 from tests.conftest import BACKEND_DIR
 from tests.test_agent_graph import ScriptedModel
 from tests.test_api import PASS, chat, rachel_script
@@ -45,11 +47,18 @@ class SpyNotifier(InMemoryNotifier):
         super().publish(conversation_id)
 
 
+AUTH = make_auth()
+TOKEN = AUTH.issue("E01")
+
+
 def build(data, cfg, script=(), queue=None, notifier=None):
     queue = queue or InMemoryRepQueue()
     notifier = notifier or InMemoryNotifier()
+    threads = InMemoryThreads()
+    for tid in (TID_A, TID_B):  # the fixed ids below belong to the logged-in employee
+        threads.add("E01", tid)
     app = create_app(data=data, model=ScriptedModel(messages=iter(list(script))), rep_queue=queue,
-                     notifier=notifier, cfg=cfg, rep_passcode=PASS)
+                     notifier=notifier, cfg=cfg, rep_passcode=PASS, employee_auth=AUTH, threads=threads)
     return app, queue, notifier
 
 
@@ -134,14 +143,15 @@ TID_B = "22222222-2222-2222-2222-222222222222"
 class Browser:
     """An EventSource-like client: reads the stream chunk by chunk, can hang up."""
 
-    def __init__(self, app, path):
+    def __init__(self, app, path, token=TOKEN):
         self.chunks: asyncio.Queue = asyncio.Queue()
         self.gone = asyncio.Event()
         self.status = None
         self._started = False
         scope = {
             "type": "http", "asgi": {"version": "3.0", "spec_version": "2.4"}, "http_version": "1.1",
-            "method": "GET", "scheme": "http", "path": path, "raw_path": path.encode(), "query_string": b"",
+            "method": "GET", "scheme": "http", "path": path, "raw_path": path.encode(),
+            "query_string": f"token={token}".encode(),  # EventSource can't send headers
             "root_path": "", "headers": [(b"host", b"test"), (b"accept", b"text/event-stream")],
             "client": ("test", 1), "server": ("test", 80),
         }
@@ -193,7 +203,7 @@ def test_events_endpoint_is_sse(data, cfg):
 
 
 def test_events_endpoint_rejects_a_bad_id(data, cfg):
-    client = TestClient(build(data, cfg)[0])
+    client = authed(build(data, cfg)[0], AUTH)
     assert client.get("/conversations/not-a-uuid/events").status_code == 422
 
 
@@ -224,7 +234,8 @@ def test_rep_answer_rings_only_the_employee_of_that_conversation(data, cfg):
 
     async def go():
         app, queue, _ = build(data, fast(cfg, heartbeat=0.2), script=script)
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as http:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test",
+                                     headers={"Authorization": f"Bearer {TOKEN}"}) as http:
             r = await http.post("/chat", json={"message": "אם אקח Atto 2?"})
             tid = json.loads(r.text.split("data: ", 1)[1].split("\n", 1)[0])["thread_id"]
             mine = Browser(app, f"/conversations/{tid}/events")
@@ -252,7 +263,7 @@ def test_rep_answer_is_saved_before_the_ring(data, cfg):
     queue = InMemoryRepQueue()
     notifier = SpyNotifier(on_publish=lambda tid: seen_at_ring.append(queue.pending(tid)))
     app, _, _ = build(data, cfg, script=script, queue=queue, notifier=notifier)
-    client = TestClient(app)
+    client = authed(app, AUTH)
     tid = chat(client, "אם אקח Atto 2?")[0][1]["thread_id"]
     rid = queue.pending(tid)[0]["id"]
 
@@ -270,7 +281,7 @@ def test_failed_save_rings_nobody(data, cfg):
     _, script = rachel_script(data)
     queue, notifier = BrokenSave(), SpyNotifier()
     app, _, _ = build(data, cfg, script=script, queue=queue, notifier=notifier)
-    client = TestClient(app)
+    client = authed(app, AUTH)
     tid = chat(client, "אם אקח Atto 2?")[0][1]["thread_id"]
     rid = queue.pending(tid)[0]["id"]
 

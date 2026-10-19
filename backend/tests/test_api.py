@@ -10,6 +10,7 @@ from app.agent.advisor import load_agent_config
 from app.agent.rep_queue import InMemoryRepQueue
 from app.api.events import InMemoryNotifier
 from app.api.main import create_app
+from tests.auth_helpers import authed, make_auth
 from tests.conftest import BACKEND_DIR
 from tests.test_agent_advisor import employee_args
 from tests.test_agent_graph import ScriptedModel, call
@@ -36,8 +37,10 @@ class RecordingNotifier(InMemoryNotifier):
 def make(data, cfg, script=None, model=None, passcode=PASS):
     queue, notifier = InMemoryRepQueue(), RecordingNotifier()
     model = model or ScriptedModel(messages=iter(script))
-    app = create_app(data=data, model=model, rep_queue=queue, notifier=notifier, cfg=cfg, rep_passcode=passcode)
-    return TestClient(app), queue, notifier
+    auth = make_auth()
+    app = create_app(data=data, model=model, rep_queue=queue, notifier=notifier, cfg=cfg, rep_passcode=passcode,
+                     employee_auth=auth)
+    return authed(app, auth), queue, notifier  # logged in as E01 (test_auth.py covers the login)
 
 
 def events(response) -> list[tuple[str, dict]]:

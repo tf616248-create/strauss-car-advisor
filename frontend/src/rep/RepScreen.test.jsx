@@ -46,7 +46,7 @@ describe('RepScreen', () => {
 
     await waitFor(() => expect(api.repAnswer).toHaveBeenCalledWith('pw', '1',
       { carGroup: 'ב', companyCost: 3500, participation: 250 }))
-  })
+  }, 15000) // much typing: past the 5s default when the whole suite runs in parallel
 
   it('confirms the sent answer, then shows the empty queue', async () => {
     const api = fakeApi()

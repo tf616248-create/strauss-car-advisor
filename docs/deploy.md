@@ -25,6 +25,8 @@ New → **Blueprint** → בוחרים את הריפו. Render קורא את `re
 | `OPENROUTER_API_KEY` | מפתח OpenRouter, גיבוי | לא |
 | `FRONTEND_ORIGIN` | כתובת הממשק מ-Netlify, למשל `https://strauss-car-advisor.netlify.app` (בלי `/` בסוף) | כן, אחרי שלב 3 |
 | `REP_PASSCODE` | סיסמה למסך הנציג. ריק = מסך הנציג סגור | כן, להדגמה |
+| `EMPLOYEE_CODES` | קודי כניסה לעובדים: `E01:1111,E02:2222,...`. ריק = מסך העובד סגור | כן |
+| `JWT_SECRET` | מחרוזת אקראית ארוכה: `python -c "import secrets; print(secrets.token_urlsafe(48))"`. בלעדיה כל עובד מתנתק כש-Render נרדם | כן |
 
 - `PYTHON_VERSION` (3.12.4) כבר מוגדר ב-`render.yaml`.
 - אפשר להוסיף ידנית `GOOGLE_API_KEY_2` ו-`GOOGLE_API_KEY_3`: מפתחות Gemini נוספים, שננסים לפי הסדר.

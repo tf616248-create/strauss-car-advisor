@@ -7,6 +7,8 @@ langchain-google-genai>=4.0
 langchain-groq>=1.0
 langchain-openai>=1.0
 python-dotenv>=1.0
+# employee login (demo codes -> JWT, app/auth.py)
+PyJWT>=2.8
 # server (stage 7)
 fastapi>=0.110
 uvicorn[standard]>=0.29

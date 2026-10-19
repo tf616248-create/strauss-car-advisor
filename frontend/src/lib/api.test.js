@@ -56,3 +56,57 @@ describe('apiBase', () => {
     expect(apiBase({ VITE_API_URL: '', DEV: false })).toBe('')
   })
 })
+
+describe('employee login', () => {
+  const ok = (body) => ({ ok: true, status: 200, json: async () => body })
+
+  it('every request carries the login token', async () => {
+    const { setToken } = await import('./session')
+    setToken('tok-1')
+    const fetchImpl = vi.fn().mockResolvedValue(sseResponse(['event: done\ndata: {}\n\n']))
+    await streamChat({ message: 'x' }, () => {}, fetchImpl)
+    expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe('Bearer tok-1')
+  })
+
+  it('an expired login (401) sends the employee back to the login screen, with no error message', async () => {
+    const { setToken, setUnauthorizedHandler, getToken } = await import('./session')
+    const back = vi.fn()
+    setUnauthorizedHandler(back)
+    setToken('old')
+    const got = []
+    await streamChat({ message: 'x' }, (e) => got.push(e), vi.fn().mockResolvedValue({ ok: false, status: 401 }))
+    expect(back).toHaveBeenCalled()
+    expect(getToken()).toBeNull()
+    expect(got).toEqual([])
+    setUnauthorizedHandler(() => {})
+  })
+
+  it('login posts the code and returns the token', async () => {
+    const { login } = await import('./api')
+    const fetchImpl = vi.fn().mockResolvedValue(ok({ token: 't', employee_id: 'E01' }))
+    expect(await login('1111', fetchImpl)).toEqual({ token: 't', employee_id: 'E01' })
+    const [url, init] = fetchImpl.mock.calls[0]
+    expect(url).toMatch(/\/login$/)
+    expect(JSON.parse(init.body)).toEqual({ code: '1111' })
+  })
+
+  it('a wrong code is an error with its status (and is not "logged out")', async () => {
+    const { login } = await import('./api')
+    const { setUnauthorizedHandler } = await import('./session')
+    const back = vi.fn()
+    setUnauthorizedHandler(back)
+    await expect(login('0', vi.fn().mockResolvedValue({ ok: false, status: 401 }))).rejects.toMatchObject({ status: 401 })
+    expect(back).not.toHaveBeenCalled()
+    setUnauthorizedHandler(() => {})
+  })
+
+  it('threads lists my conversations, with the token', async () => {
+    const { threads } = await import('./api')
+    const { setToken } = await import('./session')
+    setToken('tok-2')
+    const list = [{ thread_id: 'a', title: 'שאלה', updated_at: '2026-10-20T10:00:00+00:00' }]
+    const fetchImpl = vi.fn().mockResolvedValue(ok({ threads: list }))
+    expect(await threads(fetchImpl)).toEqual(list)
+    expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe('Bearer tok-2')
+  })
+})

@@ -18,7 +18,15 @@ describe('subscribeChanges', () => {
   it('listens to the conversation events on our server', () => {
     const { FakeES, made } = fakeEventSource()
     subscribeChanges(TID, { onChanged: vi.fn(), onOpen: vi.fn() }, FakeES)
-    expect(made[0].url).toBe(`${API_URL}/conversations/${TID}/events`)
+    expect(made[0].url).toBe(`${API_URL}/conversations/${TID}/events?token=`)
+  })
+
+  it('sends the login token in the address (EventSource cannot send headers)', async () => {
+    const { setToken } = await import('./session')
+    setToken('a b')
+    const { FakeES, made } = fakeEventSource()
+    subscribeChanges(TID, { onChanged: vi.fn(), onOpen: vi.fn() }, FakeES)
+    expect(made[0].url).toBe(`${API_URL}/conversations/${TID}/events?token=a%20b`)
   })
 
   it('"changed" calls onChanged; every (re)connect calls onOpen', () => {

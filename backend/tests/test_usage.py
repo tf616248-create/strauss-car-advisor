@@ -3,7 +3,6 @@ printed to the server log and appended to a local CSV (backend/logs/usage.csv, n
 import csv
 import logging
 
-from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage
 
 from app.agent.models import WithTimeout
@@ -11,6 +10,7 @@ from app.agent.rep_queue import InMemoryRepQueue
 from app.api.events import InMemoryNotifier
 from app.api.main import create_app
 from app.usage import append_row, turn_usage
+from tests.auth_helpers import authed, make_auth
 from tests.test_agent_graph import ScriptedModel, call
 from tests.test_api import cfg  # noqa: F401 (fixture)
 
@@ -95,9 +95,9 @@ def test_each_question_is_logged_and_written_to_the_csv(data, cfg, tmp_path, cap
                                                    AIMessage(content="סיום")]))], 5, ["gemini"])
     path = tmp_path / "usage.csv"
     app = create_app(data=data, model=model, rep_queue=InMemoryRepQueue(), notifier=InMemoryNotifier(),
-                     cfg=cfg, rep_passcode=None, usage_file=path)
+                     cfg=cfg, rep_passcode=None, usage_file=path, employee_auth=(auth := make_auth()))
     with caplog.at_level(logging.INFO, logger="app.timing"):
-        TestClient(app).post("/chat", json={"message": "מה יקרה לנטו שלי?"})
+        authed(app, auth).post("/chat", json={"message": "מה יקרה לנטו שלי?"})
     [row] = list(csv.DictReader(path.open(encoding="utf-8-sig")))
     assert (row["calls"], row["input_tokens"], row["output_tokens"], row["models"]) == ("2", "200", "20", "gemini")
     assert row["question"] == "מה יקרה לנטו שלי?"
@@ -107,6 +107,7 @@ def test_each_question_is_logged_and_written_to_the_csv(data, cfg, tmp_path, cap
 
 def test_without_a_usage_file_nothing_is_written(data, cfg, tmp_path):  # noqa: F811
     app = create_app(data=data, model=ScriptedModel(messages=iter([AIMessage(content="היי")])),
-                     rep_queue=InMemoryRepQueue(), notifier=InMemoryNotifier(), cfg=cfg, rep_passcode=None)
-    TestClient(app).post("/chat", json={"message": "היי"})
+                     rep_queue=InMemoryRepQueue(), notifier=InMemoryNotifier(), cfg=cfg, rep_passcode=None,
+                     employee_auth=(auth := make_auth()))
+    authed(app, auth).post("/chat", json={"message": "היי"})
     assert not list(tmp_path.iterdir())

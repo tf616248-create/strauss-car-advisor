@@ -5,6 +5,12 @@
   "modelTimeoutSeconds": 30,
   "geminiThinkingLevel": "low",
   "sseHeartbeatSeconds": 20,
+  "auth": {
+    "note": "Employee login (app/auth.py): how long a login lasts, and how many wrong codes from one address before waiting.",
+    "tokenHours": 8,
+    "maxFailedLogins": 5,
+    "failedLoginWindowSeconds": 300
+  },
   "usage": {
     "note": "Cost of each question (app/usage.py): a line in the server log and a row in this file (relative to backend/, not in git). Prices in USD per million tokens, per provider; a provider without a price gets no cost. Output includes thinking tokens.",
     "file": "logs/usage.csv",

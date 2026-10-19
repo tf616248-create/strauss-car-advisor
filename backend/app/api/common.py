@@ -57,3 +57,18 @@ def thread_config(thread_id: str) -> dict:
 
 def messages_of(agent, thread_id: str) -> list:
     return agent.get_state(thread_config(thread_id)).values.get("messages", [])
+
+
+def title_of(messages, rep_note: str, limit: int = 60) -> str:
+    """The conversation's name in the history list, built in code (no model call): the alternative
+    of the last comparison card, else the first question, cut to `limit` characters."""
+    cards = comparison_cards(cards_of(messages))
+    label = cards[-1]["card"].get("alternative", {}).get("label") if cards else None
+    if label:
+        return label
+    for m in messages:
+        if m.type == "human":
+            text = " ".join(text_of(m.content).split())
+            if text and text != rep_note:
+                return text if len(text) <= limit else text[:limit].rstrip() + "…"
+    return "שיחה"

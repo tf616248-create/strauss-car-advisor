@@ -11,16 +11,17 @@ function scripted(events) {
   return vi.fn(async (params, onEvent) => { for (const [e, d] of events) onEvent(e, d) })
 }
 
-function setup({ chatEvents, repEvents = [], restore } = {}) {
+function setup({ chatEvents, repEvents = [], restore, threads, onLogout } = {}) {
   let handlers
   const api = {
     streamChat: scripted(chatEvents ?? []),
     streamRepAnswered: scripted(repEvents),
     restore: restore ?? vi.fn().mockRejectedValue(new Error('none')),
+    threads: threads ?? vi.fn().mockResolvedValue([]),
   }
   const subscribe = vi.fn((tid, h) => { handlers = h; return () => {} })
   const notifier = { beep: vi.fn(), setUnread: vi.fn() }
-  render(<EmployeeScreen api={api} subscribe={subscribe} notifier={notifier} />)
+  render(<EmployeeScreen api={api} subscribe={subscribe} notifier={notifier} onLogout={onLogout} />)
   return {
     api, subscribe, notifier,
     fireChanged: () => act(() => { handlers.onChanged() }),
@@ -39,7 +40,7 @@ function repAnswersOnTheServer() {
     .mockResolvedValue(state({ pending: 0, new_answers: 1 }))
 }
 
-beforeEach(() => localStorage.clear())
+beforeEach(() => sessionStorage.clear())
 afterEach(() => vi.restoreAllMocks())
 
 describe('EmployeeScreen', () => {
@@ -59,11 +60,11 @@ describe('EmployeeScreen', () => {
     expect(await screen.findByText('הנטו שלך יעלה')).toBeInTheDocument()
     const cards = screen.getByRole('complementary', { name: 'כרטיס השוואה' })
     expect(within(cards).getByText(noa.card.alternative.label)).toBeInTheDocument()
-    expect(localStorage.getItem('threadId')).toBe(TID)
+    expect(sessionStorage.getItem('threadId')).toBe(TID)
   })
 
   it('keeps the conversation id for the next message', async () => {
-    localStorage.setItem('threadId', TID)
+    sessionStorage.setItem('threadId', TID)
     const { api } = setup({ chatEvents: [['token', { text: 'בסדר' }], ['done', {}]] })
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('הודעה'), 'שלום')
@@ -93,7 +94,7 @@ describe('EmployeeScreen', () => {
   })
 
   it('"changed": reads the conversation again, beeps, and puts (1) in the tab title', async () => {
-    localStorage.setItem('threadId', TID)
+    sessionStorage.setItem('threadId', TID)
     const restore = vi.fn().mockResolvedValue(state())
     const { notifier, fireChanged } = setup({ restore })
     await waitFor(() => expect(restore).toHaveBeenCalledTimes(1)) // page load
@@ -105,7 +106,7 @@ describe('EmployeeScreen', () => {
   })
 
   it('reads the conversation on page load and again when the employee returns to the tab', async () => {
-    localStorage.setItem('threadId', TID)
+    sessionStorage.setItem('threadId', TID)
     const restore = vi.fn().mockResolvedValue(state())
     setup({ restore })
     await waitFor(() => expect(restore).toHaveBeenCalledTimes(1))
@@ -114,7 +115,7 @@ describe('EmployeeScreen', () => {
   })
 
   it('reads the conversation again after the event stream reconnects', async () => {
-    localStorage.setItem('threadId', TID)
+    sessionStorage.setItem('threadId', TID)
     const restore = vi.fn().mockResolvedValue(state())
     const { fireOpen } = setup({ restore })
     await waitFor(() => expect(restore).toHaveBeenCalledTimes(1))
@@ -125,7 +126,7 @@ describe('EmployeeScreen', () => {
   })
 
   it('when the rep answers: beeps, marks the tab, and lets the bot recalculate', async () => {
-    localStorage.setItem('threadId', TID)
+    sessionStorage.setItem('threadId', TID)
     const { api, subscribe, notifier, fireChanged } = setup({
       restore: repAnswersOnTheServer(),
       repEvents: [['card', noa], ['token', { text: 'עודכן' }], ['done', {}]],
@@ -147,6 +148,7 @@ describe('EmployeeScreen', () => {
       streamChat: vi.fn((params, onEvent) => { emit = onEvent; return new Promise((r) => { finish = r }) }),
       streamRepAnswered: vi.fn(),
       restore: vi.fn().mockRejectedValue(new Error('none')),
+      threads: vi.fn().mockResolvedValue([]),
     }
     render(<EmployeeScreen api={api} subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
     const user = userEvent.setup()
@@ -170,6 +172,7 @@ describe('EmployeeScreen', () => {
       streamChat: vi.fn((params, onEvent) => { emit = onEvent; return new Promise(() => {}) }),
       streamRepAnswered: vi.fn(),
       restore: vi.fn().mockRejectedValue(new Error('none')),
+      threads: vi.fn().mockResolvedValue([]),
     }
     const { container } = render(<EmployeeScreen api={api} subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
     const user = userEvent.setup()
@@ -207,7 +210,7 @@ describe('EmployeeScreen', () => {
   })
 
   it('reopens the panel by itself when the rep answers', async () => {
-    localStorage.setItem('threadId', TID)
+    sessionStorage.setItem('threadId', TID)
     const { fireChanged } = setup({
       restore: repAnswersOnTheServer(),
       repEvents: [['card', noa], ['token', { text: 'עודכן' }], ['done', {}]],
@@ -221,7 +224,7 @@ describe('EmployeeScreen', () => {
   })
 
   it('a rep answer that arrived while the page was closed is picked up on load', async () => {
-    localStorage.setItem('threadId', TID)
+    sessionStorage.setItem('threadId', TID)
     const { api } = setup({
       restore: vi.fn().mockResolvedValue(state({ pending: 0, new_answers: 1 })),
       repEvents: [['token', { text: 'עודכן' }], ['done', {}]],
@@ -254,7 +257,7 @@ describe('EmployeeScreen', () => {
     expect(screen.queryByText('שאלה ראשונה')).toBeNull()
     const cards = screen.getByRole('complementary', { name: 'כרטיס השוואה' })
     expect(within(cards).queryByText(noa.card.alternative.label)).toBeNull()
-    expect(localStorage.getItem('threadId')).toBeNull()
+    expect(sessionStorage.getItem('threadId')).toBeNull()
 
     await user.type(screen.getByLabelText('הודעה'), 'שאלה חדשה')
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
@@ -262,13 +265,13 @@ describe('EmployeeScreen', () => {
   })
 
   it('"new conversation" also works on a conversation restored after a reload', async () => {
-    localStorage.setItem('threadId', TID)
+    sessionStorage.setItem('threadId', TID)
     setup({ restore: vi.fn().mockResolvedValue(state()) })
     await screen.findByText('שאלה')
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /שיחה חדשה/ }))
     expect(screen.queryByText('שאלה')).toBeNull()
-    expect(localStorage.getItem('threadId')).toBeNull()
+    expect(sessionStorage.getItem('threadId')).toBeNull()
   })
 
   it('"new conversation" is disabled while an answer is being written', async () => {
@@ -277,6 +280,7 @@ describe('EmployeeScreen', () => {
       streamChat: vi.fn((params, onEvent) => { onEvent('thread', { thread_id: TID }); return new Promise((r) => { finish = r }) }),
       streamRepAnswered: vi.fn(),
       restore: vi.fn().mockRejectedValue(new Error('none')),
+      threads: vi.fn().mockResolvedValue([]),
     }
     render(<EmployeeScreen api={api} subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
     const user = userEvent.setup()
@@ -288,7 +292,7 @@ describe('EmployeeScreen', () => {
   })
 
   it('restores the conversation after a reload', async () => {
-    localStorage.setItem('threadId', TID)
+    sessionStorage.setItem('threadId', TID)
     const restore = vi.fn().mockResolvedValue({
       thread_id: TID,
       messages: [{ role: 'user', text: 'שאלה' }, { role: 'assistant', text: 'תשובה' }],
@@ -333,7 +337,7 @@ describe('EmployeeScreen', () => {
   })
 
   it('the empty card panel explains why a car changes the salary and how it works (no fake table)', () => {
-    const { container } = render(<EmployeeScreen api={{ restore: vi.fn().mockRejectedValue(new Error('none')) }}
+    const { container } = render(<EmployeeScreen api={{ restore: vi.fn().mockRejectedValue(new Error('none')), threads: vi.fn().mockResolvedValue([]) }}
       subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
     const panel = screen.getByRole('complementary', { name: 'כרטיס השוואה' })
     expect(within(panel).getByRole('heading', { name: 'למה רכב משנה את המשכורת?' })).toBeInTheDocument()
@@ -378,7 +382,7 @@ describe('EmployeeScreen', () => {
     ]
 
     it('shows the parked car, a greeting and four equal choices when there are no messages', () => {
-      const { container } = render(<EmployeeScreen api={{ restore: vi.fn().mockRejectedValue(new Error('none')) }}
+      const { container } = render(<EmployeeScreen api={{ restore: vi.fn().mockRejectedValue(new Error('none')), threads: vi.fn().mockResolvedValue([]) }}
         subscribe={() => () => {}} notifier={{ beep: vi.fn(), setUnread: vi.fn() }} />)
       const welcome = screen.getByRole('region', { name: 'שלום, אני כובי' })
       expect(within(welcome).getByText('רכב חברה משפיע על המשכורת שלכם, גם אם לא שמתם לב.')).toBeInTheDocument()
@@ -421,7 +425,7 @@ describe('EmployeeScreen', () => {
     })
 
     it('is not shown over a conversation restored after a reload', async () => {
-      localStorage.setItem('threadId', TID)
+      sessionStorage.setItem('threadId', TID)
       setup({ restore: vi.fn().mockResolvedValue(state()) })
       await screen.findByText('שאלה')
       expect(screen.queryByRole('button', { name: 'לעבור לרכב חשמלי' })).toBeNull()
@@ -483,5 +487,98 @@ describe('ranking card', () => {
     const cards = await screen.findByRole('complementary', { name: 'כרטיס השוואה' })
     expect(await within(cards).findByRole('region', { name: 'מפרט הרכב' })).toBeInTheDocument()
     expect(within(cards).getByRole('heading', { name: 'BYD DOLPHIN' })).toBeInTheDocument()
+  })
+})
+
+// history: the employee's own conversations, from the server (GET /threads)
+describe('conversation history', () => {
+  const OTHER = '99999999-8888-7777-6666-555555555555'
+  const list = [
+    { thread_id: OTHER, title: 'ATTO 3 (2025)', updated_at: '2026-10-20T09:30:00+00:00' },
+    { thread_id: TID, title: 'מה יקרה לנטו?', updated_at: '2026-10-19T08:00:00+00:00' },
+  ]
+
+  it('after login, the newest conversation opens by itself', async () => {
+    const restore = vi.fn().mockResolvedValue(state())
+    setup({ threads: vi.fn().mockResolvedValue(list), restore })
+    await waitFor(() => expect(restore).toHaveBeenCalledWith(OTHER))
+    expect(sessionStorage.getItem('threadId')).toBe(OTHER)
+  })
+
+  it('the conversation already open in this tab stays open', async () => {
+    sessionStorage.setItem('threadId', TID)
+    const restore = vi.fn().mockResolvedValue(state())
+    setup({ threads: vi.fn().mockResolvedValue(list), restore })
+    await screen.findByText('שאלה')
+    expect(restore).not.toHaveBeenCalledWith(OTHER)
+  })
+
+  it('"my conversations" lists them, newest first, the open one marked', async () => {
+    sessionStorage.setItem('threadId', TID)
+    const threads = vi.fn().mockResolvedValue(list)
+    setup({ threads, restore: vi.fn().mockResolvedValue(state()) })
+    await waitFor(() => expect(threads).toHaveBeenCalled())
+    const user = userEvent.setup()
+    const toggle = screen.getByRole('button', { name: 'השיחות שלי' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    const nav = screen.getByRole('navigation', { name: 'השיחות שלי' })
+    const items = within(nav).getAllByRole('button').filter((b) => b.dataset.thread)
+    expect(items.map((b) => b.dataset.thread)).toEqual([OTHER, TID])
+    expect(items[0]).toHaveTextContent('ATTO 3 (2025)')
+    expect(items[1]).toHaveAttribute('aria-current', 'true')
+  })
+
+  it('picking one opens it: its messages and card, and closes the list', async () => {
+    sessionStorage.setItem('threadId', TID)
+    const restore = vi.fn(async (tid) => (tid === OTHER
+      ? { thread_id: OTHER, messages: [{ role: 'assistant', text: 'השיחה האחרת' }], cards: [noa], rep: { pending: 0, new_answers: 0 } }
+      : state()))
+    setup({ threads: vi.fn().mockResolvedValue(list), restore })
+    await screen.findByText('שאלה')
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'השיחות שלי' }))
+    await user.click(screen.getByText('ATTO 3 (2025)'))
+    expect(await screen.findByText('השיחה האחרת')).toBeInTheDocument()
+    expect(screen.queryByText('שאלה')).toBeNull()
+    const cards = screen.getByRole('complementary', { name: 'כרטיס השוואה' })
+    expect(within(cards).getByText(noa.card.alternative.label)).toBeInTheDocument()
+    expect(sessionStorage.getItem('threadId')).toBe(OTHER)
+    expect(screen.queryByRole('navigation', { name: 'השיחות שלי' })).toBeNull()
+  })
+
+  it('Escape closes the list', async () => {
+    setup()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'השיחות שלי' }))
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('navigation', { name: 'השיחות שלי' })).toBeNull()
+  })
+
+  it('no conversations yet: says so', async () => {
+    setup()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'השיחות שלי' }))
+    expect(screen.getByText('עוד אין שיחות קודמות.')).toBeInTheDocument()
+  })
+
+  it('the list is read again after each answer (a new conversation, a new title)', async () => {
+    const threads = vi.fn().mockResolvedValue([])
+    setup({ threads, chatEvents: [['thread', { thread_id: TID }], ['token', { text: 'תשובה' }], ['done', {}]] })
+    await waitFor(() => expect(threads).toHaveBeenCalledTimes(1))
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('הודעה'), 'שאלה')
+    await user.click(screen.getByRole('button', { name: 'שליחה' }))
+    await screen.findByText('תשובה')
+    await waitFor(() => expect(threads).toHaveBeenCalledTimes(2))
+  })
+
+  it('"logout" is in the header', async () => {
+    const onLogout = vi.fn()
+    setup({ onLogout })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'יציאה' }))
+    expect(onLogout).toHaveBeenCalled()
   })
 })
