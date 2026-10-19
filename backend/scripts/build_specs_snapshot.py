@@ -30,9 +30,12 @@ def main() -> None:
     mot, eea = snapshot["mot"], snapshot["eea"]
     print(f"written: {path}")
     print(f"MOT: {len(mot['cars'])}/{len(data.catalog)} found, missing: {mot['missing']}")
-    print("MOT mixed models (same codes, other names):",
-          [cid for cid, c in mot["cars"].items() if c["mixedModels"]])
-    print(f"EEA (final year {eea['year']}): found {sorted(eea['cars'])}, missing: {eea['missing']}")
+    print("MOT rows of other names dropped:",
+          {cid: c["otherNamesDropped"] for cid, c in mot["cars"].items() if c["otherNamesDropped"]})
+    for cid, c in sorted(eea["cars"].items()):
+        print(f"EEA {cid} {data.catalog[cid]['name']}: {c['year']} {'provisional' if c['provisional'] else 'final'}, "
+              f"{c['consumptionWhKm']} Wh/km, range {c['rangeKm']} km")
+    print(f"EEA missing: {eea['missing']}")
 
 
 if __name__ == "__main__":

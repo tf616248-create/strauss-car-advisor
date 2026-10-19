@@ -1,67 +1,197 @@
 {
   "eea": {
     "cars": {
+      "CAR-03": {
+        "consumptionWhKm": {
+          "max": 427,
+          "min": 15
+        },
+        "provisional": true,
+        "rangeKm": {
+          "max": 570,
+          "min": 155
+        },
+        "status": "P",
+        "versions": [
+          "BYD DOLPHIN",
+          "BYD DOLPHIN SUF",
+          "BYD DOLPHIN SURF",
+          "BYD DOLPHIN-DOLPHIN-BYD DOLPHI",
+          "BYD DOLPHINA SURF",
+          "BYD DOLPHINSURF",
+          "DOLPHIN",
+          "DOLPHIN SURF"
+        ],
+        "year": 2025
+      },
+      "CAR-06": {
+        "consumptionWhKm": {
+          "max": 465,
+          "min": 15
+        },
+        "provisional": true,
+        "rangeKm": {
+          "max": 565,
+          "min": 160
+        },
+        "status": "P",
+        "versions": [
+          "MG4",
+          "MG4 ELECTRIC"
+        ],
+        "year": 2025
+      },
       "CAR-08": {
         "consumptionWhKm": {
-          "max": 154,
-          "min": 143
+          "max": 512,
+          "min": 15
         },
+        "provisional": true,
         "rangeKm": {
-          "max": 484,
-          "min": 289
+          "max": 682,
+          "min": 146
         },
+        "status": "P",
         "versions": [
-          "HyundaiKonaKauai",
           "KONA",
-          "KONA,",
+          "KONA   115   EV",
+          "KONA   150   EV",
+          "KONA   150   EV N-LINE",
+          "KONA   160   EV",
+          "KONA   160   EV N-LINE",
+          "KONA   99   EV",
+          "KONA . KAUAI",
+          "KONA EV",
+          "KONA KAUAI",
+          "KONA, KAUAI",
           "KONA,KAUAI",
-          "KONA.KAUAI",
-          "KONA/100/EV",
-          "KONA/150/EV",
-          "KONAKAUAI"
+          "KONA- KAUAI",
+          "KONA. KAUAI"
         ],
-        "year": 2021
+        "year": 2025
+      },
+      "CAR-10": {
+        "consumptionWhKm": {
+          "max": 420,
+          "min": 156
+        },
+        "provisional": true,
+        "rangeKm": {
+          "max": 565,
+          "min": 160
+        },
+        "status": "P",
+        "versions": [
+          "ATTO 3",
+          "BYD ATTO 3"
+        ],
+        "year": 2025
+      },
+      "CAR-11": {
+        "consumptionWhKm": {
+          "max": 436,
+          "min": 15
+        },
+        "provisional": true,
+        "rangeKm": {
+          "max": 772,
+          "min": 149
+        },
+        "status": "P",
+        "versions": [
+          "EV3",
+          "EV3   LONG RANGE   2WD",
+          "EV3   STANDARD RANGE   2WD",
+          "EV3 AIR 56,7KWH AT FWD 204",
+          "EV3 AIR 56,7KWH AT FWD 204 HP",
+          "EV3 AIR 81,4KWH AT FWD 204",
+          "EV3 AIR 81,4KWH AT FWD 204 MY2",
+          "EV3 BIZ 81,4KWH AT FWD 204",
+          "EV3 BIZ 81,4KWH AT FWD 204 BIZ",
+          "EV3 EARTH 81,4KWH AT FWD 204",
+          "EV3 EARTH 81,4KWH AT FWD 204 M",
+          "EV3 EARTH PLUS 81,4KWH AT FWD",
+          "EV3 GT-LINE 81,4KWH AT FWD 204"
+        ],
+        "year": 2025
       },
       "CAR-14": {
         "consumptionWhKm": {
-          "max": 166,
-          "min": 140
+          "max": 520,
+          "min": 15
         },
+        "provisional": true,
         "rangeKm": {
-          "max": 743,
-          "min": 409
+          "max": 894,
+          "min": 400
         },
+        "status": "P",
         "versions": [
-          "MODEL 3 / / LONGRANGE",
-          "MODEL 3 / / PERFORMANCE",
-          "MODEL 3 / / RWD",
-          "MODEL 3 / / STANDARDRANGE",
-          "Model 3"
+          "MODEL 3",
+          "MODEL 3     LONG RANGE AWD",
+          "MODEL 3     LONG RANGE RWD",
+          "MODEL 3     PERFORMANCE AWD",
+          "MODEL 3     RWD",
+          "MODEL 3 RUSTVOGN"
         ],
-        "year": 2021
+        "year": 2025
+      },
+      "CAR-16": {
+        "consumptionWhKm": {
+          "max": 275,
+          "min": 11
+        },
+        "provisional": true,
+        "rangeKm": {
+          "max": 187,
+          "min": 64
+        },
+        "status": "P",
+        "versions": [
+          "SPORTAGE",
+          "SPORTAGE   1.6   T PHEV AWD AUT",
+          "SPORTAGE PHEV 2F GT-LINE 1.6 T",
+          "SPORTAGE PHEV 2F GT-LINE UVO 1",
+          "SPORTAGE PHEV GOLD UVO 1.6 TGD",
+          "SPORTAGE PHEV GT-LINE 1.6 TGDI",
+          "SPORTAGE PHEV GT-LINE UVO 1.6",
+          "SPORTAGE PHEV SILBER UVO 1.6 T"
+        ],
+        "year": 2025
+      },
+      "CAR-17": {
+        "consumptionWhKm": {
+          "max": 520,
+          "min": 15
+        },
+        "provisional": true,
+        "rangeKm": {
+          "max": 600,
+          "min": 400
+        },
+        "status": "P",
+        "versions": [
+          "BYD SEAL",
+          "BYD SEAL- SEAL- HALO 1-HALO 2-",
+          "SEAL",
+          "SEAL AWD"
+        ],
+        "year": 2025
       }
     },
-    "fetched_at": "2026-10-19T16:03:47+00:00",
-    "missing": [
-      "CAR-03",
-      "CAR-06",
-      "CAR-10",
-      "CAR-11",
-      "CAR-16",
-      "CAR-17"
-    ],
-    "source": "EEA, CO2 emissions from new passenger cars ([CO2Emission].[latest].[co2cars] in discodata). Final data, updated once a year",
+    "fetched_at": "2026-10-19T17:30:42+00:00",
+    "missing": [],
+    "source": "EEA, CO2 emissions from new passenger cars (discodata). Updated once a year; provisional data (P) is replaced by final (F) about a year later",
     "verified": {
-      "CAR-03": false,
-      "CAR-06": false,
+      "CAR-03": true,
+      "CAR-06": true,
       "CAR-08": true,
-      "CAR-10": false,
-      "CAR-11": false,
+      "CAR-10": true,
+      "CAR-11": true,
       "CAR-14": true,
-      "CAR-16": false,
-      "CAR-17": false
-    },
-    "year": 2021
+      "CAR-16": true,
+      "CAR-17": true
+    }
   },
   "mot": {
     "cars": {
@@ -165,7 +295,7 @@
           "status": "computed",
           "variesByTrim": false
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-02": {
@@ -268,7 +398,7 @@
           "status": "computed",
           "variesByTrim": false
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-03": {
@@ -356,7 +486,7 @@
         "fuelConsumption": {
           "status": "not_applicable"
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-04": {
@@ -459,7 +589,7 @@
           "status": "computed",
           "variesByTrim": false
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-05": {
@@ -562,7 +692,7 @@
           "status": "computed",
           "variesByTrim": false
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-06": {
@@ -650,7 +780,7 @@
         "fuelConsumption": {
           "status": "not_applicable"
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-07": {
@@ -753,7 +883,7 @@
           "status": "computed",
           "variesByTrim": false
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-08": {
@@ -841,7 +971,7 @@
         "fuelConsumption": {
           "status": "not_applicable"
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-09": {
@@ -944,7 +1074,7 @@
           "status": "computed",
           "variesByTrim": false
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-10": {
@@ -966,22 +1096,17 @@
             ],
             "variesByTrim": false
           },
-          "gova": {
-            "max": 0,
-            "min": 0,
-            "variesByTrim": false
-          },
+          "gova": null,
           "kinuy_mishari": {
             "values": [
-              "ATTO 3",
-              "TANG"
+              "ATTO 3"
             ],
-            "variesByTrim": true
+            "variesByTrim": false
           },
           "koah_sus": {
-            "max": 516,
+            "max": 204,
             "min": 204,
-            "variesByTrim": true
+            "variesByTrim": false
           },
           "kvutzat_zihum": null,
           "madad_yarok": null,
@@ -1007,26 +1132,25 @@
             "variesByTrim": false
           },
           "mispar_moshavim": {
-            "max": 7,
+            "max": 5,
             "min": 5,
-            "variesByTrim": true
+            "variesByTrim": false
           },
           "nikud_betihut": {
-            "max": 10.5,
+            "max": 6.5,
             "min": 6.5,
-            "variesByTrim": true
+            "variesByTrim": false
           },
           "ramat_eivzur_betihuty": {
-            "max": 8,
+            "max": 6,
             "min": 6,
-            "variesByTrim": true
+            "variesByTrim": false
           },
           "ramat_gimur": {
             "values": [
-              "DESIGN",
-              "FLAGSHIP"
+              "DESIGN"
             ],
-            "variesByTrim": true
+            "variesByTrim": false
           },
           "technologiat_hanaa_nm": {
             "values": [
@@ -1038,8 +1162,10 @@
         "fuelConsumption": {
           "status": "not_applicable"
         },
-        "mixedModels": true,
-        "rows": 2
+        "otherNamesDropped": [
+          "TANG"
+        ],
+        "rows": 1
       },
       "CAR-11": {
         "fields": {
@@ -1126,7 +1252,7 @@
         "fuelConsumption": {
           "status": "not_applicable"
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-12": {
@@ -1229,7 +1355,7 @@
           "status": "computed",
           "variesByTrim": false
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-13": {
@@ -1325,7 +1451,7 @@
         "fuelConsumption": {
           "status": "no_data"
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-14": {
@@ -1354,11 +1480,7 @@
             ],
             "variesByTrim": false
           },
-          "koah_sus": {
-            "max": 0,
-            "min": 0,
-            "variesByTrim": false
-          },
+          "koah_sus": null,
           "kvutzat_zihum": null,
           "madad_yarok": null,
           "matzlemat_reverse_ind": {
@@ -1413,7 +1535,7 @@
         "fuelConsumption": {
           "status": "not_applicable"
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-15": {
@@ -1511,10 +1633,12 @@
           }
         },
         "fuelConsumption": {
-          "fuel": "דיזל",
-          "status": "not_computed"
+          "maxL100km": 4.35,
+          "minL100km": 4.35,
+          "status": "computed",
+          "variesByTrim": false
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-16": {
@@ -1614,7 +1738,7 @@
         "fuelConsumption": {
           "status": "depends_on_charging"
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-17": {
@@ -1702,7 +1826,7 @@
         "fuelConsumption": {
           "status": "not_applicable"
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-18": {
@@ -1805,7 +1929,7 @@
           "status": "computed",
           "variesByTrim": false
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       },
       "CAR-19": {
@@ -1908,11 +2032,11 @@
           "status": "computed",
           "variesByTrim": false
         },
-        "mixedModels": false,
+        "otherNamesDropped": [],
         "rows": 1
       }
     },
-    "fetched_at": "2026-10-19T16:03:40+00:00",
+    "fetched_at": "2026-10-19T17:30:36+00:00",
     "missing": [
       "CAR-20"
     ],

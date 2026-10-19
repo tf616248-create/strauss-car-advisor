@@ -53,8 +53,10 @@ def live_loaders(catalog: dict, backend_dir: Path, get_json: Callable = http_get
 
 class SpecsStore:
     def __init__(self, loaders: dict[str, Callable[[], dict]], snapshot_path: Path, refresh_hours: float,
-                 clock: Callable[[], float] = time.time):
+                 clock: Callable[[], float] = time.time, links: Optional[dict[str, str]] = None):
+        """links: car id -> importer_url (car-sources.json). It stays even when a source has no data."""
         self._loaders = loaders
+        self._links = links or {}
         self._snapshot_path = Path(snapshot_path)
         self._refresh_seconds = refresh_hours * 3600
         self._clock = clock
@@ -109,7 +111,8 @@ class SpecsStore:
         return stop
 
     def for_car(self, car_id: str) -> dict:
-        """{"mot": {source, fetched_at, origin, data} | None, "eea": ...}."""
+        """{"mot": {source, fetched_at, origin, data} | None, "eea": ..., "importer_url": ...}.
+        None = no official data (e.g. SANTA FE in the Ministry of Transport). Never touches the net."""
         with self._lock:
             data = dict(self._data)
         out = {}
@@ -117,9 +120,12 @@ class SpecsStore:
             car = (entry or {}).get("cars", {}).get(car_id)
             out[name] = None if car is None else {"source": entry["source"], "fetched_at": entry["fetched_at"],
                                                   "origin": entry["origin"], "data": car}
+        out["importer_url"] = self._links.get(car_id)
         return out
 
 
 def build_specs_store(catalog: dict, backend_dir: Path) -> SpecsStore:
     cfg = load_specs_config(backend_dir)
-    return SpecsStore(live_loaders(catalog, backend_dir), Path(backend_dir) / cfg["snapshot"], cfg["refreshHours"])
+    links = {cid: c.get("importer_url") for cid, c in load_car_sources(backend_dir).items()}
+    return SpecsStore(live_loaders(catalog, backend_dir), Path(backend_dir) / cfg["snapshot"], cfg["refreshHours"],
+                      links=links)

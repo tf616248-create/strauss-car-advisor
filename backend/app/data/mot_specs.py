@@ -1,8 +1,13 @@
 """Car specs from the Ministry of Transport (data.gov.il, 'vehicle makes and models WLTP', updated daily).
 
 Key: tozeret_cd + degem_cd + shnat_yitzur against the catalog's manufacturerCode + modelCode +
-registrationYear, with leading zeros dropped ("01014" == 1014). Never by name: the same codes can
-carry another commercial name (flagged as mixedModels), and a name alone matches nothing.
+registrationYear, with leading zeros dropped ("01014" == 1014). A name alone matches nothing. The same
+codes can also carry another commercial name (ATTO 3's codes have a TANG row): of the rows the codes
+find, only those whose kinuy_mishari is the catalog name are kept (the others are listed in
+otherNamesDropped). No row with that name -> no specs, and the car is reported as missing.
+
+0 or empty is "no data" (MODEL 3's horsepower is 0 in the source): not shown, not used in a range.
+Indicator fields (*_ind) are the exception: there 0 means "no".
 
 Several rows for one key are trim levels. Each field keeps min-max (numbers) or the list of values
 (text), and variesByTrim says whether they differ.
@@ -53,8 +58,13 @@ def fetch_records(catalog: dict, mot: dict, get_json: Callable) -> list[dict]:
     return body["result"]["records"]
 
 
-def _field(values: list):
-    present = [v for v in values if v is not None and v != ""]
+def _norm_name(name) -> str:
+    return " ".join(str(name or "").split()).upper()
+
+
+def _field(name: str, values: list):
+    no_data = (None, "") if name.endswith("_ind") else (None, "", 0)
+    present = [v for v in values if v not in no_data]
     if not present:
         return None
     if all(isinstance(v, (int, float)) for v in present):
@@ -89,15 +99,15 @@ def build_mot_specs(catalog: dict, records: list[dict], cfg: dict) -> tuple[dict
             by_key.setdefault(key, []).append(r)
     specs, missing = {}, []
     for car_id, car in catalog.items():
-        rows = by_key.get(catalog_key(car), [])
+        found = by_key.get(catalog_key(car), [])
+        rows = [r for r in found if _norm_name(r.get("kinuy_mishari")) == _norm_name(car["name"])]
         if not rows:
             missing.append(car_id)
             continue
-        names = {r.get("kinuy_mishari") for r in rows}
         specs[car_id] = {
             "rows": len(rows),
-            "mixedModels": len(names) > 1,
-            "fields": {f: _field([r.get(f) for r in rows]) for f in cfg["mot"]["fields"]},
+            "otherNamesDropped": sorted({str(r.get("kinuy_mishari")) for r in found if r not in rows}),
+            "fields": {f: _field(f, [r.get(f) for r in rows]) for f in cfg["mot"]["fields"]},
             "fuelConsumption": _fuel(rows, cfg["fuel"]["gCo2PerLitre"]),
         }
     return specs, sorted(missing)

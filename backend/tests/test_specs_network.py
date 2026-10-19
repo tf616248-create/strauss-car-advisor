@@ -19,8 +19,9 @@ BROWSER = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
                          "Chrome/126 Safari/537.36", "Accept": "text/html"}
 
 
-@pytest.mark.parametrize("car_id", sorted(SOURCES))
+@pytest.mark.parametrize("car_id", sorted(c for c, s in SOURCES.items() if not s.get("checked_manually")))
 def test_importer_page_opens(car_id):
+    """Pages marked checked_manually (tesla.com answers 403 to bots) are skipped."""
     url = SOURCES[car_id]["importer_url"]
     try:
         with urllib.request.urlopen(urllib.request.Request(url, headers=BROWSER), timeout=30) as res:
@@ -30,15 +31,9 @@ def test_importer_page_opens(car_id):
     assert status == 200, f"{SOURCES[car_id]['name']}: {status} {url}"
 
 
-@pytest.fixture(scope="module")
-def eea_year():
-    cfg = load_specs_config(BACKEND_DIR)["eea"]
-    return eea_specs.latest_final_year(cfg, http_get_json)
-
-
 @pytest.mark.parametrize("car_id", sorted(c for c, s in SOURCES.items() if s.get("eea")))
-def test_eea_key_returns_rows(car_id, eea_year):
+def test_eea_key_returns_rows(car_id):
+    """In one of the tables (2022-2025, final or provisional)."""
     cfg = load_specs_config(BACKEND_DIR)["eea"]
-    rows = eea_specs.fetch_car(SOURCES[car_id]["eea"], eea_year, cfg, http_get_json)
-    spec = eea_specs.build_eea_spec(rows, cfg["exclude"].get(car_id, []))
-    assert spec is not None, f"{SOURCES[car_id]['name']}: no EEA rows for {eea_year}"
+    spec = eea_specs.find_car(SOURCES[car_id]["eea"], cfg["exclude"].get(car_id, []), cfg, http_get_json)
+    assert spec is not None, f"{SOURCES[car_id]['name']}: no EEA rows in 2022-2025"

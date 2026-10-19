@@ -15,9 +15,16 @@
     ]
   },
   "eea": {
-    "source": "EEA, CO2 emissions from new passenger cars ([CO2Emission].[latest].[co2cars] in discodata). Final data, updated once a year",
+    "source": "EEA, CO2 emissions from new passenger cars (discodata). Updated once a year; provisional data (P) is replaced by final (F) about a year later",
     "url": "https://discodata.eea.europa.eu/sql",
-    "table": "[CO2Emission].[latest].[co2cars]",
+    "tables": [
+      {"table": "[CO2Emission].[latest].[co2cars_2025Pv31]", "year": 2025, "status": "P"},
+      {"table": "[CO2Emission].[latest].[co2cars_2024Fv30]", "year": 2024, "status": "F"},
+      {"table": "[CO2Emission].[latest].[co2cars_2023Fv28]", "year": 2023, "status": "F"},
+      {"table": "[CO2Emission].[latest].[co2cars]", "year": 2022, "status": "P"}
+    ],
+    "_tables": "Newest first; each car gets the first table with data. Checked 2026-10-19: co2cars holds 2010-2022 (2022 provisional only); 2023 and 2024 have final tables (co2cars_2023Fv28, co2cars_2024Fv30, named in the EEA catalogue); 2025 provisional only. The version suffix changes with each release.",
+    "provisionalLabel": "נתון ראשוני",
     "timeoutSeconds": 120,
     "columns": {
       "consumption": "[Z (Wh/km)]",
@@ -30,37 +37,45 @@
   },
   "fuel": {
     "gCo2PerLitre": {
-      "בנזין": 2348
+      "בנזין": 2348,
+      "דיזל": 2689
     },
-    "source": "US EPA, 'Greenhouse Gas Emissions from a Typical Passenger Vehicle': 8,887 g CO2 per gallon of gasoline = 2,348 g per litre. An approximation: the exact WLTP carbon balance (Regulation (EU) 2017/1151, Annex XXI, Sub-Annex 7) also counts HC and CO, and the test fuel differs. To verify.",
-    "note": "Petrol and hybrid only (delek_nm = בנזין). Plug-in: not computed (WLTP CO2 depends on charging). Diesel: no factor, not computed."
+    "source": "US EPA, 'Greenhouse Gas Emissions from a Typical Passenger Vehicle' (https://www.epa.gov/greenvehicles/greenhouse-gas-emissions-typical-passenger-vehicle): 8,887 g CO2 per gallon of gasoline = 2,348 g per litre; 10,180 g per gallon of diesel = 2,689 g per litre. An approximation: the exact WLTP carbon balance (Regulation (EU) 2017/1151, Annex XXI, Sub-Annex 7) also counts HC and CO, and the test fuel differs. To verify.",
+    "note": "By delek_nm in the Ministry of Transport (the official source, not the catalog): petrol and hybrid (בנזין), diesel (דיזל). Plug-in: not computed (WLTP CO2 depends on charging). Electric: not applicable."
   },
   "indices": {
-    "_note": "The data.gov.il field descriptions for these are empty (checked 2026-10-19), so the direction is not documented. 'observed' is what the data suggests, not a source. Unverified -> not used for filtering.",
-    "madad_yarok": {
-      "direction": "unverified",
-      "observed": "Range 1-999. Hybrids about 150, Carnival (petrol, large) 374, electric cars empty. Suggests lower = greener",
-      "useForFiltering": false
-    },
-    "kvutzat_zihum": {
-      "direction": "unverified",
-      "observed": "Range 1-15. Hybrids 3-6, large petrol 15, electric cars empty. Suggests lower = less polluting",
-      "useForFiltering": false
-    },
+    "_note": "The data.gov.il field descriptions are empty, so the directions come from the sources below (decided 2026-10-19). Electric cars have no kvutzat_zihum / madad_yarok in the source.",
     "nikud_betihut": {
-      "direction": "unverified",
-      "observed": "Range 1-10.5. Kona EV 10.5, Picanto 1. Suggests higher = more safety systems",
-      "useForFiltering": false
+      "direction": "higher_is_safer",
+      "range": [0, 10.5],
+      "source": "https://www.auto.co.il/articles/car-news/industry/car-safety-equipment-rating-2026/",
+      "sourceNote": "Ministry of Transport safety equipment rating: score 0-8, and 10.5 points = 8",
+      "useForFiltering": true
     },
     "ramat_eivzur_betihuty": {
-      "direction": "unverified",
-      "observed": "Range 1-8, moves with nikud_betihut. Suggests higher = more safety equipment",
-      "useForFiltering": false
+      "direction": "higher_is_safer",
+      "range": [0, 8],
+      "source": "https://www.auto.co.il/articles/car-news/industry/car-safety-equipment-rating-2026/",
+      "sourceNote": "Ministry of Transport safety equipment level 0-8",
+      "useForFiltering": true
+    },
+    "kvutzat_zihum": {
+      "direction": "lower_is_cleaner",
+      "range": [1, 15],
+      "source": "https://www.maariv.co.il/business/car/Article-975747",
+      "sourceNote": "1 = minimal pollution, 15 = maximal pollution",
+      "useForFiltering": true
+    },
+    "madad_yarok": {
+      "direction": "lower_is_cleaner",
+      "source": "https://www.maariv.co.il/business/car/Article-975747",
+      "sourceNote": "The raw score the pollution group (kvutzat_zihum) is derived from",
+      "useForFiltering": true
     }
   },
   "knownMissing": {
     "_note": "Catalog cars the source has no rows for (checked 2026-10-19). A test checks every car is found or listed here.",
     "mot": ["CAR-20"],
-    "eea": ["CAR-03", "CAR-06", "CAR-10", "CAR-11", "CAR-16", "CAR-17"]
+    "eea": []
   }
 }
