@@ -298,3 +298,20 @@ def test_any_error_moves_on_with_the_clock_too(failing):
 def test_a_model_that_went_silent_mid_answer_never_switches():
     """Its words are already on the employee's screen: a second model would write a second answer."""
     assert not issubclass(ModelStalledError, SWITCH_ERRORS)
+
+
+def test_only_models_that_read_images_extract_a_payslip():
+    from app.agent.models import vision_models
+
+    markers = ["gemini", "gemma-4", "llama-4"]
+    assert [n for n, _ in vision_models(ALL_KEYS, markers)] == ["gemini", "openrouter"]  # groq: llama-3.3, text only
+    env = dict(ALL_KEYS, GROQ_MODEL="meta-llama/llama-4-scout-17b-16e-instruct", OPENROUTER_MODEL="some/text-model")
+    assert [n for n, _ in vision_models(env, markers)] == ["gemini", "groq"]
+    assert vision_models({"GROQ_API_KEY": "q"}, markers) == []
+
+
+def test_no_model_that_reads_images_is_not_an_error():
+    from app.agent.models import build_vision_model
+
+    assert build_vision_model(30, ["gemini"], {"GROQ_API_KEY": "q"}) is None
+    assert build_vision_model(30, ["gemini"], {"GOOGLE_API_KEY": "g"}) is not None

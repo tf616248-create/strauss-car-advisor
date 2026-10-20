@@ -96,3 +96,12 @@ def test_a_new_conversation_has_no_title_yet(threads, emp, new_tid):
     tid = new_tid()
     threads.add(emp, tid)
     assert threads.list(emp)[0]["title"] is None
+
+
+def test_delete(threads, emp, new_tid):
+    a, b = new_tid(), new_tid()
+    threads.add(emp, a)
+    threads.add(emp, b)
+    threads.delete(a)
+    assert threads.owner(a) is None
+    assert [t["thread_id"] for t in threads.list(emp)] == [b]

@@ -4,7 +4,12 @@
   GET  /threads                    the logged-in employee's conversations, newest first
   POST /chat                       SSE: thread, step, token, card, done | error
   POST /chat/{thread_id}/rep-answered   SSE: new rep answers - rerun with the system note (once per answer)
-  GET  /chat/{thread_id}           the conversation's current state: messages, cards, rep status
+  GET  /chat/{thread_id}           the conversation's current state: messages, cards, rep status, payslip
+  DELETE /chat/{thread_id}         deletes the conversation, its payslip with it
+  POST /chat/{thread_id}/payslip   SSE: a payslip file (JPG/PNG/PDF as the raw body), read once; then the bot
+                                   carries on with the values: step, payslip, token, card, done | error
+  POST /chat/{thread_id}/payslip-text   SSE: the same, from text pasted from a payslip
+  GET  /chat/{thread_id}/payslip   the stored payslip image (JPEG)
   GET  /conversations/{thread_id}/events   SSE: "changed" (no data) + a heartbeat comment
 
 Every route except /login needs the employee's token ("Authorization: Bearer ..."; the events
@@ -19,11 +24,13 @@ import time
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request, Response
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
-from langchain_core.messages import AIMessageChunk
+from langchain_core.messages import AIMessage, AIMessageChunk
 from pydantic import BaseModel, Field
 
+from app import payslip as payslip_mod
 from app.agent.models import ModelStalledError
 from app.api.common import (SSE_HEADERS, UUID_RE, EventStreamResponse, cards_of, messages_of, sse,
                             text_of, thread_config, title_of)
@@ -44,9 +51,20 @@ class ChatIn(BaseModel):
     thread_id: Optional[str] = Field(default=None, pattern=UUID_RE)
 
 
-def router(*, agent, rep_queue, notifier, cfg: dict, threads, auth=None, usage_file=None) -> APIRouter:
-    """auth: app/auth.EmployeeAuth, or None = closed. threads: who owns which conversation."""
+class PayslipTextIn(BaseModel):
+    text: str = Field(min_length=1, max_length=20000)
+
+
+PAYSLIP_HTTP = {"too_large": 413, "bad_type": 415, "unreadable": 422}
+
+
+def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_reader, auth=None,
+           usage_file=None) -> APIRouter:
+    """auth: app/auth.EmployeeAuth, or None = closed. threads: who owns which conversation.
+    payslips: the payslip kept with each conversation (app/payslip.py, app/db.py)."""
     texts = cfg["texts"]
+    ptexts = texts["payslip"]
+    max_bytes = cfg["payslip"]["maxBytes"]
     prices = cfg["usage"]["prices"]
     limiter = LoginLimiter(cfg["auth"]["maxFailedLogins"], cfg["auth"]["failedLoginWindowSeconds"])
 
@@ -83,49 +101,108 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, auth=None, usage_f
                 log.exception("could not write %s", usage_file)
     r = APIRouter(tags=["employee"])
 
+    def touch(thread_id: str) -> None:
+        try:  # the history list: a title and to the top
+            threads.touch(thread_id, title_of(messages_of(agent, thread_id), texts["repAnswered"]))
+        except Exception:  # the answer matters more than the list
+            log.exception("could not update the history (thread %s)", thread_id)
+
+    def answer(thread_id: str, message, question: str, new: bool = False, extra_answers=()):
+        """The bot's answer as SSE events. message: the employee's text, or a ready message (a system note)."""
+        if new:
+            yield sse("thread", {"thread_id": thread_id})
+        start = time.perf_counter()
+        first_token = None
+        answers = list(extra_answers)  # the model's messages in this question, for its cost
+        item = ("user", message) if isinstance(message, str) else message
+        try:
+            for mode, chunk in agent.stream({"messages": [item]}, thread_config(thread_id),
+                                            stream_mode=["messages", "updates"]):
+                if mode == "messages":
+                    msg, meta = chunk
+                    if isinstance(msg, AIMessageChunk) and meta.get("langgraph_node") == "agent":
+                        text = text_of(msg.content)
+                        if text:
+                            if first_token is None:
+                                first_token = time.perf_counter() - start
+                                timing_log.info("⏱ answer: first word after %.3fs", first_token)
+                            yield sse("token", {"text": text})
+                elif "agent" in chunk:
+                    answers.extend(chunk["agent"].get("messages", []))
+                    for msg in chunk["agent"].get("messages", []):
+                        for tc in getattr(msg, "tool_calls", []) or []:
+                            yield sse("step", {"tool": tc["name"], "label": texts["steps"].get(tc["name"], "")})
+                elif "tools" in chunk:
+                    for card in cards_of(chunk["tools"].get("messages", [])):
+                        yield sse("card", card)
+            timing_log.info("⏱ answer: total %.3fs", time.perf_counter() - start)
+            yield sse("done", {})
+        except (Exception, ModelStalledError):  # every model failed, one went silent, or a bug -
+            # the employee gets a calm message
+            timing_log.info("⏱ answer: failed after %.3fs", time.perf_counter() - start)
+            log.exception("chat failed (thread %s)", thread_id)
+            yield sse("error", {"message": texts["overloaded"]})
+        finally:
+            if answers:
+                record_usage(thread_id, question, answers)
+            touch(thread_id)
+
     def run(thread_id: str, message: str, new: bool) -> StreamingResponse:
+        return StreamingResponse(answer(thread_id, message, message, new), media_type="text/event-stream",
+                                 headers=SSE_HEADERS)
+
+    def read_payslip(thread_id: str, kind: str, read) -> StreamingResponse:
+        """Reads the payslip (the model sees it once), keeps the values, and the bot carries on with them -
+        no confirmation from the employee. Unreadable: the fixed message, and the questions go on."""
         def stream():
-            if new:
-                yield sse("thread", {"thread_id": thread_id})
-            start = time.perf_counter()
-            first_token = None
-            answers = []  # the model's messages in this question, for its cost
+            yield sse("step", {"tool": "payslip", "label": texts["steps"]["payslip"]})
+            reading = read()
+            payslip_mod.trace_upload(thread_id, kind, reading.status, sorted(reading.fields))
+            note = payslip_mod.note(reading.fields, reading.status, cfg, source=kind)
+            if reading.status == "ok":
+                try:
+                    payslips.set_fields(thread_id, reading.fields)
+                except Exception:  # noqa: BLE001 - the values are in the conversation all the same
+                    log.exception("could not keep the payslip's fields (thread %s)", thread_id)
+                yield sse("payslip", {"status": reading.status, "fields": reading.fields})
+                yield from answer(thread_id, note, "[payslip]", extra_answers=reading.answers)
+                return
+            yield sse("payslip", {"status": reading.status, "fields": reading.fields})
+            text = ptexts["noVision" if reading.status == "no_vision" else "failed"]
             try:
-                for mode, chunk in agent.stream({"messages": [("user", message)]}, thread_config(thread_id),
-                                                stream_mode=["messages", "updates"]):
-                    if mode == "messages":
-                        msg, meta = chunk
-                        if isinstance(msg, AIMessageChunk) and meta.get("langgraph_node") == "agent":
-                            text = text_of(msg.content)
-                            if text:
-                                if first_token is None:
-                                    first_token = time.perf_counter() - start
-                                    timing_log.info("⏱ answer: first word after %.3fs", first_token)
-                                yield sse("token", {"text": text})
-                    elif "agent" in chunk:
-                        answers.extend(chunk["agent"].get("messages", []))
-                        for msg in chunk["agent"].get("messages", []):
-                            for tc in getattr(msg, "tool_calls", []) or []:
-                                yield sse("step", {"tool": tc["name"], "label": texts["steps"].get(tc["name"], "")})
-                    elif "tools" in chunk:
-                        for card in cards_of(chunk["tools"].get("messages", [])):
-                            yield sse("card", card)
-                timing_log.info("⏱ answer: total %.3fs", time.perf_counter() - start)
+                # no model call: the note and the fixed message go into the conversation as they are
+                agent.update_state(thread_config(thread_id), {"messages": [note, AIMessage(content=text)]},
+                                   as_node="agent")
+                yield sse("token", {"text": text})
                 yield sse("done", {})
-            except (Exception, ModelStalledError):  # every model failed, one went silent, or a bug -
-                # the employee gets a calm message
-                timing_log.info("⏱ answer: failed after %.3fs", time.perf_counter() - start)
-                log.exception("chat failed (thread %s)", thread_id)
+            except Exception:  # noqa: BLE001 - e.g. the database is down: a calm message
+                log.exception("payslip failed (thread %s)", thread_id)
                 yield sse("error", {"message": texts["overloaded"]})
-            finally:
-                if answers:
-                    record_usage(thread_id, message, answers)
-                try:  # the history list: a title and to the top
-                    threads.touch(thread_id, title_of(messages_of(agent, thread_id), texts["repAnswered"]))
-                except Exception:  # the answer matters more than the list
-                    log.exception("could not update the history (thread %s)", thread_id)
+            if reading.answers:
+                record_usage(thread_id, "[payslip]", reading.answers)
+            touch(thread_id)
 
         return StreamingResponse(stream(), media_type="text/event-stream", headers=SSE_HEADERS)
+
+    async def body_capped(request: Request) -> bytes:
+        """The upload, refused as soon as it passes maxBytes (not after reading all of it)."""
+        declared = request.headers.get("content-length", "")
+        if declared.isdigit() and int(declared) > max_bytes:
+            raise HTTPException(413, ptexts["tooLarge"])
+        chunks, size = [], 0
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > max_bytes:
+                raise HTTPException(413, ptexts["tooLarge"])
+            chunks.append(chunk)
+        return b"".join(chunks)
+
+    def payslip_view(thread_id: str) -> Optional[dict]:
+        row = payslips.get(thread_id)
+        if row is None:
+            return None
+        return {"source": row["source"], "fields": row["fields"],
+                "image": f"/chat/{thread_id}/payslip" if row["image"] is not None else None}
 
     @r.post("/login")
     def login(body: LoginIn, request: Request):
@@ -170,13 +247,53 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, auth=None, usage_f
             raise HTTPException(404, "unknown conversation")
         shown = []
         for m in msgs:
-            if m.type == "human":
+            if payslip_mod.is_note(m):
+                source = m.additional_kwargs[payslip_mod.NOTE_KEY].get("source")
+                shown.append({"role": "payslip", "text": ptexts["shownText" if source == "text" else "shown"]})
+            elif m.type == "human":
                 text = text_of(m.content)
                 shown.append({"role": "system" if text == texts["repAnswered"] else "user", "text": text})
             elif m.type == "ai" and text_of(m.content):
                 shown.append({"role": "assistant", "text": text_of(m.content)})
         rep = {"pending": len(rep_queue.pending(thread_id)), "new_answers": rep_queue.new_answers(thread_id)}
-        return {"thread_id": thread_id, "messages": shown, "cards": cards_of(msgs), "rep": rep}
+        return {"thread_id": thread_id, "messages": shown, "cards": cards_of(msgs), "rep": rep,
+                "payslip": payslip_view(thread_id)}
+
+    @r.delete("/chat/{thread_id}", status_code=204)
+    def delete(thread_id: str = Path(pattern=UUID_RE), employee: str = Depends(current_employee)):
+        own(thread_id, employee)
+        threads.delete(thread_id)
+        payslips.delete(thread_id)  # in Postgres the line above already did it (on delete cascade)
+        agent.checkpointer.delete_thread(thread_id)
+        return Response(status_code=204)
+
+    @r.post("/chat/{thread_id}/payslip")
+    async def upload_payslip(request: Request, thread_id: str = Path(pattern=UUID_RE),
+                             employee: str = Depends(current_employee)):
+        """The raw file as the body (fetch(url, {body: file})): recognised by its bytes, not its Content-Type."""
+        await run_in_threadpool(own, thread_id, employee)
+        raw = await body_capped(request)
+        try:
+            prepared = await run_in_threadpool(payslip_mod.prepare, raw, cfg["payslip"])
+        except payslip_mod.PayslipError as e:
+            raise HTTPException(PAYSLIP_HTTP[e.code], ptexts[e.text_key]) from None
+        await run_in_threadpool(payslips.save, thread_id, prepared.stored, "image")
+        return read_payslip(thread_id, "image", lambda: payslip_reader.read_image(prepared.for_model))
+
+    @r.post("/chat/{thread_id}/payslip-text")
+    def paste_payslip(body: PayslipTextIn, thread_id: str = Path(pattern=UUID_RE),
+                      employee: str = Depends(current_employee)):
+        own(thread_id, employee)
+        payslips.save(thread_id, None, "text")  # the values only: the pasted text itself is not kept
+        return read_payslip(thread_id, "text", lambda: payslip_reader.read_text(body.text))
+
+    @r.get("/chat/{thread_id}/payslip")
+    def payslip_image(thread_id: str = Path(pattern=UUID_RE), employee: str = Depends(current_employee)):
+        own(thread_id, employee)
+        row = payslips.get(thread_id)
+        if row is None or row["image"] is None:
+            raise HTTPException(404, "no payslip")
+        return Response(content=row["image"], media_type="image/jpeg", headers={"Cache-Control": "no-store"})
 
     @r.get("/conversations/{thread_id}/events")
     def conversation_changes(request: Request, thread_id: str = Path(pattern=UUID_RE),

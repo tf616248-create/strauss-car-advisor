@@ -7,6 +7,7 @@ from fastapi.routing import APIRoute
 from app.agent.rep_queue import InMemoryRepQueue
 from app.api import employee, rep
 from app.api.events import InMemoryNotifier
+from app.payslip import InMemoryPayslips, PayslipReader
 from app.threads import InMemoryThreads
 from tests.auth_helpers import make_auth
 from tests.test_agent_graph import ScriptedModel
@@ -23,13 +24,15 @@ def build_routers(data, cfg):
     queue = InMemoryRepQueue()
     agent = build_agent(ScriptedModel(messages=iter([])), data, queue, cfg)
     return (employee.router(agent=agent, rep_queue=queue, notifier=InMemoryNotifier(), cfg=cfg,
-                            threads=InMemoryThreads(), auth=make_auth()),
+                            threads=InMemoryThreads(), payslips=InMemoryPayslips(),
+                            payslip_reader=PayslipReader(None, None, cfg), auth=make_auth()),
             rep.router(agent=agent, rep_queue=queue, notifier=InMemoryNotifier(), rep_passcode=PASS))
 
 
 def test_employee_routes_and_rep_routes_live_in_separate_modules(data, cfg):
     emp, rp = build_routers(data, cfg)
     assert paths(emp) == {"/login", "/threads", "/chat", "/chat/{thread_id}/rep-answered", "/chat/{thread_id}",
+                          "/chat/{thread_id}/payslip", "/chat/{thread_id}/payslip-text",
                           "/conversations/{thread_id}/events"}
     assert paths(rp) == {"/rep/requests", "/rep/requests/{request_id}/answer"}
 

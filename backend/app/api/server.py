@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 from app import tracing
 from app.agent.advisor import load_agent_config
-from app.agent.models import build_model
+from app.agent.models import build_model, build_vision_model
 from app.agent.rep_queue import InMemoryRepQueue
 from app.api.events import InMemoryNotifier
 from app.api.main import create_app
@@ -26,6 +26,7 @@ from app.api.settings import cors_origins
 from app.auth import EmployeeAuth
 from app.data.loader import load_all
 from app.data.specs_store import build_specs_store
+from app.payslip import PayslipReader
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BACKEND_DIR / ".env")
@@ -50,16 +51,19 @@ cfg = load_agent_config(BACKEND_DIR)
 
 database_url = os.environ.get("DATABASE_URL")
 if database_url:
-    from app.db import PostgresRepQueue, PostgresThreads, make_checkpointer, make_pool
+    from app.db import PostgresPayslips, PostgresRepQueue, PostgresThreads, make_checkpointer, make_pool
 
     pool = make_pool(database_url)
     rep_queue = PostgresRepQueue(pool)
     rep_queue.setup()
     threads = PostgresThreads(pool)
     threads.setup()
+    payslips = PostgresPayslips(pool)
+    payslips.setup()  # after employee_threads: a payslip belongs to a conversation
     checkpointer = make_checkpointer(pool)
 else:
-    rep_queue, checkpointer, threads = InMemoryRepQueue(), None, None  # None: create_app keeps them in memory
+    # None: create_app keeps them in memory
+    rep_queue, checkpointer, threads, payslips = InMemoryRepQueue(), None, None, None
 
 data = load_all(BACKEND_DIR)
 
@@ -67,9 +71,14 @@ data = load_all(BACKEND_DIR)
 # APIs in a background thread, so /health is not held up; refreshed daily
 specs = build_specs_store(data.catalog, BACKEND_DIR)
 
+model = build_model(cfg["modelTimeoutSeconds"], thinking_level=cfg["geminiThinkingLevel"])
+# a payslip photo: only the models that read images (payslip.visionModels); pasted text: any model
+vision = build_vision_model(cfg["modelTimeoutSeconds"], cfg["payslip"]["visionModels"],
+                            thinking_level=cfg["geminiThinkingLevel"])
+
 app = create_app(
     data=data,
-    model=build_model(cfg["modelTimeoutSeconds"], thinking_level=cfg["geminiThinkingLevel"]),
+    model=model,
     rep_queue=rep_queue,
     notifier=InMemoryNotifier(),
     cfg=cfg,
@@ -77,6 +86,8 @@ app = create_app(
     # employee login: EMPLOYEE_CODES + JWT_SECRET (app/auth.py); no codes = the employee screen is closed
     employee_auth=EmployeeAuth.from_env(os.environ, hours=cfg["auth"]["tokenHours"]),
     threads=threads,
+    payslips=payslips,
+    payslip_reader=PayslipReader(vision, model, cfg),
     checkpointer=checkpointer,
     origins=origins,
     usage_file=BACKEND_DIR / cfg["usage"]["file"],  # cost of each question, not in git

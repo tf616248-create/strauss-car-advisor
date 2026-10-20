@@ -233,6 +233,7 @@ def test_statuses_and_errors_speak_as_kobi():
         "check_eligibility": "כובי בודק זכאות…",
         "calculate": "כובי מחשב נטו…",
         "ask_rep": "כובי שלח שאלה לנציג התחבורה ⏳",
+        "payslip": "כובי קורא את התלוש…",
     }
     assert texts["overloaded"] == "כובי עמוס כרגע. נסו שוב בעוד רגע."
 
@@ -274,3 +275,10 @@ def test_prompt_tone_example_offers_to_sort(prompt):
     assert "אני לא ממליץ על רכבים" not in prompt
     assert ("מבין, זו החלטה לא פשוטה. אני יכול לסדר לך את הרכבים שמגיעים לך לפי מה שהכי חשוב לך,\n"
             "ולהראות מה יקרה לנטו בכל אחד.") in prompt
+
+
+def test_prompt_offers_the_payslip_only_at_the_salary_question(prompt):
+    t = load_agent_config(BACKEND_DIR)["texts"]["payslip"]
+    assert t["offer"] in prompt and t["taken"] in prompt and t["notePrefix"] in prompt
+    salary_question = prompt.index("2. שכר בסיס")
+    assert prompt.index(t["offer"]) > salary_question  # offered where the salary is asked, not up front

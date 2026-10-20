@@ -16,3 +16,6 @@ uvicorn[standard]>=0.29
 psycopg[binary]>=3.2
 psycopg-pool>=3.2
 langgraph-checkpoint-postgres>=2.0
+# payslip upload: shrink to JPEG, the first page of a PDF (app/payslip.py)
+Pillow>=10
+pypdfium2>=4

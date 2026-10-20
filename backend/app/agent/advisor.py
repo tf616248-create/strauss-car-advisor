@@ -21,6 +21,7 @@ from typing import Iterable, Optional
 
 from app.engine.net import compute_net
 from app.engine.scenario import Choice, EmployeeInput, build_scenario
+from app.payslip import fields_of
 
 KINDS = ("car", "family_car", "waiver")
 NUMERIC_FIELDS = ("base", "commission", "bonus", "pension_pct", "keren_pct", "credit_points",
@@ -212,6 +213,9 @@ class Advisor:
         answers = self.queue.answers(thread_id)
         pending = self.queue.pending_fields(thread_id)
         args = {k: v for k, v in args.items() if v not in (None, "")}
+        # read from an uploaded payslip in code (app/payslip.py): fills what the model did not pass;
+        # what the model passes wins, since the employee may have corrected it
+        payslip = fields_of(history)
         sources = {}
         for field in EMPLOYEE_FIELDS:
             if (field, None) in answers:
@@ -219,6 +223,9 @@ class Advisor:
                 sources[field] = self.src["rep"]
             elif field in args:
                 sources[field] = self.src["employee"]
+            elif field in payslip:
+                args[field] = payslip[field]
+                sources[field] = self.src["payslip"]
 
         bad, options = self._invalid(args)
         waiting = [f for f in bad if (f, None) in pending]

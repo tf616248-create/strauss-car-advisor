@@ -1,5 +1,5 @@
 """Postgres (Neon): the connection pool, the rep queue, the employees' conversation list,
-and LangGraph's checkpointer.
+the payslips, and LangGraph's checkpointer.
 
 Used only when DATABASE_URL is set; without it everything stays in memory.
 
@@ -181,6 +181,10 @@ class PostgresThreads:
         self._all("update employee_threads set title = %s, updated_at = clock_timestamp() where thread_id = %s",
                   (title, thread_id))
 
+    def delete(self, thread_id: str) -> None:
+        """The conversation's payslip goes with it (payslips: on delete cascade)."""
+        self._all("delete from employee_threads where thread_id = %s", (thread_id,))
+
     def list(self, employee_id: str, limit: int = 50) -> list[dict]:
         rows = self._all("select thread_id, title, updated_at from employee_threads where employee_id = %s "
                          "order by updated_at desc limit %s", (employee_id, limit))
@@ -190,3 +194,50 @@ class PostgresThreads:
         """For tests: remove throwaway conversations."""
         if thread_ids:
             self._all("delete from employee_threads where thread_id = any(%s)", (list(thread_ids),))
+
+
+PAYSLIPS_SCHEMA = """
+create table if not exists payslips (
+    thread_id  text primary key references employee_threads (thread_id) on delete cascade,
+    image      bytea,
+    source     text not null,
+    fields     jsonb,
+    created_at timestamptz not null default now()
+);
+"""
+
+
+class PostgresPayslips:
+    """Same methods and behaviour as app/payslip.InMemoryPayslips (see tests/test_payslip_repository.py).
+    One per conversation; set up after employee_threads (the foreign key)."""
+
+    def __init__(self, pool: ConnectionPool):
+        self.pool = pool
+
+    def setup(self) -> None:
+        with self.pool.connection() as conn:
+            conn.execute(PAYSLIPS_SCHEMA)
+
+    def _all(self, sql: str, params=()) -> list[dict]:
+        with self.pool.connection() as conn:
+            cur = conn.execute(sql, params)
+            return cur.fetchall() if cur.description else []
+
+    def save(self, thread_id: str, image: Optional[bytes], source: str) -> None:
+        self._all("insert into payslips (thread_id, image, source) values (%s, %s, %s) "
+                  "on conflict (thread_id) do update set image = excluded.image, source = excluded.source, "
+                  "fields = null, created_at = now()", (thread_id, image, source))
+
+    def set_fields(self, thread_id: str, fields: dict) -> None:
+        self._all("update payslips set fields = %s where thread_id = %s", (Jsonb(dict(fields)), thread_id))
+
+    def get(self, thread_id: str) -> Optional[dict]:
+        rows = self._all("select image, source, fields, created_at from payslips where thread_id = %s", (thread_id,))
+        if not rows:
+            return None
+        row = rows[0]
+        return {**row, "image": None if row["image"] is None else bytes(row["image"]),
+                "created_at": row["created_at"].isoformat()}
+
+    def delete(self, thread_id: str) -> None:
+        self._all("delete from payslips where thread_id = %s", (thread_id,))

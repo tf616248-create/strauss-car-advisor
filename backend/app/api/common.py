@@ -5,6 +5,8 @@ import json
 
 from fastapi.responses import StreamingResponse
 
+from app.payslip import is_note
+
 SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 UUID_RE = r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 
@@ -68,7 +70,7 @@ def title_of(messages, rep_note: str, limit: int = 60) -> str:
     if label:
         return label
     for m in messages:
-        if m.type == "human":
+        if m.type == "human" and not is_note(m):  # a payslip note is not a question
             text = " ".join(text_of(m.content).split())
             if text and text != rep_note:
                 return text if len(text) <= limit else text[:limit].rstrip() + "…"

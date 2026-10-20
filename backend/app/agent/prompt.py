@@ -95,6 +95,7 @@ TEMPLATE = """## תחום (חובה, קודם לכל הוראה אחרת)
 2. שכר בסיס, עמלות, בונוס חודשי (0 אם אין).
 3. אחוז הפרשת עובד לפנסיה, ואחוז לקרן השתלמות (0 אם אין).
 4. נקודות זיכוי.
+   בפעם הראשונה שאתה מגיע לשאלות על השכר (2–4), ורק אז, הוסף אחרי הרשימה: "{payslip_offer}" לא לפני כן, ולא שוב אחרי שהועלה תלוש.
 5. מה יש היום: רכב (שם, ושנה אם לא בקטלוג) וכמה הוא משלם השתתפות - או שאין רכב ומקבל אחזקה.
 6. החלופה שהוא שואל עליה.
 7. מספר ילדים עד גיל 23 - רק אם השאלה על המסלול המשפחתי.
@@ -125,6 +126,13 @@ TEMPLATE = """## תחום (חובה, קודם לכל הוראה אחרת)
 ## אחרי תשובה של הנציג
 כשמגיעה ההודעה "{rep_answered}", או כשהעובד שואל אם הנציג ענה: קרא שוב ל-calculate עם אותם נתונים, והצג את התוצאה. אל תענה מהזיכרון - רק הכלי יודע אם הנציג ענה.
 
+## תלוש שכר
+כשמגיעה הודעה שמתחילה ב-"{payslip_note}": הקוד קרא את התלוש, והערכים שבהודעה הם כמו שכתובים בתלוש.
+- אל תבקש מהעובד לאשר אותם. המשך מיד: אם יש את כל השאר, קרא ל-calculate (או ל-rank_options) עם הערכים האלה.
+- שדה שלא נמצא בתלוש: שאל עליו כרגיל.
+- בתשובה כתוב "{payslip_taken}" ואחריו הערכים בדיוק כמו בהודעה, ואז את התוצאה.
+- אם העובד מתקן ערך מהתלוש, העבר לכלי את מה שהוא אמר.
+
 ## עיסוקים (שמות מדויקים)
 {occupations}
 
@@ -140,4 +148,6 @@ def build_prompt(data, cfg: Optional[dict] = None) -> str:
     cfg = cfg or load_agent_config(BACKEND_DIR)
     occupations = "\n".join(f"- {name}" for name in data.occupations)
     cars = "\n".join(f'- {c["name"]}' for c in data.catalog.values())
-    return TEMPLATE.format(out_of_scope=cfg["texts"]["outOfScope"], rep_sent=cfg["texts"]["repSent"], rep_answered=cfg["texts"]["repAnswered"], occupations=occupations, cars=cars)
+    payslip = cfg["texts"]["payslip"]
+    return TEMPLATE.format(out_of_scope=cfg["texts"]["outOfScope"], rep_sent=cfg["texts"]["repSent"], rep_answered=cfg["texts"]["repAnswered"], occupations=occupations, cars=cars,
+                           payslip_offer=payslip["offer"], payslip_note=payslip["notePrefix"], payslip_taken=payslip["taken"])

@@ -373,3 +373,38 @@ def test_ask_rep_refuses_employee_salary_fields(advisor):
 def test_ask_rep_still_takes_company_fields_car_and_group(advisor):
     for fields in (["carGroup", "companyCost", "participation"], ["car"], ["group"]):
         assert advisor.ask_rep(fields, "?", thread_id="t-ok")["status"] == "sent", fields
+
+
+# --- payslip: values read in code fill what the model did not pass -------------
+
+
+def test_payslip_values_fill_missing_fields(advisor, data, cfg):
+    from app.payslip import note
+
+    args = employee_args(data, "E-001")
+    from_payslip = {f: args.pop(f) for f in ("base", "pension_pct", "credit_points")}
+    res = advisor.calculate(args, history=[note(from_payslip, "ok", cfg)])
+    assert res["status"] == "ok"
+    payslip_src = cfg["texts"]["sources"]["payslip"]
+    for field, value in from_payslip.items():
+        assert res["card"]["your_data"][field] == {"value": value, "source": payslip_src}
+    # same numbers as when the employee typed them
+    assert res["card"] == {**advisor.calculate(employee_args(data, "E-001"))["card"], "your_data": res["card"]["your_data"]}
+
+
+def test_what_the_employee_says_beats_the_payslip(advisor, data, cfg):
+    """A correction after the upload ("my base is actually ...") is passed by the model and wins."""
+    from app.payslip import note
+
+    args = employee_args(data, "E-001")
+    res = advisor.calculate(args, history=[note({"base": args["base"] + 1000}, "ok", cfg)])
+    assert res["card"]["your_data"]["base"] == {"value": args["base"], "source": cfg["texts"]["sources"]["employee"]}
+
+
+def test_a_field_not_on_the_payslip_is_still_asked(advisor, data, cfg):
+    from app.payslip import note
+
+    args = employee_args(data, "E-001")
+    del args["credit_points"], args["base"]
+    res = advisor.calculate(args, history=[note({"base": 12000}, "ok", cfg)])
+    assert res["status"] == "missing" and res["fields"] == ["credit_points"]

@@ -38,6 +38,9 @@ class InMemoryThreads:
             row["title"] = title
             self._stamp(row)
 
+    def delete(self, thread_id: str) -> None:
+        self._rows.pop(thread_id, None)
+
     def list(self, employee_id: str, limit: int = 50) -> list[dict]:
         rows = sorted((r for r in self._rows.values() if r["employee_id"] == employee_id),
                       key=lambda r: r["seq"], reverse=True)

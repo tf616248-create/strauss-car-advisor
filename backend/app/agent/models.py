@@ -191,6 +191,29 @@ def with_fallbacks(models: list, timeout_seconds: Optional[float] = None, labels
     return models[0].with_fallbacks(models[1:], exceptions_to_handle=SWITCH_ERRORS)
 
 
+def _model_name(model) -> str:
+    name = getattr(model, "model", None) or getattr(model, "model_name", None)
+    return name if isinstance(name, str) else ""
+
+
+def vision_models(env: Mapping[str, str], markers: list[str], thinking_level: Optional[str] = None
+                  ) -> list[tuple[str, object]]:
+    """The available models that read images (a payslip photo): a model name with one of the markers
+    (payslip.visionModels in config/agent.json). Gemini and Gemma read images; Groq's llama-3.3 does not."""
+    return [(label, m) for label, m in available_models(env, thinking_level)
+            if any(marker in _model_name(m).lower() for marker in markers)]
+
+
+def build_vision_model(timeout_seconds: float, markers: list[str], env: Optional[Mapping[str, str]] = None,
+                       thinking_level: Optional[str] = None):
+    """The same chain as build_model, of the models that read images only. None when there is none:
+    a payslip photo then gets a message (texts.payslip.noVision), not an error."""
+    named = vision_models(os.environ if env is None else env, markers, thinking_level)
+    if not named:
+        return None
+    return with_fallbacks([m for _, m in named], timeout_seconds, [name for name, _ in named])
+
+
 def build_model(timeout_seconds: float, env: Optional[Mapping[str, str]] = None,
                 thinking_level: Optional[str] = None):
     """timeout_seconds / thinking_level: modelTimeoutSeconds / geminiThinkingLevel from config/agent.json."""

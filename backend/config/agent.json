@@ -43,7 +43,8 @@
       "lookup_vehicle": "כובי מחפש את הרכב…",
       "check_eligibility": "כובי בודק זכאות…",
       "calculate": "כובי מחשב נטו…",
-      "ask_rep": "כובי שלח שאלה לנציג התחבורה ⏳"
+      "ask_rep": "כובי שלח שאלה לנציג התחבורה ⏳",
+      "payslip": "כובי קורא את התלוש…"
     },
     "sources": {
       "employee": "עובד",
@@ -52,7 +53,8 @@
       "rep": "נציג",
       "rules": "כללים",
       "occupation": "טבלת עיסוקים",
-      "calculation": "חישוב"
+      "calculation": "חישוב",
+      "payslip": "תלוש"
     },
     "reasons": {
       "today": "המצב היום.",
@@ -64,6 +66,41 @@
       "not_family_track_car": "הרכב הזה לא במסלול המשפחתי.",
       "not_enough_children": "המסלול המשפחתי מחייב לפחות {minChildren} ילדים עד גיל 23, וציינת {children}.",
       "waiver_not_allowed": "בעיסוק {occupation} הרכב הוא חובה, ולכן אי אפשר לוותר עליו."
+    },
+    "payslip": {
+      "offer": "אפשר לענות על השאלות כאן, או להעלות תלוש שכר ואני אקח ממנו את הנתונים.",
+      "taken": "לקחתי מהתלוש:",
+      "notePrefix": "[עדכון מהמערכת: העובד העלה תלוש שכר.",
+      "noteFound": "נמצא בתלוש: {found}.",
+      "noteMissing": "לא נמצא בתלוש: {missing}.",
+      "noteEnd": "]",
+      "shown": "📄 תלוש שכר הועלה",
+      "shownText": "📄 הודבק טקסט מתלוש שכר",
+      "noVision": "כובי לא יכול לקרוא תמונות כרגע. אפשר להדביק את הטקסט מהתלוש, או לענות על השאלות כאן בצ'אט.",
+      "failed": "כובי לא הצליח לקרוא את התלוש. אפשר לענות על השאלות כאן בצ'אט.",
+      "tooLarge": "הקובץ גדול מדי. אפשר להעלות עד 10MB.",
+      "badType": "אפשר להעלות רק JPG, PNG או PDF.",
+      "unreadable": "כובי לא הצליח לפתוח את הקובץ. נסו קובץ אחר.",
+      "labels": {
+        "base": "שכר בסיס",
+        "commission": "עמלות",
+        "bonus": "בונוס",
+        "pension_pct": "הפרשת עובד לפנסיה (%)",
+        "keren_pct": "הפרשת עובד לקרן השתלמות (%)",
+        "credit_points": "נקודות זיכוי",
+        "current_participation": "השתתפות ברכב"
+      },
+      "extractPrompt": "זה תלוש שכר ישראלי. החזר JSON בלבד, בלי טקסט נוסף, עם המפתחות האלה בדיוק: base (שכר יסוד/בסיס חודשי ברוטו), commission (עמלות), bonus (בונוס או פרמיה), pension_pct (אחוז ניכוי העובד לפנסיה/קופת גמל, רק אם האחוז כתוב), keren_pct (אחוז ניכוי העובד לקרן השתלמות, רק אם האחוז כתוב), credit_points (נקודות זיכוי), current_participation (השתתפות העובד ברכב, סכום חודשי). כל ערך הוא מספר כמו שכתוב בתלוש, או null אם לא כתוב. אל תחשב, אל תעגל ואל תנחש: מה שלא כתוב במפורש הוא null."
     }
+  },
+  "payslip": {
+    "note": "Payslip upload (app/payslip.py). The model sees the image once, at upload; only the extracted fields stay in the conversation. Fields: those of calculate that a regular Israeli payslip shows. visionModels: substrings of a model name that reads images (Gemini, Gemma 3/4, Llama 4) - a model without one gets only pasted text.",
+    "maxBytes": 10485760,
+    "storeLongSide": 1200,
+    "storeTargetBytes": 153600,
+    "extractLongSide": 2000,
+    "maxTextChars": 8000,
+    "fields": ["base", "commission", "bonus", "pension_pct", "keren_pct", "credit_points", "current_participation"],
+    "visionModels": ["gemini", "gemma-3", "gemma-4", "llama-4"]
   }
 }
