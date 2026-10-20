@@ -12,16 +12,19 @@ Type as the employee. Rep commands (the rep's screen comes in stage 7):
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessageChunk, ToolMessage
 
+from app import tracing
 from app.agent.advisor import load_agent_config
 from app.agent.graph import build_agent
 from app.agent.models import build_model
 from app.agent.rep_queue import InMemoryRepQueue
+from app.api.common import thread_config
 from app.data.loader import load_all
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -51,9 +54,10 @@ def _rep_command(queue: InMemoryRepQueue, parts: list[str]) -> bool:
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     load_dotenv(BACKEND_DIR / ".env")
+    tracing.configure(os.environ)  # LangSmith only with LANGSMITH_TRACING + LANGSMITH_API_KEY
     data = load_all(BACKEND_DIR)
     queue = InMemoryRepQueue()
-    config = {"configurable": {"thread_id": THREAD}}
+    config = thread_config(THREAD)
     cfg = load_agent_config(BACKEND_DIR)
     agent = build_agent(build_model(cfg["modelTimeoutSeconds"], thinking_level=cfg["geminiThinkingLevel"]), data, queue, cfg)
     last_card = None

@@ -108,15 +108,26 @@ class WithTimeout(BaseChatModel):
     seconds: float
     label: str = "model"
 
-    def __init__(self, model: Runnable, seconds: float, label: str = "model", **kwargs: Any):
-        super().__init__(model=model, seconds=seconds, label=label, **kwargs)
+    def __init__(self, model: Runnable, seconds: float, label: str = "model", fallback: bool = False,
+                 **kwargs: Any):
+        # metadata/tags go on this call's trace (app/tracing.py): which model, and whether it is a fallback
+        super().__init__(model=model, seconds=seconds, label=label,
+                         metadata={"kobi_model": label, "kobi_fallback": fallback},
+                         tags=["fallback"] if fallback else [], **kwargs)
 
     @property
     def _llm_type(self) -> str:
         return f"with-timeout:{self.label}"
 
+    def _get_ls_params(self, stop: Optional[list[str]] = None, **kwargs: Any) -> dict:
+        inner = getattr(self.model, "bound", self.model)  # after bind_tools: a binding around the model
+        name = getattr(inner, "model", None) or getattr(inner, "model_name", None)
+        return {"ls_provider": self.label.split("_", 1)[0], "ls_model_name": name if isinstance(name, str) else self.label,
+                "ls_model_type": "chat"}
+
     def bind_tools(self, tools, **kwargs) -> Runnable:
-        return WithTimeout(self.model.bind_tools(tools, **kwargs), self.seconds, self.label)
+        return WithTimeout(self.model.bind_tools(tools, **kwargs), self.seconds, self.label,
+                           fallback=self.metadata["kobi_fallback"])
 
     def _stream(self, messages: list[BaseMessage], stop: Optional[list[str]] = None,
                 run_manager=None, **kwargs: Any) -> Iterator[ChatGenerationChunk]:
@@ -173,7 +184,8 @@ class WithTimeout(BaseChatModel):
 def with_fallbacks(models: list, timeout_seconds: Optional[float] = None, labels: Optional[list[str]] = None):
     if timeout_seconds is not None:
         labels = labels or ["model"] * len(models)
-        models = [WithTimeout(m, timeout_seconds, label) for m, label in zip(models, labels)]
+        models = [WithTimeout(m, timeout_seconds, label, fallback=i > 0)
+                  for i, (m, label) in enumerate(zip(models, labels))]
     if len(models) == 1:
         return models[0]
     return models[0].with_fallbacks(models[1:], exceptions_to_handle=SWITCH_ERRORS)

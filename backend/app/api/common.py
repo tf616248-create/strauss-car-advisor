@@ -52,7 +52,8 @@ def comparison_cards(cards: list[dict]) -> list[dict]:
 
 
 def thread_config(thread_id: str) -> dict:
-    return {"configurable": {"thread_id": thread_id}}
+    # metadata: LangSmith (app/tracing.py) groups a conversation's traces by it; unused when tracing is off
+    return {"configurable": {"thread_id": thread_id}, "metadata": {"thread_id": thread_id}}
 
 
 def messages_of(agent, thread_id: str) -> list:

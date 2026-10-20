@@ -34,3 +34,10 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      # LangSmith, optional (docs/deploy.md): all three empty = no tracing, nothing sent
+      - key: LANGSMITH_TRACING
+        sync: false
+      - key: LANGSMITH_API_KEY
+        sync: false
+      - key: LANGSMITH_PROJECT
+        sync: false

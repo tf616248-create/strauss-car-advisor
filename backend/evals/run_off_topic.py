@@ -26,6 +26,7 @@ Every run writes a table of pass/fail with the reason to evals/results/<sets>-<d
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import uuid
@@ -213,7 +214,9 @@ def results_markdown(rows: list[dict], when: str) -> str:
 def main() -> None:
     from dotenv import load_dotenv
 
+    from app import tracing
     from app.agent.advisor import Advisor, load_agent_config
+    from app.tracing import eval_config
     from app.agent.graph import build_agent
     from app.agent.models import ModelStalledError, build_model
     from app.agent.rep_queue import InMemoryRepQueue
@@ -222,6 +225,7 @@ def main() -> None:
 
     sys.stdout.reconfigure(encoding="utf-8")
     load_dotenv(BACKEND_DIR / ".env")
+    tracing.configure(os.environ)  # LangSmith only with LANGSMITH_TRACING + LANGSMITH_API_KEY
     cfg = load_agent_config(BACKEND_DIR)
     sentence = cfg["texts"]["outOfScope"]
     data = load_all(BACKEND_DIR)
@@ -249,7 +253,7 @@ def main() -> None:
         passed = 0
         print(f"\n== {title} ==")
         for case in cases:
-            config = {"configurable": {"thread_id": f"eval-{uuid.uuid4()}"}}
+            config = eval_config(f"eval-{uuid.uuid4()}", title, case["id"])  # LangSmith: tagged "eval"
             try:
                 for question in questions_of(case):
                     out = agent.invoke({"messages": [("user", question)]}, config)

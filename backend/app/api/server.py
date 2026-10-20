@@ -16,6 +16,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from app import tracing
 from app.agent.advisor import load_agent_config
 from app.agent.models import build_model
 from app.agent.rep_queue import InMemoryRepQueue
@@ -37,6 +38,11 @@ logging.getLogger("app.timing").propagate = False
 # car specs: "נטען מה-API" / "נטען מהגיבוי" (app/data/specs_store.py)
 logging.getLogger("app.specs").addHandler(_timing_handler)
 logging.getLogger("app.specs").propagate = False
+# LangSmith: on only with LANGSMITH_TRACING + LANGSMITH_API_KEY (app/tracing.py)
+logging.getLogger("app.tracing").addHandler(_timing_handler)
+logging.getLogger("app.tracing").setLevel(logging.INFO)
+logging.getLogger("app.tracing").propagate = False
+tracing.configure(os.environ)
 
 origins = tuple(cors_origins(os.environ))
 
