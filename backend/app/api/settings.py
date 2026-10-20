@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from typing import Mapping
 
-LOCAL_FRONTEND = ["http://localhost:5173", "http://127.0.0.1:5173"]
+LOCAL_FRONTEND = ["http://localhost:5173", "http://127.0.0.1:5173",  # Vite (frontend/)
+                  "http://localhost:8081", "http://127.0.0.1:8081"]  # Expo web (phonefrontend/ in a browser)
 
 
 def cors_origins(env: Mapping[str, str]) -> list[str]:

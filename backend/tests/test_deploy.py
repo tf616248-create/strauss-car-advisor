@@ -9,7 +9,8 @@ from app.api.settings import cors_origins
 from tests.conftest import BACKEND_DIR
 
 ROOT = BACKEND_DIR.parent
-LOCAL = {"http://localhost:5173", "http://127.0.0.1:5173"}
+LOCAL = {"http://localhost:5173", "http://127.0.0.1:5173",
+         "http://localhost:8081", "http://127.0.0.1:8081"}  # Vite, and the phone app in a browser (Expo web)
 
 
 # --- render.yaml ------------------------------------------------------------------
