@@ -1,0 +1,22 @@
+{
+  "note": "Payslip upload on the employee screen (components/PayslipAttach.jsx, PayslipPreview.jsx, PayslipViewer.jsx). shown, shownText, tooLarge and badType are the same as texts.payslip in backend/config/agent.json (checked in config/payslip.test.js). maxBytes = payslip.maxBytes there.",
+  "maxBytes": 10485760,
+  "accept": "image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf",
+  "texts": {
+    "attach": "צירוף תלוש שכר",
+    "camera": "צילום תלוש",
+    "cameraLabel": "צלם תלוש",
+    "remove": "הסרת התלוש",
+    "open": "הצגת התלוש בגדול",
+    "close": "סגירה",
+    "viewer": "תלוש השכר",
+    "image": "תלוש השכר",
+    "pdf": "קובץ PDF",
+    "drop": "שחררו כאן את תלוש השכר",
+    "needsConversation": "אפשר לצרף תלוש אחרי שמתחילים שיחה. כתבו שאלה, ואז צרפו.",
+    "shown": "📄 תלוש שכר הועלה",
+    "shownText": "📄 הודבק טקסט מתלוש שכר",
+    "tooLarge": "הקובץ גדול מדי. אפשר להעלות עד 10MB.",
+    "badType": "אפשר להעלות רק JPG, PNG או PDF."
+  }
+}

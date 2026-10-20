@@ -10,9 +10,13 @@ import Road, { CarBody } from '../components/Road'
 import ContactRep from '../components/ContactRep'
 import Answer from '../components/Answer'
 import EmptyPanel from '../components/EmptyPanel'
+import PayslipViewer from '../components/PayslipViewer'
+import { checkFile, usePhone } from '../lib/payslip'
+import payslipCfg from '../config/payslip.json'
 import logo from '../assets/strauss-logo.svg'
 
 const REP_ANSWERED = 'הנציג ענה, והחלופה מתעדכנת'
+const PT = payslipCfg.texts
 const PARKED_MS = 2500
 let nextId = 1
 
@@ -39,6 +43,15 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const [busy, setBusy] = useState(false)
   const [input, setInput] = useState('')
   const boxRef = useRef(null)
+  // a payslip chosen but not sent yet: { file, kind: 'image' | 'pdf', url, name }
+  const [attachment, setAttachment] = useState(null)
+  const [attachError, setAttachError] = useState(null)
+  const [dragging, setDragging] = useState(false)
+  const [viewing, setViewing] = useState(null) // the large view: { src, opener } (focus goes back to opener)
+  const fileRef = useRef(null)
+  const cameraRef = useRef(null)
+  const payslipUrl = useRef({ tid: null, url: null }) // the server's image (a promise), read once per conversation
+  const isPhone = usePhone()
 
   // the message box grows with its text, like other chats (CSS caps it at ~7 lines, then it scrolls)
   useLayoutEffect(() => {
@@ -83,11 +96,15 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     let s
     try { s = await api.restore(tid) } catch { return }
     if (busyRef.current) return
+    const restored = s.messages.map((m) => ({ ...m, id: nextId++ }))
     setMessages((ms) => {
       const errors = []
       for (let i = ms.length - 1; i >= 0 && ms[i].role === 'error'; i--) errors.unshift(ms[i])
-      return [...s.messages.map((m) => ({ ...m, id: nextId++ })), ...errors]
+      return [...restored, ...errors]
     })
+    // the payslip kept on the server: its thumbnail on the latest payslip line (one per conversation)
+    const last = restored.findLast((m) => m.role === 'payslip')
+    if (last && s.payslip?.image) showServerPayslip(tid, last.id)
     if (s.cards.length) setCards((cs) => (cs.length ? cs : [s.cards[s.cards.length - 1]]))
     if (s.rep?.new_answers > 0) {
       append({ role: 'system', text: REP_ANSWERED })
@@ -114,7 +131,89 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api])
 
+  // the thumbnail of the payslip kept on the server; fetched once per conversation (it needs the token)
+  // (the request itself is kept: a reload refreshes several times at once, and they share it)
+  async function showServerPayslip(tid, messageId, fresh = false) {
+    if (fresh || payslipUrl.current.tid !== tid) {
+      payslipUrl.current = { tid, url: Promise.resolve(api.payslipImage?.(tid)).catch(() => null) }
+    }
+    const url = await payslipUrl.current.url
+    if (!url) { if (payslipUrl.current.tid === tid) payslipUrl.current = { tid: null, url: null }; return }
+    setMessages((ms) => ms.map((m) => (m.id === messageId ? { ...m, thumb: url } : m)))
+  }
+
+  function dropAttachment() {
+    if (attachment?.url) URL.revokeObjectURL?.(attachment.url)
+    setAttachment(null)
+  }
+
+  // a file from 📎, the camera, a drop or a paste: checked here first, then shown before sending
+  function pick(file) {
+    if (!file) return
+    if (!threadId) { setAttachError(PT.needsConversation); return }
+    const checked = checkFile(file)
+    if (checked.error) { setAttachError(checked.error); return }
+    dropAttachment()
+    setAttachError(null)
+    setAttachment({ file, kind: checked.kind, name: file.name,
+      url: checked.kind === 'image' ? URL.createObjectURL?.(file) ?? null : null })
+  }
+
+  function onFileChosen(e) {
+    pick(e.target.files?.[0])
+    e.target.value = '' // choosing the same file again still counts
+  }
+
+  function removeAttachment() {
+    dropAttachment()
+    setAttachError(null)
+    boxRef.current?.focus()
+  }
+
+  // Ctrl+V (or paste from a long press on a phone): an image becomes the payslip; text stays text
+  function onPaste(e) {
+    const file = [...(e.clipboardData?.files ?? [])].find((f) => f.type.startsWith('image/'))
+    if (!file) return
+    e.preventDefault()
+    pick(file)
+  }
+
+  const hasFiles = (e) => [...(e.dataTransfer?.types ?? [])].includes('Files')
+  const drag = {
+    onDragEnter: (e) => { if (hasFiles(e)) { e.preventDefault(); setDragging(true) } },
+    onDragOver: (e) => { if (hasFiles(e)) e.preventDefault() },
+    onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragging(false) },
+    onDrop: (e) => {
+      if (!hasFiles(e)) return
+      e.preventDefault()
+      setDragging(false)
+      pick(e.dataTransfer.files?.[0])
+    },
+  }
+
+  // returns false when the server refused the file (its text goes next to the message box)
+  async function sendPayslip(att) {
+    setAttachError(null)
+    const bubbleId = append({ role: 'payslip', text: PT.shown, thumb: att.url, pdfName: att.kind === 'pdf' ? att.name : null })
+    let refused = null
+    const assistantId = await run((onEvent) => api.streamPayslip(threadId, att.file, (event, data) => {
+      if (event === 'rejected') refused = data.message
+      else onEvent(event, data)
+    }))
+    if (refused) {
+      setMessages((ms) => ms.filter((m) => m.id !== bubbleId && m.id !== assistantId))
+      setAttachError(refused)
+      return false
+    }
+    // a PDF has no picture here: the server's first page (as kept) becomes its thumbnail
+    if (att.kind === 'pdf') await showServerPayslip(threadId, bubbleId, true)
+    else payslipUrl.current = { tid: threadId, url: Promise.resolve(att.url) }
+    return true
+  }
+
   function clearScreen() {
+    dropAttachment()
+    setAttachError(null)
     setMessages([])
     setCards([])
     setStops([])
@@ -176,14 +275,20 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     busyRef.current = false
     setBusy(false)
     loadHistory() // a new conversation, or a new title from the card
+    return assistantId
   }
 
   async function send(e) {
     e.preventDefault()
     const text = input.trim()
-    if (!text || busy) return
+    if ((!text && !attachment) || busy) return
     setInput('')
-    await ask(text)
+    if (attachment) {
+      const att = attachment
+      setAttachment(null) // the bubble keeps its local picture
+      if (!(await sendPayslip(att))) { setAttachment(att); setInput(text); return }
+    }
+    if (text) await ask(text)
   }
 
   async function ask(text) {
@@ -255,7 +360,8 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         <p className="topbar__sub"><strong>רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלכם</strong> · לפי כללי שטראוס ורשות המסים</p>
       </header>
 
-      <main className="chat">
+      <main className={`chat ${dragging ? 'chat--drop' : ''}`} {...drag}>
+        {dragging && <div className="chat__dropzone" aria-hidden="true">{PT.drop}</div>}
         <div className="chat__top">
           <button type="button" className="chat__new" onClick={() => setHistoryOpen((o) => !o)}
             aria-expanded={historyOpen} aria-controls="history" disabled={busy}>
@@ -305,7 +411,19 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
           </section>
         )}
         <ol className={`chat__messages ${messages.length ? '' : 'chat__messages--empty'}`} aria-live="polite">
-          {messages.map((m) => (
+          {messages.map((m) => m.role === 'payslip' ? (
+            <li key={m.id} className="msg msg--user msg--payslip">
+              {m.thumb ? (
+                <button type="button" className="msg__thumb" aria-label={PT.open}
+                  onClick={(e) => setViewing({ src: m.thumb, opener: e.currentTarget })}>
+                  <img src={m.thumb} alt="" width="48" height="48" />
+                </button>
+              ) : m.pdfName ? (
+                <span className="msg__pdf"><PdfIcon /><bdi>{m.pdfName}</bdi></span>
+              ) : null}
+              <span>{m.text}</span>
+            </li>
+          ) : (
             <li key={m.id} className={`msg msg--${m.role}`}>
               {m.role === 'assistant' && m.text && <span className="msg__who">כובי · בוט</span>}
               {m.role === 'system' ? REP_ANSWERED : m.role === 'assistant' ? <Answer text={m.text} /> : m.text}
@@ -315,14 +433,53 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         </ol>
         {/* a new key per answer: the car starts each trip from the start line */}
         {roadPhase && <Road key={currentId ?? 'idle'} phase={roadPhase} stops={stops} label={step} />}
+        {attachment && (
+          // above the message box, in the page's flow: on a phone it never covers the box or the keyboard
+          <div className="preview" role="group" aria-label={PT.attach}>
+            {attachment.kind === 'image'
+              ? <img className="preview__img" src={attachment.url} alt={PT.image} />
+              : <span className="preview__pdf"><PdfIcon label={PT.pdf} /><bdi>{attachment.name}</bdi></span>}
+            <button type="button" className="preview__remove" aria-label={PT.remove} onClick={removeAttachment}>
+              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          </div>
+        )}
+        {attachError && <p id="attach-error" className="composer__error" role="alert">{attachError}</p>}
         <form className="chat__form" onSubmit={send}>
           <ContactRep />
+          {threadId && (
+            <div className="attach">
+              <input id="payslip-file" ref={fileRef} type="file" accept={payslipCfg.accept} className="visually-hidden"
+                tabIndex={-1} aria-hidden="true" onChange={onFileChosen} />
+              <button type="button" className="attach__btn" aria-label={PT.attach} title={PT.attach}
+                disabled={busy} onClick={() => fileRef.current?.click()}>
+                <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 11.5l-8.2 8.2a5 5 0 01-7.1-7.1l8.5-8.5a3.3 3.3 0 014.7 4.7l-8.5 8.5a1.7 1.7 0 01-2.4-2.4l7.8-7.8" />
+                </svg>
+              </button>
+              {isPhone && (
+                <>
+                  <input id="payslip-camera" ref={cameraRef} type="file" accept="image/*" capture="environment"
+                    className="visually-hidden" tabIndex={-1} aria-hidden="true" onChange={onFileChosen} />
+                  <button type="button" className="attach__btn attach__btn--camera" aria-label={PT.camera}
+                    disabled={busy} onClick={() => cameraRef.current?.click()}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" />
+                    </svg>
+                    <span>{PT.cameraLabel}</span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
           <label htmlFor="msg" className="visually-hidden">הודעה</label>
           <textarea id="msg" ref={boxRef} rows={1} value={input} onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) send(e) }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) send(e) }} onPaste={onPaste}
+            aria-describedby={attachError ? 'attach-error' : undefined}
             placeholder="כתבו שאלה…" />
           <button type="submit" disabled={busy}>שליחה</button>
         </form>
+        {viewing && <PayslipViewer src={viewing.src} opener={viewing.opener} onClose={() => setViewing(null)} />}
       </main>
 
       <div className="divider">
@@ -372,5 +529,15 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
       )}
 
     </div>
+  )
+}
+
+// a PDF payslip: an icon (with a name for screen readers when it stands alone)
+function PdfIcon({ label }) {
+  return (
+    <svg className="pdf-icon" width="28" height="28" viewBox="0 0 24 24" role={label ? 'img' : undefined}
+      aria-label={label} aria-hidden={label ? undefined : 'true'}>
+      <path d="M6 2h8l5 5v15H6z" /><path d="M14 2v5h5" /><text x="12.5" y="17.5" textAnchor="middle">PDF</text>
+    </svg>
   )
 }

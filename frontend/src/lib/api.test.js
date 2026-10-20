@@ -110,3 +110,41 @@ describe('employee login', () => {
     expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe('Bearer tok-2')
   })
 })
+
+describe('payslip upload', () => {
+  it('posts the file itself as the body, with its type and the login token', async () => {
+    const { streamPayslip } = await import('./api')
+    sessionStorage.setItem('employeeToken', 'tok')
+    const fetchImpl = vi.fn().mockResolvedValue(sseResponse([
+      'event: payslip\ndata: {"status":"ok","fields":{"base":12000}}\n\n', 'event: done\ndata: {}\n\n',
+    ]))
+    const file = new File(['png-bytes'], 'tlush.png', { type: 'image/png' })
+    const got = []
+    await streamPayslip('tid-1', file, (e, d) => got.push([e, d]), fetchImpl)
+    const [url, init] = fetchImpl.mock.calls[0]
+    expect(url).toMatch(/\/chat\/tid-1\/payslip$/)
+    expect(init.method).toBe('POST')
+    expect(init.body).toBe(file)
+    expect(init.headers['Content-Type']).toBe('image/png')
+    expect(init.headers.Authorization).toBe('Bearer tok')
+    expect(got).toEqual([['payslip', { status: 'ok', fields: { base: 12000 } }], ['done', {}]])
+  })
+
+  it.each([413, 415, 422])('a refused file (%i) comes back as "rejected" with the server\'s text', async (status) => {
+    const { streamPayslip } = await import('./api')
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status, json: async () => ({ detail: 'אפשר להעלות רק JPG, PNG או PDF.' }) })
+    const got = []
+    await streamPayslip('t', new File(['x'], 'a.gif', { type: 'image/gif' }), (e, d) => got.push([e, d]), fetchImpl)
+    expect(got).toEqual([['rejected', { message: 'אפשר להעלות רק JPG, PNG או PDF.' }]])
+  })
+
+  it('the stored image: a local URL for the screen, or null when there is none', async () => {
+    const { payslipImage } = await import('./api')
+    URL.createObjectURL = vi.fn(() => 'blob:tlush')
+    const blob = new Blob(['jpg'], { type: 'image/jpeg' })
+    const ok = vi.fn().mockResolvedValue({ ok: true, status: 200, blob: async () => blob })
+    expect(await payslipImage('t', ok)).toBe('blob:tlush')
+    expect(ok.mock.calls[0][0]).toMatch(/\/chat\/t\/payslip$/)
+    expect(await payslipImage('t', vi.fn().mockResolvedValue({ ok: false, status: 404 }))).toBeNull()
+  })
+})

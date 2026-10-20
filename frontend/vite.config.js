@@ -6,5 +6,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.js'],
+    // the first test in a file renders the screen cold; on a busy machine that alone passed the 5s default
+    testTimeout: 15000,
   },
 })

@@ -422,6 +422,72 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .contact__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .contact__close, .chat__form .contact__close { background: transparent; color: var(--muted); padding: 4px; min-height: 0; border-radius: 8px; }
 
+/* ---- payslip: 📎 (and the camera on a phone) in the message row, a preview above it, a thumbnail
+   in the bubble, a large view. Every button here is at least 44×44. ---- */
+.attach { display: flex; gap: 8px; flex: none; }
+.attach__btn, .chat__form .attach__btn {
+  min-width: 52px; min-height: 52px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface2); color: var(--text); font-weight: 700;
+}
+.attach__btn:hover:not(:disabled) { border-color: var(--cyan); }
+.attach__btn--camera span { white-space: nowrap; }
+
+.preview {
+  position: relative; align-self: flex-start; height: 120px; max-width: 100%; display: flex; align-items: center;
+  border: 1.5px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 6px;
+}
+.preview__img { height: 100%; width: auto; max-width: min(260px, 70vw); object-fit: contain; border-radius: 8px; background: #FFFFFF; }
+.preview__pdf { display: flex; align-items: center; gap: 10px; height: 100%; padding: 0 56px 0 14px; font-weight: 700; overflow-wrap: anywhere; }
+.preview__remove {
+  position: absolute; top: -14px; inset-inline-end: -14px; min-width: 44px; min-height: 44px; width: 44px; height: 44px; padding: 0;
+  display: grid; place-items: center; border-radius: 50%; background: var(--bg); color: var(--text); border: 1.5px solid var(--line);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.16);
+}
+.attach__btn svg, .preview__remove svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.composer__error { margin: 0; color: var(--error); font-weight: 600; }
+
+.pdf-icon { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; flex: none; color: var(--error); }
+.pdf-icon text { fill: currentColor; stroke: none; font-size: 6px; font-weight: 800; font-family: inherit; }
+
+.msg--payslip { display: flex; align-items: center; gap: 12px; }
+.msg__thumb {
+  min-width: 48px; min-height: 48px; width: 48px; height: 48px; padding: 0; flex: none; overflow: hidden;
+  border-radius: 8px; border: 1px solid var(--line); background: #FFFFFF;
+}
+.msg__thumb img { display: block; width: 48px; height: 48px; object-fit: cover; }
+.msg__pdf { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+
+/* dragging a file over the chat: the whole chat is the target */
+.chat--drop { outline: 3px dashed var(--cyan); outline-offset: -10px; }
+.chat__dropzone {
+  position: absolute; inset: 10px; z-index: 6; display: grid; place-items: center; pointer-events: none;
+  background: color-mix(in srgb, var(--bg) 88%, var(--cyan)); border-radius: var(--radius);
+  font-size: 1.15rem; font-weight: 800;
+}
+
+/* the large view: a window on a computer (Esc or a click outside closes it), full screen on a phone */
+.viewer { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgb(0 0 0 / 0.6); padding: 24px; }
+.viewer__box {
+  position: relative; max-width: min(900px, 92vw); max-height: 90vh; padding: 12px; display: flex; flex-direction: column;
+  background: var(--bg); border-radius: var(--radius); box-shadow: 0 16px 48px rgb(0 0 0 / 0.3);
+}
+.viewer__img { max-width: 100%; max-height: calc(90vh - 24px); object-fit: contain; background: #FFFFFF; border-radius: 8px; }
+.viewer__close {
+  position: absolute; top: 8px; inset-inline-start: 8px; min-width: 44px; min-height: 44px; width: 44px; height: 44px; padding: 0;
+  display: grid; place-items: center; border-radius: 50%; background: var(--bg); color: var(--text); border: 1.5px solid var(--line);
+}
+.viewer__close svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+@media (max-width: 767px) {
+  /* 📎 and "צלם תלוש" get a row of their own above the message box, so the box keeps its width */
+  .chat__form { gap: 8px; flex-wrap: wrap; }
+  .attach { gap: 6px; order: -1; flex-basis: 100%; }
+  .attach__btn--camera { padding: 0 12px; }
+  .viewer { padding: 0; }
+  .viewer__box { width: 100vw; height: 100dvh; max-width: none; max-height: none; border-radius: 0; padding: 72px 8px 8px; justify-content: center; }
+  .viewer__img { max-height: 100%; width: 100%; }
+  .viewer__close { width: 56px; height: 56px; min-width: 56px; min-height: 56px; top: 10px; inset-inline-start: 10px; }
+}
+
 /* ---- "new conversation": a quiet outlined pill pinned above the messages, like the edge toggle ---- */
 .chat__top { display: flex; justify-content: flex-start; gap: 8px; flex-wrap: wrap; }
 .chat__new {

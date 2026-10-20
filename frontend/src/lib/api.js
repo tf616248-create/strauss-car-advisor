@@ -18,11 +18,18 @@ function withToken(headers = {}) {
   return token ? { ...headers, Authorization: `Bearer ${token}` } : headers
 }
 
-async function stream(url, init, onEvent, fetchImpl) {
+// a payslip the server refused (too large, wrong type, unreadable): its own text, shown by the message box
+const REFUSED = [413, 415, 422]
+
+async function stream(url, init, onEvent, fetchImpl, { refused = [] } = {}) {
   try {
     const res = await fetchImpl(url, { ...init, headers: withToken(init.headers) })
     if (res.status === 401) { unauthorized(); return } // back to the login screen, no error message
     if (res.status === 429) { onEvent('error', { message: BUSY }); return }
+    if (refused.includes(res.status)) {
+      const body = await res.json().catch(() => ({}))
+      if (typeof body.detail === 'string') { onEvent('rejected', { message: body.detail }); return }
+    }
     if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
@@ -47,6 +54,24 @@ export function streamChat({ message, threadId }, onEvent, fetchImpl = fetch) {
 
 export function streamRepAnswered(threadId, onEvent, fetchImpl = fetch) {
   return stream(`${API_URL}/chat/${threadId}/rep-answered`, { method: 'POST' }, onEvent, fetchImpl)
+}
+
+// a payslip (JPG/PNG/PDF): the file itself is the body. Events: step, payslip, token, card, done,
+// or "rejected" with the server's text when it refuses the file
+export function streamPayslip(threadId, file, onEvent, fetchImpl = fetch) {
+  return stream(`${API_URL}/chat/${threadId}/payslip`, {
+    method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file,
+  }, onEvent, fetchImpl, { refused: REFUSED })
+}
+
+// the payslip kept with the conversation (a JPEG): a local URL for <img>, since it needs the token; null = none
+export async function payslipImage(threadId, fetchImpl = fetch) {
+  try {
+    const res = await fetchImpl(`${API_URL}/chat/${threadId}/payslip`, { headers: withToken() })
+    if (res.status === 401) unauthorized()
+    if (!res.ok) return null
+    return URL.createObjectURL(await res.blob())
+  } catch { return null }
 }
 
 async function json(url, init, fetchImpl = fetch) {
