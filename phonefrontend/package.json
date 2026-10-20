@@ -1,0 +1,36 @@
+{
+  "name": "strauss-car-advisor-phone",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@expo-google-fonts/assistant": "^0.4.1",
+    "expo": "~58.0.16",
+    "expo-font": "~58.0.9",
+    "expo-status-bar": "~58.0.3",
+    "react": "19.3.0",
+    "react-native": "0.88.0",
+    "react-native-markdown-display": "^7.0.2",
+    "react-native-safe-area-context": "~5.10.1",
+    "react-native-sse": "^1.2.1",
+    "react-native-svg": "15.16.0"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "test": "jest"
+  },
+  "private": true,
+  "devDependencies": {
+    "@testing-library/react-native": "^14.1.0",
+    "jest": "^30.5.2",
+    "jest-expo": "^58.0.11"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "setupFiles": [
+      "./jest.setup.js"
+    ]
+  }
+}

@@ -473,3 +473,7 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .login__card input { text-align: center; letter-spacing: 0.3em; font-size: 1.25rem; }
 .login__card button { width: 100%; min-height: 52px; }
 .login__card .error { margin: 0; }
+
+/* TEMPORARY: the test codes on the login screens (lib/testCodes.jsx) */
+.test-codes { margin: 0; padding: 8px 12px; border: 1px dashed var(--line); border-radius: 12px; background: var(--surface); color: var(--text); font-size: 0.9rem; display: flex; flex-direction: column; gap: 2px; text-align: center; }
+.test-codes__later { color: var(--muted); font-size: 0.8rem; }

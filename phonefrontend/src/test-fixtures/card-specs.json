@@ -1,0 +1,134 @@
+{
+ "status": "ok",
+ "kind": "specs",
+ "card": {
+  "type": "specs",
+  "car": "BYD DOLPHIN",
+  "specs": {
+   "automatic_ind": {
+    "label": "תיבת הילוכים אוטומטית",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": true
+   },
+   "bakarat_shyut_adaptivit_ind": {
+    "label": "בקרת שיוט אדפטיבית",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": true
+   },
+   "delek_nm": {
+    "label": "דלק",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": "חשמל"
+   },
+   "koah_sus": {
+    "label": "כוח סוס",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": 204
+   },
+   "matzlemat_reverse_ind": {
+    "label": "מצלמת רוורס",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": true
+   },
+   "mazgan_ind": {
+    "label": "מזגן",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": true
+   },
+   "merkav": {
+    "label": "סוג מרכב",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": "הצ'בק"
+   },
+   "mispar_dlatot": {
+    "label": "דלתות",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": 5
+   },
+   "mispar_moshavim": {
+    "label": "מושבים",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": 5
+   },
+   "nikud_betihut": {
+    "label": "ניקוד בטיחות",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": 9.5
+   },
+   "ramat_eivzur_betihuty": {
+    "label": "רמת אבזור בטיחותי",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": 7
+   },
+   "ramat_gimur": {
+    "label": "רמת גימור",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": "DESIGN"
+   },
+   "technologiat_hanaa_nm": {
+    "label": "הנעה",
+    "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+    "fetched_at": "2026-10-19T20:14:26+00:00",
+    "year": 2025,
+    "value": "רכב חשמלי"
+   },
+   "electric_consumption": {
+    "label": "צריכת חשמל (Wh לק\"מ)",
+    "source": "EEA, CO2 emissions from new passenger cars (discodata). Updated once a year; provisional data (P) is replaced by final (F) about a year later",
+    "fetched_at": "2026-10-19T20:14:38+00:00",
+    "year": 2025,
+    "unit": "Wh/km",
+    "value": 159,
+    "provisional": true,
+    "note": "נתון ראשוני"
+   },
+   "electric_range": {
+    "label": "טווח חשמלי (ק\"מ)",
+    "source": "EEA, CO2 emissions from new passenger cars (discodata). Updated once a year; provisional data (P) is replaced by final (F) about a year later",
+    "fetched_at": "2026-10-19T20:14:38+00:00",
+    "year": 2025,
+    "unit": "km",
+    "min": 420,
+    "max": 427,
+    "varies_by_trim": true,
+    "provisional": true,
+    "note": "נתון ראשוני"
+   }
+  },
+  "sources": [
+   {
+    "name": "משרד התחבורה",
+    "fetched_at": "2026-10-19T20:14:26+00:00"
+   },
+   {
+    "name": "EEA",
+    "fetched_at": "2026-10-19T20:14:38+00:00"
+   }
+  ],
+  "importer_url": "https://bydauto.co.il/model/byd-dolphin-/"
+ }
+}

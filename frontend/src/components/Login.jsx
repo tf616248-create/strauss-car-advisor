@@ -3,6 +3,7 @@ import * as realApi from '../lib/api'
 import { setToken } from '../lib/session'
 import { CarBody } from './Road'
 import logo from '../assets/strauss-logo.svg'
+import { TEST_EMPLOYEE_CODES, TestCodesNote } from '../lib/testCodes'
 
 // errors always say what to do next
 function errorText(err) {
@@ -50,6 +51,7 @@ export default function Login({ api = realApi, onLogin }) {
           aria-describedby={error ? 'login-error' : undefined} />
         {error && <p id="login-error" className="error" role="alert">{error}</p>}
         <button type="submit" disabled={busy}>כניסה</button>
+        <TestCodesNote>{`קודי עובד: ${TEST_EMPLOYEE_CODES}.`}</TestCodesNote>
       </form>
     </div>
   )

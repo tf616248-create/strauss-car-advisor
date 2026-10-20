@@ -1,0 +1,473 @@
+{
+ "status": "ok",
+ "kind": "ranking",
+ "card": {
+  "type": "ranking",
+  "sort_by": "pollution",
+  "sort_label": "קבוצת זיהום",
+  "direction": "lower_is_cleaner",
+  "applied_filters": {
+   "min_seats": 5
+  },
+  "options": [
+   {
+    "rank": 1,
+    "car": "MG4",
+    "group": "ב",
+    "kind": "car",
+    "participation": 250,
+    "net": 18856,
+    "diff": {
+     "value_of_use": -2720,
+     "participation": -250,
+     "electric_refund_net": 250,
+     "maintenance": 0,
+     "family_share": 0,
+     "tax": -786,
+     "social": -273,
+     "net": 1783
+    },
+    "sort_value": {
+     "category": "zero_tailpipe",
+     "label": "ללא פליטות מהמפלט",
+     "source": "משרד התחבורה"
+    },
+    "tie_broken_by_net": true,
+    "specs": {
+     "automatic_ind": {
+      "label": "תיבת הילוכים אוטומטית",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": true
+     },
+     "bakarat_shyut_adaptivit_ind": {
+      "label": "בקרת שיוט אדפטיבית",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": true
+     },
+     "delek_nm": {
+      "label": "דלק",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": "חשמל"
+     },
+     "koah_sus": {
+      "label": "כוח סוס",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": 204
+     },
+     "matzlemat_reverse_ind": {
+      "label": "מצלמת רוורס",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": true
+     },
+     "mazgan_ind": {
+      "label": "מזגן",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": true
+     },
+     "merkav": {
+      "label": "סוג מרכב",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": "הצ'בק"
+     },
+     "mispar_dlatot": {
+      "label": "דלתות",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": 5
+     },
+     "mispar_moshavim": {
+      "label": "מושבים",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": 5
+     },
+     "nikud_betihut": {
+      "label": "ניקוד בטיחות",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": 3.0
+     },
+     "ramat_eivzur_betihuty": {
+      "label": "רמת אבזור בטיחותי",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": 3
+     },
+     "ramat_gimur": {
+      "label": "רמת גימור",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": "LUXURY"
+     },
+     "technologiat_hanaa_nm": {
+      "label": "הנעה",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": "רכב חשמלי"
+     },
+     "electric_consumption": {
+      "label": "צריכת חשמל (Wh לק\"מ)",
+      "source": "EEA, CO2 emissions from new passenger cars (discodata). Updated once a year; provisional data (P) is replaced by final (F) about a year later",
+      "fetched_at": "2026-10-19T20:14:38+00:00",
+      "year": 2024,
+      "unit": "Wh/km",
+      "min": 160,
+      "max": 187,
+      "varies_by_trim": true
+     },
+     "electric_range": {
+      "label": "טווח חשמלי (ק\"מ)",
+      "source": "EEA, CO2 emissions from new passenger cars (discodata). Updated once a year; provisional data (P) is replaced by final (F) about a year later",
+      "fetched_at": "2026-10-19T20:14:38+00:00",
+      "year": 2024,
+      "unit": "km",
+      "min": 350,
+      "max": 465,
+      "varies_by_trim": true
+     }
+    },
+    "sources": [
+     {
+      "name": "משרד התחבורה",
+      "fetched_at": "2026-10-19T20:14:26+00:00"
+     },
+     {
+      "name": "EEA",
+      "fetched_at": "2026-10-19T20:14:38+00:00"
+     }
+    ],
+    "importer_url": "https://mg-israel.co.il/model/new-mg4-x-range/"
+   },
+   {
+    "rank": 2,
+    "car": "BYD DOLPHIN",
+    "group": "א",
+    "kind": "car",
+    "participation": 200,
+    "net": 18830,
+    "diff": {
+     "value_of_use": -2560,
+     "participation": -300,
+     "electric_refund_net": 250,
+     "maintenance": 0,
+     "family_share": 0,
+     "tax": -730,
+     "social": -254,
+     "net": 1757
+    },
+    "sort_value": {
+     "category": "zero_tailpipe",
+     "label": "ללא פליטות מהמפלט",
+     "source": "משרד התחבורה"
+    },
+    "tie_broken_by_net": true,
+    "specs": {
+     "automatic_ind": {
+      "label": "תיבת הילוכים אוטומטית",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": true
+     },
+     "bakarat_shyut_adaptivit_ind": {
+      "label": "בקרת שיוט אדפטיבית",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": true
+     },
+     "delek_nm": {
+      "label": "דלק",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": "חשמל"
+     },
+     "koah_sus": {
+      "label": "כוח סוס",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": 204
+     },
+     "matzlemat_reverse_ind": {
+      "label": "מצלמת רוורס",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": true
+     },
+     "mazgan_ind": {
+      "label": "מזגן",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": true
+     },
+     "merkav": {
+      "label": "סוג מרכב",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": "הצ'בק"
+     },
+     "mispar_dlatot": {
+      "label": "דלתות",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": 5
+     },
+     "mispar_moshavim": {
+      "label": "מושבים",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": 5
+     },
+     "nikud_betihut": {
+      "label": "ניקוד בטיחות",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": 9.5
+     },
+     "ramat_eivzur_betihuty": {
+      "label": "רמת אבזור בטיחותי",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": 7
+     },
+     "ramat_gimur": {
+      "label": "רמת גימור",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": "DESIGN"
+     },
+     "technologiat_hanaa_nm": {
+      "label": "הנעה",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2025,
+      "value": "רכב חשמלי"
+     },
+     "electric_consumption": {
+      "label": "צריכת חשמל (Wh לק\"מ)",
+      "source": "EEA, CO2 emissions from new passenger cars (discodata). Updated once a year; provisional data (P) is replaced by final (F) about a year later",
+      "fetched_at": "2026-10-19T20:14:38+00:00",
+      "year": 2025,
+      "unit": "Wh/km",
+      "value": 159,
+      "provisional": true,
+      "note": "נתון ראשוני"
+     },
+     "electric_range": {
+      "label": "טווח חשמלי (ק\"מ)",
+      "source": "EEA, CO2 emissions from new passenger cars (discodata). Updated once a year; provisional data (P) is replaced by final (F) about a year later",
+      "fetched_at": "2026-10-19T20:14:38+00:00",
+      "year": 2025,
+      "unit": "km",
+      "min": 420,
+      "max": 427,
+      "varies_by_trim": true,
+      "provisional": true,
+      "note": "נתון ראשוני"
+     }
+    },
+    "sources": [
+     {
+      "name": "משרד התחבורה",
+      "fetched_at": "2026-10-19T20:14:26+00:00"
+     },
+     {
+      "name": "EEA",
+      "fetched_at": "2026-10-19T20:14:38+00:00"
+     }
+    ],
+    "importer_url": "https://bydauto.co.il/model/byd-dolphin-/"
+   },
+   {
+    "rank": 3,
+    "car": "KONA EV",
+    "group": "ב",
+    "kind": "car",
+    "participation": 250,
+    "net": 18606,
+    "diff": {
+     "value_of_use": -2190,
+     "participation": -250,
+     "electric_refund_net": 250,
+     "maintenance": 0,
+     "family_share": 0,
+     "tax": -601,
+     "social": -209,
+     "net": 1533
+    },
+    "sort_value": {
+     "category": "zero_tailpipe",
+     "label": "ללא פליטות מהמפלט",
+     "source": "משרד התחבורה"
+    },
+    "tie_broken_by_net": true,
+    "specs": {
+     "automatic_ind": {
+      "label": "תיבת הילוכים אוטומטית",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": true
+     },
+     "bakarat_shyut_adaptivit_ind": {
+      "label": "בקרת שיוט אדפטיבית",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": true
+     },
+     "delek_nm": {
+      "label": "דלק",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": "חשמל"
+     },
+     "koah_sus": {
+      "label": "כוח סוס",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": 214
+     },
+     "matzlemat_reverse_ind": {
+      "label": "מצלמת רוורס",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": true
+     },
+     "mazgan_ind": {
+      "label": "מזגן",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": true
+     },
+     "merkav": {
+      "label": "סוג מרכב",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": "פנאי-שטח"
+     },
+     "mispar_dlatot": {
+      "label": "דלתות",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": 5
+     },
+     "mispar_moshavim": {
+      "label": "מושבים",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": 5
+     },
+     "nikud_betihut": {
+      "label": "ניקוד בטיחות",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": 10.5
+     },
+     "ramat_eivzur_betihuty": {
+      "label": "רמת אבזור בטיחותי",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": 8
+     },
+     "ramat_gimur": {
+      "label": "רמת גימור",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": "PURE EV"
+     },
+     "technologiat_hanaa_nm": {
+      "label": "הנעה",
+      "source": "משרד התחבורה, data.gov.il: תוצרים ודגמים של כלי רכב WLTP (מתעדכן כל יום)",
+      "fetched_at": "2026-10-19T20:14:26+00:00",
+      "year": 2026,
+      "value": "רכב חשמלי"
+     },
+     "electric_consumption": {
+      "label": "צריכת חשמל (Wh לק\"מ)",
+      "source": "EEA, CO2 emissions from new passenger cars (discodata). Updated once a year; provisional data (P) is replaced by final (F) about a year later",
+      "fetched_at": "2026-10-19T20:14:38+00:00",
+      "year": 2025,
+      "unit": "Wh/km",
+      "min": 146,
+      "max": 168,
+      "varies_by_trim": true,
+      "provisional": true,
+      "note": "נתון ראשוני"
+     },
+     "electric_range": {
+      "label": "טווח חשמלי (ק\"מ)",
+      "source": "EEA, CO2 emissions from new passenger cars (discodata). Updated once a year; provisional data (P) is replaced by final (F) about a year later",
+      "fetched_at": "2026-10-19T20:14:38+00:00",
+      "year": 2025,
+      "unit": "km",
+      "min": 377,
+      "max": 513,
+      "varies_by_trim": true,
+      "provisional": true,
+      "note": "נתון ראשוני"
+     }
+    },
+    "sources": [
+     {
+      "name": "משרד התחבורה",
+      "fetched_at": "2026-10-19T20:14:26+00:00"
+     },
+     {
+      "name": "EEA",
+      "fetched_at": "2026-10-19T20:14:38+00:00"
+     }
+    ],
+    "importer_url": "https://www.colmobil.co.il/brands/hyundai/"
+   }
+  ],
+  "excluded_missing_data": [
+   {
+    "car": "SANTA FE",
+    "field": "mispar_moshavim",
+    "label": "מושבים"
+   }
+  ],
+  "needs_rep": []
+ }
+}

@@ -1,0 +1,142 @@
+{
+  "status": "waiting_rep",
+  "card": {
+    "your_data": {
+      "occupation": {
+        "value": "מפתח/ת תוכנה",
+        "source": "עובד"
+      },
+      "group": {
+        "value": "ב",
+        "source": "עובד"
+      },
+      "base": {
+        "value": 21000,
+        "source": "עובד"
+      },
+      "commission": {
+        "value": 0,
+        "source": "עובד"
+      },
+      "bonus": {
+        "value": 0,
+        "source": "עובד"
+      },
+      "pension_pct": {
+        "value": 6.5,
+        "source": "עובד"
+      },
+      "keren_pct": {
+        "value": 2.5,
+        "source": "עובד"
+      },
+      "credit_points": {
+        "value": 2.75,
+        "source": "עובד"
+      },
+      "children": {
+        "value": 0,
+        "source": "עובד"
+      },
+      "current": {
+        "value": "ויתור על הרכב",
+        "source": "עובד"
+      }
+    },
+    "today": {
+      "kind": "waiver",
+      "label": "ויתור על הרכב",
+      "reason": "המצב היום.",
+      "values": {
+        "value_of_use": {
+          "value": 0,
+          "source": "כללים"
+        },
+        "participation": {
+          "value": 0,
+          "source": "כללים"
+        },
+        "electric_refund_net": {
+          "value": 0,
+          "source": "כללים"
+        },
+        "electric_refund_gross": {
+          "value": 0,
+          "source": "כללים"
+        },
+        "maintenance": {
+          "value": 1500,
+          "source": "טבלת עיסוקים"
+        },
+        "family_share": {
+          "value": 0,
+          "source": "כללים"
+        },
+        "budget": {
+          "value": 3700,
+          "source": "כללים"
+        },
+        "car_cost": {
+          "value": 0,
+          "source": "כללים"
+        },
+        "tax": {
+          "value": 3419,
+          "source": "חישוב"
+        },
+        "social": {
+          "value": 2144,
+          "source": "חישוב"
+        },
+        "net": {
+          "value": 15047,
+          "source": "חישוב"
+        }
+      }
+    },
+    "alternative": {
+      "kind": "car",
+      "label": "BYD ATTO 2 (2025)",
+      "reason": "⏳ ממתין לנציג",
+      "values": {
+        "participation": {
+          "value": "⏳ ממתין לנציג",
+          "source": "נציג"
+        },
+        "car_cost": {
+          "value": "⏳ ממתין לנציג",
+          "source": "נציג"
+        },
+        "family_share": {
+          "value": "⏳ ממתין לנציג",
+          "source": "נציג"
+        },
+        "tax": {
+          "value": "⏳ ממתין לנציג",
+          "source": "נציג"
+        },
+        "social": {
+          "value": "⏳ ממתין לנציג",
+          "source": "נציג"
+        },
+        "net": {
+          "value": "⏳ ממתין לנציג",
+          "source": "נציג"
+        },
+        "value_of_use": {
+          "value": 2440,
+          "source": "רשות המסים"
+        },
+        "electric_refund_net": {
+          "value": 250,
+          "source": "כללים"
+        }
+      }
+    },
+    "diff": {},
+    "explanation": [
+      "⏳ ממתין לנציג",
+      "⏳ ממתין לנציג"
+    ]
+  }
+}

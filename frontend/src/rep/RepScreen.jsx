@@ -3,6 +3,7 @@ import * as realApi from '../lib/api'
 import CompareCard from '../components/CompareCard'
 import { REP_TITLE } from '../lib/notify'
 import logo from '../assets/strauss-logo.svg'
+import { TEST_REP_PASSCODE, TestCodesNote } from '../lib/testCodes'
 
 const POLL_MS = 5000
 const SENT_MS = 3000
@@ -150,6 +151,7 @@ export default function RepScreen({ api = realApi }) {
           <button type="submit">כניסה</button>
         </form>
         {error && <p className="error" role="alert">{error}</p>}
+        <TestCodesNote>{`סיסמת נציג: ${TEST_REP_PASSCODE}.`}</TestCodesNote>
       </main>
     )
   }
