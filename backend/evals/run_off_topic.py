@@ -11,6 +11,10 @@ sentence (tools are fine there). Recommend (recommend.json): each case says what
 Each case runs in its own conversation.
 
     python -m evals.run_off_topic recommend
+    python -m evals.run_off_topic recommend family-safe roomy-safe   # only these cases
+
+Recalc (recalc.json): two questions in one conversation - the employee corrects a detail or
+switches car - and the last one is judged like recommend: calculate has to run again.
 """
 from __future__ import annotations
 
@@ -19,12 +23,24 @@ import sys
 import uuid
 from pathlib import Path
 
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 CASES_FILE = BACKEND_DIR / "evals" / "off_topic.json"
 IN_SCOPE_FILE = BACKEND_DIR / "evals" / "in_scope.json"
 RECOMMEND_FILE = BACKEND_DIR / "evals" / "recommend.json"
+RECALC_FILE = BACKEND_DIR / "evals" / "recalc.json"
+
+
+def questions_of(case: dict) -> list[str]:
+    """The case's questions, asked in order in one conversation."""
+    return case.get("turns") or [case["question"]]
+
+
+def last_turn(messages: list) -> list:
+    """The messages from the last employee question on: a recalc is judged on that turn only."""
+    starts = [i for i, m in enumerate(messages) if isinstance(m, HumanMessage)]
+    return messages[starts[-1]:] if starts else messages
 
 
 def _final_text(messages: list) -> str:
@@ -100,22 +116,25 @@ def main() -> None:
     cars = [c["name"] for c in data.catalog.values()]
     sets = {"off_topic": ("off topic", CASES_FILE, lambda m, s, case: judge(m, s)),
             "in_scope": ("in scope", IN_SCOPE_FILE, lambda m, s, case: judge_in_scope(m, s)),
-            "recommend": ("recommend", RECOMMEND_FILE, lambda m, s, case: judge_expect(m, case["expect"], s, cars))}
-    chosen = sys.argv[1:] or list(sets)  # e.g. "python -m evals.run_off_topic in_scope" saves model quota
-    for title, path, check in (sets[name] for name in chosen):
-        cases = json.loads(path.read_text(encoding="utf-8"))
+            "recommend": ("recommend", RECOMMEND_FILE, lambda m, s, case: judge_expect(m, case["expect"], s, cars)),
+            "recalc": ("recalc", RECALC_FILE, lambda m, s, case: judge_expect(m, case["expect"], s, cars))}
+    names = [a for a in sys.argv[1:] if a in sets]
+    only = [a for a in sys.argv[1:] if a not in sets]  # case ids: run just these, saves model quota
+    for title, path, check in (sets[name] for name in names or list(sets)):
+        cases = [c for c in json.loads(path.read_text(encoding="utf-8")) if not only or c["id"] in only]
         passed = 0
         print(f"\n== {title} ==")
         for case in cases:
             config = {"configurable": {"thread_id": f"eval-{uuid.uuid4()}"}}
             try:
-                out = agent.invoke({"messages": [("user", case["question"])]}, config)
-                ok, why = check(out["messages"], sentence, case)
+                for question in questions_of(case):
+                    out = agent.invoke({"messages": [("user", question)]}, config)
+                ok, why = check(last_turn(out["messages"]), sentence, case)
                 answer = _final_text(out["messages"])
             except (Exception, ModelStalledError) as e:  # e.g. every model failed: counts as a fail, with the reason
                 ok, why, answer = False, f"error: {type(e).__name__}: {e}", ""
             passed += ok
-            print(f'{"PASS" if ok else "FAIL"}  [{case.get("kind", title)}] {case["id"]}: {case["question"]}')
+            print(f'{"PASS" if ok else "FAIL"}  [{case.get("kind", title)}] {case["id"]}: {questions_of(case)[-1]}')
             if not ok:
                 print(f"      why: {why}\n      answer: {answer[:300]}")
         print(f"{title}: {passed}/{len(cases)} passed")

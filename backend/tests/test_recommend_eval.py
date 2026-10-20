@@ -50,3 +50,22 @@ def test_text_groups_and_refusal():
     assert judge_expect(turn("159 Wh, נתון ראשוני"), expect, SENTENCE, CARS)[0]
     assert not judge_expect(turn("159 Wh"), expect, SENTENCE, CARS)[0]
     assert not judge_expect(turn("159 ראשוני " + SENTENCE), expect, SENTENCE, CARS)[0]
+
+
+def test_recalc_cases_have_two_turns():
+    """The PDF check: the employee corrects a detail or switches car, and calculate runs again."""
+    from evals.run_off_topic import RECALC_FILE
+    cases = json.loads(RECALC_FILE.read_text(encoding="utf-8"))
+    assert [c["id"] for c in cases] == ["correct-salary", "switch-car"]
+    assert all(len(c["turns"]) == 2 and c["expect"]["tools"] == ["calculate"] for c in cases)
+
+
+def test_questions_of_and_last_turn():
+    from evals.run_off_topic import last_turn, questions_of
+    assert questions_of({"question": "א"}) == ["א"]
+    assert questions_of({"turns": ["א", "ב"]}) == ["א", "ב"]
+    first = turn("נטו 1", [("calculate", {"base": 18500})])
+    second = turn("נטו 2", [("calculate", {"base": 19500})])
+    expect = {"tools": ["calculate"], "tool_args": {"calculate": {"base": 18500}}}
+    assert judge_expect(first + second, expect, SENTENCE, CARS)[0]  # the whole thread would pass...
+    assert not judge_expect(last_turn(first + second), expect, SENTENCE, CARS)[0]  # ...the last turn alone does not

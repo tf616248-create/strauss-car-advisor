@@ -1,0 +1,28 @@
+[
+  {
+    "id": "correct-salary",
+    "turns": [
+      "אני מנהלת מוצר, קבוצה ג. שכר בסיס 18,500, בלי עמלות ובלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.75 נקודות זיכוי. היום יש לי קורולה קרוס ואני משלמת 300 השתתפות. מה יקרה לנטו שלי אם אעבור ל-BYD DOLPHIN?",
+      "טעיתי, שכר הבסיס שלי 19,500 ולא 18,500"
+    ],
+    "why": "The employee corrects a detail: calculate runs again with the new salary",
+    "expect": {
+      "tools": ["calculate"],
+      "tool_args": {"calculate": {"base": 19500}},
+      "not_refused": true
+    }
+  },
+  {
+    "id": "switch-car",
+    "turns": [
+      "אני מנהלת מוצר, קבוצה ג. שכר בסיס 18,500, בלי עמלות ובלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.75 נקודות זיכוי. היום יש לי קורולה קרוס ואני משלמת 300 השתתפות. מה יקרה לנטו שלי אם אעבור ל-BYD DOLPHIN?",
+      "ומה אם במקום זה אקח KONA EV?"
+    ],
+    "why": "The employee switches car: calculate runs again for the new car",
+    "expect": {
+      "tools": ["calculate"],
+      "tool_args": {"calculate": {"alternative_car": "KONA EV"}},
+      "not_refused": true
+    }
+  }
+]
