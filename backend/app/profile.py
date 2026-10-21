@@ -23,6 +23,13 @@ PROFILE_FIELDS = ("occupation", "base", "commission", "bonus", "pension_pct", "k
                   "children", "current_kind", "current_car", "current_car_year", "current_participation")
 INT_FIELDS = ("children", "current_car_year")
 CURRENT_KINDS = ("car", "waiver")
+# where a value came from, kept per field: typed in the profile, written in a conversation, read from a payslip
+SOURCES = ("profile", "chat", "payslip")
+
+
+def check_source(source: str) -> None:
+    if source not in SOURCES:
+        raise ValueError(f"unknown profile source {source!r}")
 # asked only in some questions: the family track, or a car outside the catalog
 OPTIONAL_FIELDS = ("children", "current_car_year")
 
@@ -164,18 +171,27 @@ def trace_profile(event: str, fields: list[str]) -> dict:
 class InMemoryProfiles:
     def __init__(self):
         self._rows: dict[str, dict] = {}
+        self._sources: dict[str, dict] = {}
 
     def get(self, employee_id: str) -> dict:
         return tidy(self._rows.get(employee_id, {}))
 
-    def update(self, employee_id: str, values: Mapping) -> None:
-        """Only these fields; the others stay. None clears one. The latest value wins."""
+    def sources(self, employee_id: str) -> dict:
+        """{field: profile | chat | payslip} for the fields that are set."""
+        return dict(self._sources.get(employee_id, {}))
+
+    def update(self, employee_id: str, values: Mapping, source: str = "profile") -> None:
+        """Only these fields; the others stay. None clears one. The latest value (and its source) wins."""
+        check_source(source)
         row = self._rows.setdefault(employee_id, {})
+        sources = self._sources.setdefault(employee_id, {})
         for field, value in values.items():
             if value is None:
                 row.pop(field, None)
+                sources.pop(field, None)
             else:
                 row[field] = value
+                sources[field] = source
 
 
 def group_of(fields: Mapping, occupations: Mapping[str, dict]) -> Optional[str]:

@@ -16,7 +16,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
-from app.profile import PROFILE_FIELDS, tidy
+from app.profile import PROFILE_FIELDS, check_source, tidy
 
 SCHEMA = """
 create table if not exists rep_requests (
@@ -247,8 +247,10 @@ create table if not exists employee_profile (
     current_car           text,
     current_car_year      integer,
     current_participation double precision,
+    sources               jsonb not null default '{}'::jsonb,
     updated_at            timestamptz not null default clock_timestamp()
 );
+alter table employee_profile add column if not exists sources jsonb not null default '{}'::jsonb;
 """
 
 
@@ -261,25 +263,38 @@ class PostgresProfiles:
 
     def setup(self) -> None:
         with self.pool.connection() as conn:
-            conn.execute(PROFILE_SCHEMA)
+            for statement in PROFILE_SCHEMA.split(";"):
+                if statement.strip():
+                    conn.execute(statement)
 
     def get(self, employee_id: str) -> dict:
         with self.pool.connection() as conn:
             row = conn.execute("select * from employee_profile where employee_id = %s", (employee_id,)).fetchone()
         return tidy(row or {})
 
-    def update(self, employee_id: str, values: Mapping) -> None:
-        """Only these fields (the column names come from PROFILE_FIELDS, never from the request)."""
+    def sources(self, employee_id: str) -> dict:
+        with self.pool.connection() as conn:
+            row = conn.execute("select sources from employee_profile where employee_id = %s",
+                               (employee_id,)).fetchone()
+        return dict(row["sources"]) if row else {}
+
+    def update(self, employee_id: str, values: Mapping, source: str = "profile") -> None:
+        """Only these fields (the column names come from PROFILE_FIELDS, never from the request).
+        Each set field gets this source; a cleared one loses its source."""
+        check_source(source)
         fields = [f for f in PROFILE_FIELDS if f in values]
         if not fields:
             return
+        added = {f: source for f in fields if values[f] is not None}
+        cleared = [f for f in fields if values[f] is None]
         cols = ", ".join(fields)
         marks = ", ".join(["%s"] * len(fields))
         sets = ", ".join(f"{f} = excluded.{f}" for f in fields)
         with self.pool.connection() as conn:
-            conn.execute(f"insert into employee_profile (employee_id, {cols}) values (%s, {marks}) "
-                         f"on conflict (employee_id) do update set {sets}, updated_at = clock_timestamp()",
-                         (employee_id, *(values[f] for f in fields)))
+            conn.execute(f"insert into employee_profile (employee_id, {cols}, sources) values (%s, {marks}, %s) "
+                         f"on conflict (employee_id) do update set {sets}, "
+                         f"sources = (employee_profile.sources || %s) - %s::text[], updated_at = clock_timestamp()",
+                         (employee_id, *(values[f] for f in fields), Jsonb(added), Jsonb(added), cleared))
 
 
 PAYSLIPS_SCHEMA = """

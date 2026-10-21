@@ -2,8 +2,8 @@
 
   POST /login                      {code} -> {token}: a demo code -> a JWT (app/auth.py)
   GET  /me                         the logged-in employee: {employee_id, name} (app/employees.py)
-  GET  /profile                    the employee's profile: {employee_id, fields, group} (group: read only,
-                                   from the occupation; app/profile.py)
+  GET  /profile                    the employee's profile: {employee_id, fields, sources, group} (sources:
+                                   profile | chat | payslip per field; group: read only, from the occupation)
   PATCH /profile                   {fields}: update some fields (null clears one); 422 {invalid} - nothing kept
   GET  /threads                    the logged-in employee's conversations, newest first
   POST /chat                       SSE: thread, step, token, card, done | error
@@ -122,14 +122,16 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
 
     def profile_view(employee: str) -> dict:
         fields = profiles.get(employee)
-        return {"employee_id": employee, "fields": fields, "group": profile_mod.group_of(fields, occupations)}
+        return {"employee_id": employee, "fields": fields, "sources": profiles.sources(employee),
+                "group": profile_mod.group_of(fields, occupations)}
 
-    def update_profile(employee: str, values: dict) -> list[str]:
-        """Keeps the values that differ from the profile; returns their fields. LangSmith: the names only."""
+    def update_profile(employee: str, values: dict, source: str) -> list[str]:
+        """Keeps the values that differ from the profile, with their source (profile | chat | payslip);
+        returns their fields. LangSmith: the names only."""
         current = profiles.get(employee)
         changed = {k: v for k, v in values.items() if current.get(k) != v}
         if changed:
-            profiles.update(employee, changed)
+            profiles.update(employee, changed, source=source)
             profile_mod.trace_profile("profile_updated", sorted(changed))
         return sorted(changed)
 
@@ -188,7 +190,7 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
             if reading.status == "ok":
                 try:  # the payslip's values go to the profile too: the latest value wins
                     clean, _ = profile_mod.validate(reading.fields, cfg, matcher)
-                    changed = update_profile(employee, clean)
+                    changed = update_profile(employee, clean, "payslip")
                 except Exception:  # noqa: BLE001 - the values are in the conversation all the same
                     log.exception("could not update the profile from the payslip (thread %s)", thread_id)
             note = payslip_mod.note(reading.fields, reading.status, cfg, source=kind, profile_updated=bool(changed))
@@ -266,7 +268,7 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
         clean, bad = profile_mod.validate(body.fields, cfg, matcher)
         if bad:
             raise HTTPException(422, {"invalid": bad})
-        update_profile(employee, clean)
+        update_profile(employee, clean, "profile")
         return profile_view(employee)
 
     @r.get("/threads")

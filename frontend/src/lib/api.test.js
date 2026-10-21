@@ -110,6 +110,32 @@ describe('employee login', () => {
     expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe('Bearer tok-2')
   })
 
+  it('profile reads the profile, with the token', async () => {
+    const { profile } = await import('./api')
+    const { setToken } = await import('./session')
+    setToken('tok-4')
+    const view = { employee_id: 'E01', fields: { base: 1 }, sources: { base: 'profile' }, group: null }
+    const fetchImpl = vi.fn().mockResolvedValue(ok(view))
+    expect(await profile(fetchImpl)).toEqual(view)
+    expect(fetchImpl.mock.calls[0][0]).toMatch(/\/profile$/)
+    expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe('Bearer tok-4')
+  })
+
+  it('saveProfile: PATCH {fields} -> { profile }, or { invalid } on 422', async () => {
+    const { saveProfile } = await import('./api')
+    const view = { employee_id: 'E01', fields: { base: 2 }, sources: {}, group: null }
+    let fetchImpl = vi.fn().mockResolvedValue(ok(view))
+    expect(await saveProfile({ base: 2 }, fetchImpl)).toEqual({ profile: view })
+    const [, init] = fetchImpl.mock.calls[0]
+    expect(init.method).toBe('PATCH')
+    expect(JSON.parse(init.body)).toEqual({ fields: { base: 2 } })
+    const invalid = { base: { range: [1, 500000] } }
+    fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 422, json: async () => ({ detail: { invalid } }) })
+    expect(await saveProfile({ base: 0 }, fetchImpl)).toEqual({ invalid })
+    fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) })
+    await expect(saveProfile({ base: 3 }, fetchImpl)).rejects.toMatchObject({ status: 500 })
+  })
+
   it('me gives the logged-in employee (the name for the sidebar), with the token', async () => {
     const { me } = await import('./api')
     const { setToken } = await import('./session')

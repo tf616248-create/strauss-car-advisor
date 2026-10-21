@@ -715,3 +715,43 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 /* TEMPORARY: the test codes on the login screens (lib/testCodes.jsx) */
 .test-codes { margin: 0; padding: 8px 12px; border: 1px dashed var(--line); border-radius: 12px; background: var(--surface); color: var(--text); font-size: 0.9rem; display: flex; flex-direction: column; gap: 2px; text-align: center; }
 .test-codes__later { color: var(--muted); font-size: 0.8rem; }
+
+/* ---- the profile (employee/ProfileDialog.jsx): a window over the conversation, about 560px on a computer ---- */
+.modal { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 24px; background: rgb(0 0 0 / 0.45); }
+.profile {
+  width: min(560px, 100%); max-height: calc(100dvh - 48px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+  padding: 20px 24px 24px; background: var(--bg); color: var(--text); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .3);
+}
+.profile__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.profile__head h2 { font-size: 1.3rem; font-weight: 800; }
+.profile__close {
+  width: 44px; height: 44px; min-width: 44px; padding: 0; display: grid; place-items: center;
+  background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 50%;
+}
+.profile__close svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.profile__intro { color: var(--muted); line-height: 1.55; }
+.profile__status { padding: 8px 0; }
+.profile__form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.profile__field { display: flex; flex-direction: column; gap: 4px; min-width: 0; margin: 0; }
+.profile__field label, .profile__label { font-size: 0.9rem; font-weight: 700; }
+.profile__field input, .profile__field select {
+  min-height: 44px; width: 100%; padding: 8px 12px; font: inherit; color: var(--text); background: var(--surface2);
+  border: 1.5px solid var(--line); border-radius: 10px;
+}
+.profile__field input[dir="ltr"] { text-align: end; }
+.profile__field--bad input, .profile__field--bad select { border-color: var(--error); }
+.profile__source { color: var(--muted); font-size: 0.8rem; }
+.profile__error { color: var(--error); font-size: 0.85rem; font-weight: 600; }
+.profile__readonly { justify-content: flex-start; }
+.profile__group { min-height: 44px; display: flex; align-items: center; color: var(--text); font-weight: 600; }
+.profile__foot { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-top: 4px; }
+.profile__notice { font-weight: 700; }
+.profile__notice:not(.error) { color: var(--text); }
+/* a link in Kobi's answer (only /profile): the dark cyan for text, underlined */
+.answer a { color: var(--brand-cyan-text); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 767px) {
+  .modal { padding: 0; place-items: stretch; }
+  .profile { width: 100%; max-height: none; height: 100dvh; border-radius: 0; padding: 16px; }
+  .profile__form { grid-template-columns: 1fr; }
+}

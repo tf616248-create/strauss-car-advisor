@@ -1,0 +1,47 @@
+{
+  "path": "/profile",
+  "texts": {
+    "title": "הפרופיל שלי",
+    "intro": "הנתונים שכובי משתמש בהם בכל שיחה. אפשר לתקן אותם כאן. גם מה שתכתבו לכובי או תעלו בתלוש נשמר כאן.",
+    "close": "סגירת הפרופיל",
+    "save": "שמירה",
+    "saving": "שומר…",
+    "saved": "נשמר",
+    "loading": "טוען את הפרופיל…",
+    "loadError": "כובי לא מצליח לטעון את הפרופיל כרגע. נסו שוב בעוד דקה.",
+    "saveError": "כובי לא הצליח לשמור כרגע. נסו שוב בעוד דקה.",
+    "fixErrors": "יש שדות לתקן. הפירוט ליד כל שדה.",
+    "groupLabel": "קבוצת זכאות",
+    "group": "קבוצה {group} (לפי העיסוק)",
+    "groupUnknown": "לא זוהתה",
+    "range": "צריך להיות בין {lo} ל-{hi}",
+    "notFound": "העיסוק לא נמצא. אולי: {suggestions}",
+    "notFoundNoSuggestions": "העיסוק לא נמצא",
+    "options": "צריך לבחור מהרשימה",
+    "invalid": "הערך לא תקין",
+    "sources": {
+      "profile": "הוקלד בפרופיל",
+      "chat": "מהשיחה",
+      "payslip": "מהתלוש"
+    },
+    "kinds": {
+      "": "לא צוין",
+      "car": "רכב חברה",
+      "waiver": "בלי רכב (מקבלים אחזקה)"
+    }
+  },
+  "fields": [
+    { "name": "occupation", "label": "עיסוק", "type": "text" },
+    { "name": "base", "label": "שכר בסיס (₪ לחודש, ברוטו)", "type": "number" },
+    { "name": "commission", "label": "עמלות (₪ לחודש)", "type": "number" },
+    { "name": "bonus", "label": "בונוס (₪ לחודש)", "type": "number" },
+    { "name": "pension_pct", "label": "הפרשה שלכם לפנסיה (%)", "type": "number" },
+    { "name": "keren_pct", "label": "הפרשה שלכם לקרן השתלמות (%)", "type": "number" },
+    { "name": "credit_points", "label": "נקודות זיכוי", "type": "number" },
+    { "name": "children", "label": "ילדים עד גיל 23", "type": "number" },
+    { "name": "current_kind", "label": "מה יש לכם היום", "type": "kind" },
+    { "name": "current_car", "label": "הרכב של היום", "type": "text" },
+    { "name": "current_car_year", "label": "שנת הרישום של הרכב", "type": "number" },
+    { "name": "current_participation", "label": "השתתפות ברכב (₪ לחודש)", "type": "number" }
+  ]
+}

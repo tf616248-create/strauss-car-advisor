@@ -91,7 +91,7 @@ class Advisor:
         if not values or self.profiles is None or not employee_id:
             return
         try:
-            self.profiles.update(employee_id, values)
+            self.profiles.update(employee_id, values, source="chat")
         except Exception:  # noqa: BLE001 - the answer matters more than the profile
             log.exception("could not update the profile of %s", employee_id)
             return

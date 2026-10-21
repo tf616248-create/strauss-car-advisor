@@ -12,6 +12,7 @@ import rachel from './test-fixtures/card-rachel-waiting.json'
 import intro from './config/intro.json'
 import payslipCfg from './config/payslip.json'
 import sidebarCfg from './config/sidebar.json'
+import profileCfg from './config/profile.json'
 import Intro from './components/Intro'
 import EmployeeApp from './employee/EmployeeApp'
 import EmployeeScreen from './employee/EmployeeScreen'
@@ -30,6 +31,7 @@ beforeEach(() => {
   html.setAttribute('lang', INDEX.match(/<html[^>]*lang="([^"]+)"/)[1])
   html.setAttribute('dir', INDEX.match(/<html[^>]*dir="([^"]+)"/)[1])
   document.title = INDEX.match(/<title>([^<]+)<\/title>/)[1]
+  window.history.replaceState(null, '', '/') // the profile dialog opens at /profile
 })
 afterEach(() => { delete window.matchMedia })
 
@@ -43,6 +45,10 @@ function chatApi(events = []) {
     streamPayslip: vi.fn(),
     payslipImage: vi.fn().mockResolvedValue('blob:x'),
     me: vi.fn().mockResolvedValue({ employee_id: 'E01', name: 'נועה לוי' }),
+    profile: vi.fn().mockResolvedValue({
+      employee_id: 'E01', fields: { occupation: 'מנהל/ת מוצר', base: 15000, current_kind: 'car' },
+      sources: { occupation: 'profile', base: 'payslip', current_kind: 'chat' }, group: 'ג' }),
+    saveProfile: vi.fn().mockResolvedValue({ invalid: { base: { range: [1, 500000] }, occupation: { suggestions: ['מנהל/ת מוצר', 'מנהל/ת פיתוח'] } } }),
   }
 }
 const quiet = { subscribe: () => () => {}, notifier: { beep: vi.fn(), setUnread: vi.fn() } }
@@ -155,6 +161,20 @@ describe.each(WIDTHS)('axe at %ipx', (width) => {
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
     await user.click(await screen.findByRole('button', { name: payslipCfg.texts.open }))
     await screen.findByRole('dialog')
+    await expectClean()
+  })
+
+  it('the profile dialog: its fields and sources, then errors next to the fields', async () => {
+    viewport(width)
+    window.history.replaceState(null, '', profileCfg.path)
+    render(<EmployeeScreen api={chatApi()} {...quiet} />)
+    const base = await screen.findByDisplayValue('15000')
+    await expectClean()
+    const user = userEvent.setup()
+    await user.clear(base)
+    await user.type(base, '0')
+    await user.click(screen.getByRole('button', { name: profileCfg.texts.save }))
+    await screen.findByRole('alert')
     await expectClean()
   })
 

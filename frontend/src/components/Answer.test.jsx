@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import Answer from './Answer'
 
 describe('Answer (the bot\'s Markdown)', () => {
@@ -23,6 +23,27 @@ describe('Answer (the bot\'s Markdown)', () => {
     const { container } = render(<Answer text={'<b>x</b> [קישור](https://evil.example) ![](https://evil.example/i.png)'} />)
     expect(container.querySelector('b, a, img, script')).toBeNull()
     expect(container.textContent).toContain('קישור')
+  })
+
+  it('one link only: /profile, the employee\'s own profile, opens it here', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event')
+    const onProfile = vi.fn()
+    const { container } = render(
+      <Answer text={'מלאו בפרופיל שלכם, /profile. או [כאן](https://evil.example) או [פרופיל](/profile).'}
+        onProfile={onProfile} />)
+    const links = screen.getAllByRole('link')
+    expect(links).toHaveLength(2)
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/profile', '/profile'])
+    expect(container.querySelector('a[href^="http"]')).toBeNull() // any other link stays text
+    expect(container.textContent).toContain('כאן')
+    await userEvent.setup().click(links[0])
+    expect(onProfile).toHaveBeenCalledWith(links[0])
+  })
+
+  it('without onProfile, /profile is plain text', () => {
+    const { container } = render(<Answer text={'בפרופיל: /profile'} />)
+    expect(container.querySelector('a')).toBeNull()
+    expect(container.textContent).toContain('/profile')
   })
 
   it('an unfinished bold while the answer streams in does not break', () => {

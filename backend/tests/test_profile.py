@@ -141,6 +141,24 @@ def test_none_clears(store):
     assert profiles.get(emp) == {"base": 15000}
 
 
+def test_each_field_keeps_where_its_value_came_from(store):
+    """profile (typed in the profile), chat (written in a conversation), payslip (read from one).
+    The latest value's source wins; a cleared field has none."""
+    profiles, emp = store
+    assert profiles.sources(emp) == {}
+    profiles.update(emp, {"base": 15000, "bonus": 500})  # the default: typed in the profile
+    profiles.update(emp, {"pension_pct": 6, "base": 16000}, source="payslip")
+    profiles.update(emp, {"occupation": "מפתח/ת תוכנה"}, source="chat")
+    profiles.update(emp, {"bonus": None})
+    assert profiles.sources(emp) == {"base": "payslip", "pension_pct": "payslip", "occupation": "chat"}
+
+
+def test_an_unknown_source_is_refused(store):
+    profiles, emp = store
+    with pytest.raises(ValueError):
+        profiles.update(emp, {"base": 1}, source="guess")
+
+
 def test_whole_numbers_come_back_as_ints(store):
     profiles, emp = store
     profiles.update(emp, {"children": 3, "current_car_year": 2025, "base": 15000})
@@ -189,6 +207,7 @@ def test_a_new_value_from_the_employee_wins_and_updates_the_profile(advisor, cfg
     assert res["status"] == "ok"
     assert res["card"]["your_data"]["base"] == {"value": 15000, "source": cfg["texts"]["sources"]["employee"]}
     assert profiles.get("E01")["base"] == 15000
+    assert profiles.sources("E01")["base"] == "chat"
     assert res["profile_updated"] == ["base"]
     label = cfg["texts"]["profile"]["labels"]["base"]
     assert res["message_profile"] == cfg["texts"]["profile"]["updated"].format(fields=label)

@@ -150,7 +150,7 @@ def test_the_profile_endpoints_need_a_login(data, cfg):
 
 def test_read_an_empty_profile(data, cfg):
     client, _, _ = make(data, cfg)
-    assert client.get("/profile").json() == {"employee_id": "E01", "fields": {}, "group": None}
+    assert client.get("/profile").json() == {"employee_id": "E01", "fields": {}, "sources": {}, "group": None}
 
 
 def test_update_then_read_with_the_group_computed(data, cfg):
@@ -160,6 +160,7 @@ def test_update_then_read_with_the_group_computed(data, cfg):
     body = r.json()
     assert body["fields"] == {"occupation": "מפתח/ת תוכנה", "base": 15000, "children": 2}
     assert body["group"] == "ב"  # read only: computed from the occupation, not kept
+    assert body["sources"] == {"occupation": "profile", "base": "profile", "children": "profile"}
     assert "group" not in profiles.get("E01")
     assert client.get("/profile").json() == body
 
@@ -187,6 +188,7 @@ def test_a_payslip_updates_the_profile_and_kobi_is_told(data, cfg):
     tid = chat(client, "שלום")[0][1]["thread_id"]
     events(client.post(f"/chat/{tid}/payslip", content=dummy.png(), headers={"Content-Type": "image/png"}))
     assert {k: profiles.get("E01")[k] for k in dummy.FOUND} == dummy.FOUND
+    assert client.get("/profile").json()["sources"] == {k: "payslip" for k in dummy.FOUND}
     from app.api.common import messages_of
     note = [m for m in messages_of(app.state.agent, tid) if m.type == "human"][-1]
     assert cfg["texts"]["profile"]["noteUpdated"] in note.content
@@ -199,6 +201,16 @@ def test_the_chat_passes_the_employee_to_the_tools(data, cfg):
                                            AIMessage(content="הנטו")], profiles=profiles)
     card = next(d for k, d in chat(client, "EV3?") if k == "card")
     assert card["card"]["your_data"]["base"]["source"] == cfg["texts"]["sources"]["profile"]
+
+
+def test_a_value_from_the_chat_shows_as_from_the_chat(data, cfg):
+    profiles = InMemoryProfiles()
+    profiles.update("E01", FULL)
+    client, _, _ = make(data, cfg, script=[call("calculate", {"base": 15000, "alternative_kind": "waiver"}),
+                                           AIMessage(content="עדכנתי בפרופיל")], profiles=profiles)
+    chat(client, "השכר שלי 15,000")
+    sources = client.get("/profile").json()["sources"]
+    assert sources["base"] == "chat" and sources["bonus"] == "profile"
 
 
 # --- LangSmith: the field names only ----------------------------------------------------------

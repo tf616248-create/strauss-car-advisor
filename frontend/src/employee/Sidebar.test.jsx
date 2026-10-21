@@ -73,10 +73,11 @@ describe('the sidebar on a computer', () => {
     expect(nav.compareDocumentPosition(await screen.findByText('נועה לוי')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('profile, customize and usage are only items for now: disabled, "soon", they do nothing', async () => {
+  it('customize and usage are only items for now: disabled, "soon", they do nothing', async () => {
     const { sidebar } = setup()
     const user = userEvent.setup()
-    for (const key of ['profile', 'customize', 'usage']) {
+    expect(within(sidebar()).getByRole('button', { name: T.profile })).not.toHaveAttribute('aria-disabled')
+    for (const key of ['customize', 'usage']) {
       const item = within(sidebar()).getByRole('button', { name: new RegExp(T[key]) })
       expect(item).toHaveAttribute('aria-disabled', 'true')
       expect(item).toHaveAccessibleName(`${T[key]} ${T.soon}`)
@@ -168,7 +169,9 @@ describe('the sidebar on a computer', () => {
     await user.tab()
     expect(document.activeElement).toHaveAccessibleName(T.newConversation)
     await user.tab()
-    expect(document.activeElement).toHaveAccessibleName(`${T.profile} ${T.soon}`)
+    expect(document.activeElement).toHaveAccessibleName(T.profile) // opens the profile (ProfileDialog.test.jsx)
+    await user.tab()
+    expect(document.activeElement).toHaveAccessibleName(`${T.customize} ${T.soon}`)
   })
 })
 

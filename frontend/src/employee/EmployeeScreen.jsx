@@ -16,6 +16,8 @@ import payslipCfg from '../config/payslip.json'
 import A11Y from '../config/accessibility.json'
 import SiteFooter from '../components/SiteFooter'
 import Sidebar, { useSidebar } from './Sidebar'
+import ProfileDialog from './ProfileDialog'
+import profileCfg from '../config/profile.json'
 import sidebarCfg from '../config/sidebar.json'
 import logo from '../assets/strauss-logo.svg'
 
@@ -60,6 +62,9 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const isPhone = usePhone()
   const chatRef = useRef(null)
   const side = useSidebar(chatRef)
+  // the profile dialog has an address (/profile): a direct link opens it too, and Back closes it
+  const [profileOpen, setProfileOpen] = useState(() => window.location.pathname === profileCfg.path)
+  const profileOpener = useRef(null) // where the focus goes back; none = the message box
 
   // the message box grows with its text, like other chats (CSS caps it at ~7 lines, then it scrolls)
   useLayoutEffect(() => {
@@ -79,7 +84,8 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
 
   useEffect(() => { document.title = EMPLOYEE_TITLE }, [])
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (autoFocus) boxRef.current?.focus() }, [])
+  // (not when the profile opened over it from a direct link: the focus stays in the dialog)
+  useEffect(() => { if (autoFocus && window.location.pathname !== profileCfg.path) boxRef.current?.focus() }, [])
 
   useEffect(() => { endRef.current?.scrollIntoView?.({ block: 'end' }) }, [messages])
 
@@ -330,6 +336,42 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     clearScreen()
   }
 
+  // opened here (the sidebar, Kobi's link): a new history entry, so Back closes it
+  function openProfile(opener) {
+    profileOpener.current = opener ?? null
+    if (window.location.pathname !== profileCfg.path) {
+      window.history.pushState({ kobiProfile: true }, '', profileCfg.path)
+    }
+    setProfileOpen(true)
+  }
+
+  // ✕, Esc, a click outside: back to the address before it. Opened by a direct link there is no
+  // entry of ours to go back to, so the address becomes the conversation's.
+  function closeProfile() {
+    if (window.history.state?.kobiProfile) window.history.back() // popstate closes it
+    else {
+      window.history.replaceState(null, '', '/')
+      setProfileOpen(false)
+    }
+  }
+
+  useEffect(() => {
+    const onPop = () => setProfileOpen(window.location.pathname === profileCfg.path)
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  // closed: the focus goes back to what opened it (or the message box, after a direct link)
+  const profileWasOpen = useRef(profileOpen)
+  useEffect(() => {
+    if (profileWasOpen.current && !profileOpen) {
+      const opener = profileOpener.current
+      ;(opener?.isConnected ? opener : boxRef.current)?.focus()
+      profileOpener.current = null
+    }
+    profileWasOpen.current = profileOpen
+  }, [profileOpen])
+
   // the server rang ("changed", e.g. the rep answered): beep, mark the tab, read the state
   useEffect(() => {
     if (!threadId) return
@@ -371,7 +413,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     <div className={`employee ${panelOpen ? '' : 'employee--closed'} ${side.expanded && !side.floating ? 'employee--side' : ''}`}
       style={{ '--side-w': `${sidebarCfg.width}px`, '--rail-w': `${sidebarCfg.railWidth}px` }}>
       <div className="side">
-        <Sidebar state={side} busy={busy} onNew={newConversation} history={history} threadId={threadId}
+        <Sidebar state={side} busy={busy} onNew={newConversation} onProfile={openProfile} history={history} threadId={threadId}
           onOpenThread={openThread} name={me?.name} onLogout={onLogout} />
       </div>
       <header className="topbar" inert={behind}>
@@ -427,7 +469,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
               {m.role === 'assistant' && m.text && <span className="msg__who">כובי · בוט</span>}
               {m.role === 'assistant' && !m.text && busy && m.id === currentId
                 ? <span className="msg__typing">{A11Y.live.typing}</span>
-                : m.role === 'system' ? REP_ANSWERED : m.role === 'assistant' ? <Answer text={m.text} /> : m.text}
+                : m.role === 'system' ? REP_ANSWERED : m.role === 'assistant' ? <Answer text={m.text} onProfile={openProfile} /> : m.text}
             </li>
           ))}
           <li ref={endRef} aria-hidden="true" />
@@ -483,6 +525,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         </form>
         <SiteFooter />
         {viewing && <PayslipViewer src={viewing.src} opener={viewing.opener} onClose={() => setViewing(null)} />}
+        {profileOpen && <ProfileDialog api={api} onClose={closeProfile} />}
       </main>
 
       <div className="divider" inert={behind}>
