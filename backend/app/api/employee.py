@@ -2,6 +2,9 @@
 
   POST /login                      {code} -> {token}: a demo code -> a JWT (app/auth.py)
   GET  /me                         the logged-in employee: {employee_id, name} (app/employees.py)
+  GET  /profile                    the employee's profile: {employee_id, fields, group} (group: read only,
+                                   from the occupation; app/profile.py)
+  PATCH /profile                   {fields}: update some fields (null clears one); 422 {invalid} - nothing kept
   GET  /threads                    the logged-in employee's conversations, newest first
   POST /chat                       SSE: thread, step, token, card, done | error
   POST /chat/{thread_id}/rep-answered   SSE: new rep answers - rerun with the system note (once per answer)
@@ -17,6 +20,7 @@ Every route except /login needs the employee's token ("Authorization: Bearer ...
 stream takes ?token=, since EventSource can't send headers). A conversation belongs to the
 employee who started it (app/threads.py); anyone else's is 404, not 403, so a guessed id says
 nothing. No codes configured (EMPLOYEE_CODES) = the employee screen is closed (503).
+Every run of the agent gets the employee id, so the tools fill in the employee's profile, in code.
 """
 from __future__ import annotations
 
@@ -32,6 +36,7 @@ from langchain_core.messages import AIMessage, AIMessageChunk
 from pydantic import BaseModel, Field
 
 from app import payslip as payslip_mod
+from app import profile as profile_mod
 from app.agent.models import ModelStalledError
 from app.api.common import (SSE_HEADERS, UUID_RE, EventStreamResponse, cards_of, messages_of, sse,
                             text_of, thread_config, title_of)
@@ -52,6 +57,10 @@ class ChatIn(BaseModel):
     thread_id: Optional[str] = Field(default=None, pattern=UUID_RE)
 
 
+class ProfileIn(BaseModel):
+    fields: dict
+
+
 class PayslipTextIn(BaseModel):
     text: str = Field(min_length=1, max_length=20000)
 
@@ -59,11 +68,13 @@ class PayslipTextIn(BaseModel):
 PAYSLIP_HTTP = {"too_large": 413, "bad_type": 415, "unreadable": 422}
 
 
-def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_reader, employees, auth=None,
-           usage_file=None) -> APIRouter:
+def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_reader, employees, profiles,
+           occupations: dict, auth=None, usage_file=None) -> APIRouter:
     """auth: app/auth.EmployeeAuth, or None = closed. threads: who owns which conversation.
     payslips: the payslip kept with each conversation (app/payslip.py, app/db.py).
-    employees: login id -> name, for GET /me (app/employees.py, app/db.py)."""
+    employees: login id -> name, for GET /me (app/employees.py, app/db.py).
+    profiles: each employee's profile (app/profile.py, app/db.py); occupations: the sheet, for the group."""
+    matcher = profile_mod.OccupationMatcher(occupations, cfg["profile"]["maxSuggestions"])
     texts = cfg["texts"]
     ptexts = texts["payslip"]
     max_bytes = cfg["payslip"]["maxBytes"]
@@ -109,7 +120,20 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
         except Exception:  # the answer matters more than the list
             log.exception("could not update the history (thread %s)", thread_id)
 
-    def answer(thread_id: str, message, question: str, new: bool = False, extra_answers=()):
+    def profile_view(employee: str) -> dict:
+        fields = profiles.get(employee)
+        return {"employee_id": employee, "fields": fields, "group": profile_mod.group_of(fields, occupations)}
+
+    def update_profile(employee: str, values: dict) -> list[str]:
+        """Keeps the values that differ from the profile; returns their fields. LangSmith: the names only."""
+        current = profiles.get(employee)
+        changed = {k: v for k, v in values.items() if current.get(k) != v}
+        if changed:
+            profiles.update(employee, changed)
+            profile_mod.trace_profile("profile_updated", sorted(changed))
+        return sorted(changed)
+
+    def answer(thread_id: str, message, question: str, employee: str, new: bool = False, extra_answers=()):
         """The bot's answer as SSE events. message: the employee's text, or a ready message (a system note)."""
         if new:
             yield sse("thread", {"thread_id": thread_id})
@@ -118,7 +142,7 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
         answers = list(extra_answers)  # the model's messages in this question, for its cost
         item = ("user", message) if isinstance(message, str) else message
         try:
-            for mode, chunk in agent.stream({"messages": [item]}, thread_config(thread_id),
+            for mode, chunk in agent.stream({"messages": [item]}, thread_config(thread_id, employee),
                                             stream_mode=["messages", "updates"]):
                 if mode == "messages":
                     msg, meta = chunk
@@ -149,25 +173,32 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
                 record_usage(thread_id, question, answers)
             touch(thread_id)
 
-    def run(thread_id: str, message: str, new: bool) -> StreamingResponse:
-        return StreamingResponse(answer(thread_id, message, message, new), media_type="text/event-stream",
+    def run(thread_id: str, message: str, new: bool, employee: str) -> StreamingResponse:
+        return StreamingResponse(answer(thread_id, message, message, employee, new), media_type="text/event-stream",
                                  headers=SSE_HEADERS)
 
-    def read_payslip(thread_id: str, kind: str, read) -> StreamingResponse:
+    def read_payslip(thread_id: str, kind: str, read, employee: str) -> StreamingResponse:
         """Reads the payslip (the model sees it once), keeps the values, and the bot carries on with them -
         no confirmation from the employee. Unreadable: the fixed message, and the questions go on."""
         def stream():
             yield sse("step", {"tool": "payslip", "label": texts["steps"]["payslip"]})
             reading = read()
             payslip_mod.trace_upload(thread_id, kind, reading.status, sorted(reading.fields))
-            note = payslip_mod.note(reading.fields, reading.status, cfg, source=kind)
+            changed = []
+            if reading.status == "ok":
+                try:  # the payslip's values go to the profile too: the latest value wins
+                    clean, _ = profile_mod.validate(reading.fields, cfg, matcher)
+                    changed = update_profile(employee, clean)
+                except Exception:  # noqa: BLE001 - the values are in the conversation all the same
+                    log.exception("could not update the profile from the payslip (thread %s)", thread_id)
+            note = payslip_mod.note(reading.fields, reading.status, cfg, source=kind, profile_updated=bool(changed))
             if reading.status == "ok":
                 try:
                     payslips.set_fields(thread_id, reading.fields)
                 except Exception:  # noqa: BLE001 - the values are in the conversation all the same
                     log.exception("could not keep the payslip's fields (thread %s)", thread_id)
                 yield sse("payslip", {"status": reading.status, "fields": reading.fields})
-                yield from answer(thread_id, note, "[payslip]", extra_answers=reading.answers)
+                yield from answer(thread_id, note, "[payslip]", employee, extra_answers=reading.answers)
                 return
             yield sse("payslip", {"status": reading.status, "fields": reading.fields})
             text = ptexts["noVision" if reading.status == "no_vision" else "failed"]
@@ -223,6 +254,21 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
     def me(employee: str = Depends(current_employee)):
         return {"employee_id": employee, "name": employees.name(employee)}
 
+    @r.get("/profile")
+    def read_profile(employee: str = Depends(current_employee)):
+        view = profile_view(employee)
+        profile_mod.trace_profile("profile_read", sorted(view["fields"]))
+        return view
+
+    @r.patch("/profile")
+    def write_profile(body: ProfileIn, employee: str = Depends(current_employee)):
+        """All or nothing: one bad value and nothing is kept (the page shows what to fix)."""
+        clean, bad = profile_mod.validate(body.fields, cfg, matcher)
+        if bad:
+            raise HTTPException(422, {"invalid": bad})
+        update_profile(employee, clean)
+        return profile_view(employee)
+
     @r.get("/threads")
     def my_threads(employee: str = Depends(current_employee)):
         return {"threads": threads.list(employee)}
@@ -231,10 +277,10 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
     def chat(body: ChatIn, employee: str = Depends(current_employee)):
         if body.thread_id:
             own(body.thread_id, employee)
-            return run(body.thread_id, body.message, new=False)
+            return run(body.thread_id, body.message, False, employee)
         thread_id = str(uuid.uuid4())
         threads.add(employee, thread_id)
-        return run(thread_id, body.message, new=True)
+        return run(thread_id, body.message, True, employee)
 
     @r.post("/chat/{thread_id}/rep-answered")
     def rep_answered(thread_id: str = Path(pattern=UUID_RE), employee: str = Depends(current_employee)):
@@ -243,7 +289,7 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
             raise HTTPException(404, "unknown conversation")
         if not rep_queue.take_new_answers(thread_id):  # already handled (another tab, a late reload)
             return StreamingResponse(iter([sse("done", {})]), media_type="text/event-stream", headers=SSE_HEADERS)
-        return run(thread_id, texts["repAnswered"], new=False)
+        return run(thread_id, texts["repAnswered"], False, employee)
 
     @r.get("/chat/{thread_id}")
     def restore(thread_id: str = Path(pattern=UUID_RE), employee: str = Depends(current_employee)):
@@ -284,14 +330,14 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
         except payslip_mod.PayslipError as e:
             raise HTTPException(PAYSLIP_HTTP[e.code], ptexts[e.text_key]) from None
         await run_in_threadpool(payslips.save, thread_id, prepared.stored, "image")
-        return read_payslip(thread_id, "image", lambda: payslip_reader.read_image(prepared.for_model))
+        return read_payslip(thread_id, "image", lambda: payslip_reader.read_image(prepared.for_model), employee)
 
     @r.post("/chat/{thread_id}/payslip-text")
     def paste_payslip(body: PayslipTextIn, thread_id: str = Path(pattern=UUID_RE),
                       employee: str = Depends(current_employee)):
         own(thread_id, employee)
         payslips.save(thread_id, None, "text")  # the values only: the pasted text itself is not kept
-        return read_payslip(thread_id, "text", lambda: payslip_reader.read_text(body.text))
+        return read_payslip(thread_id, "text", lambda: payslip_reader.read_text(body.text), employee)
 
     @r.get("/chat/{thread_id}/payslip")
     def payslip_image(thread_id: str = Path(pattern=UUID_RE), employee: str = Depends(current_employee)):

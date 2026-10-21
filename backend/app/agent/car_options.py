@@ -272,8 +272,16 @@ class CarOptions:
             out["source"] = f'{short["mot"]}, {car["registrationYear"]}'
         return out
 
-    def rank_options(self, args: dict, filters: dict, sort_by: Optional[str],
-                     history: Iterable = (), thread_id: str = "default") -> tuple[dict, Optional[dict]]:
+    def rank_options(self, args: dict, filters: dict, sort_by: Optional[str], history: Iterable = (),
+                     thread_id: str = "default", employee_id: Optional[str] = None) -> tuple[dict, Optional[dict]]:
+        """employee_id: whose profile fills in the employee's details (in calculate)."""
+        updated = {}
+        result, card = self._rank(args, filters, sort_by, history, thread_id, employee_id, updated)
+        if updated and "profile_updated" not in result:  # a new value: the first car's calculate kept it
+            result = {**result, **updated}
+        return result, card
+
+    def _rank(self, args, filters, sort_by, history, thread_id, employee_id, updated):
         """(result for the model, card for the screen). The model reads only the result: the names, the
         net, the diff and the fields it filtered and sorted by. The card has the full specs, and goes to
         the screen as the tool's artifact (like the comparison card), never through the model."""
@@ -291,7 +299,9 @@ class CarOptions:
         for car in cars:
             kind = "family_car" if car["id"] in family_cars else "car"
             res = self.advisor.calculate({**args, "alternative_kind": kind, "alternative_car": car["name"]},
-                                         history=history, thread_id=thread_id)
+                                         history=history, thread_id=thread_id, employee_id=employee_id)
+            if "profile_updated" in res and not updated:
+                updated.update({k: res[k] for k in ("profile_updated", "message_profile")})
             status = res["status"]
             if status == "ok":
                 candidates.append((car, kind, res["card"]))

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from typing import Optional
 
 from fastapi.responses import StreamingResponse
 
@@ -53,9 +54,13 @@ def comparison_cards(cards: list[dict]) -> list[dict]:
     return [c for c in cards if c["kind"] == "comparison"]
 
 
-def thread_config(thread_id: str) -> dict:
-    # metadata: LangSmith (app/tracing.py) groups a conversation's traces by it; unused when tracing is off
-    return {"configurable": {"thread_id": thread_id}, "metadata": {"thread_id": thread_id}}
+def thread_config(thread_id: str, employee_id: Optional[str] = None) -> dict:
+    """employee_id: the logged-in employee, so the tools fill in their profile (app/profile.py).
+    metadata: LangSmith (app/tracing.py) groups a conversation's traces by it; unused when tracing is off"""
+    configurable = {"thread_id": thread_id}
+    if employee_id:
+        configurable["employee_id"] = employee_id
+    return {"configurable": configurable, "metadata": {"thread_id": thread_id}}
 
 
 def messages_of(agent, thread_id: str) -> list:

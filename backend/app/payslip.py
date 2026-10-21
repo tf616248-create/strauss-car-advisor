@@ -214,9 +214,10 @@ def _shown(x) -> str:
     return f"{x:,}" if isinstance(x, int) else str(x)
 
 
-def note(fields: dict, status: str, cfg: dict, source: str = "image") -> HumanMessage:
+def note(fields: dict, status: str, cfg: dict, source: str = "image", profile_updated: bool = False) -> HumanMessage:
     """What the agent gets after an upload, built in code: the values as read, and what was not found.
-    source: image | text (what the screen shows in its place)."""
+    source: image | text (what the screen shows in its place). profile_updated: the values went to the
+    employee's profile as well (Kobi says "עדכנתי בפרופיל")."""
     t = cfg["texts"]["payslip"]
     labels = t["labels"]
     parts = [t["notePrefix"]]
@@ -225,6 +226,8 @@ def note(fields: dict, status: str, cfg: dict, source: str = "image") -> HumanMe
     missing = [labels[k] for k in cfg["payslip"]["fields"] if k not in fields]
     if missing and status == "ok":
         parts.append(t["noteMissing"].format(missing=", ".join(missing)))
+    if profile_updated:
+        parts.append(cfg["texts"]["profile"]["noteUpdated"])
     return HumanMessage(content=" ".join(parts) + t["noteEnd"],
                         additional_kwargs={NOTE_KEY: {"status": status, "fields": dict(fields), "source": source}})
 

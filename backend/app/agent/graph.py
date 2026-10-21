@@ -1,8 +1,9 @@
-"""The agent: LangGraph's prebuilt ReAct agent with 6 tools.
+"""The agent: LangGraph's prebuilt ReAct agent with 7 tools.
 
 The model decides what to ask and which tool to call. The guards are inside the
-tools (app/agent/advisor.py). The model never sees the conversation id or the
-history parameters - they are injected.
+tools (app/agent/advisor.py). The model never sees the conversation id, the employee id or the
+history parameters - they are injected. The employee's profile (app/profile.py) is filled in by the
+tools, in code; the prompt names only which of its fields are there.
 """
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ import json
 from pathlib import Path
 from typing import Annotated, Literal, Optional
 
+from langchain_core.messages import SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
@@ -17,13 +19,14 @@ from langgraph.prebuilt import InjectedState, create_react_agent
 
 from app.agent.advisor import Advisor
 from app.agent.car_options import CarOptions
-from app.agent.prompt import build_prompt
+from app.agent.prompt import build_prompt, profile_section
 from app.data.specs_store import load_specs_config, snapshot_store
 from app.timing import timed
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 
-TOOL_NAMES = {"lookup_vehicle", "check_eligibility", "calculate", "ask_rep", "car_specs", "rank_options"}
+TOOL_NAMES = {"lookup_vehicle", "check_eligibility", "calculate", "ask_rep", "car_specs", "rank_options",
+              "occupation_to_group"}
 
 Kind = Literal["car", "family_car", "waiver"]
 Drive = Literal["electric", "plug_in", "hybrid", "petrol", "diesel"]
@@ -36,13 +39,19 @@ def _thread(config: RunnableConfig) -> str:
     return (config or {}).get("configurable", {}).get("thread_id", "default")
 
 
+def _employee(config: RunnableConfig) -> Optional[str]:
+    """The logged-in employee (app/api/common.thread_config); None in the console and most tests."""
+    return (config or {}).get("configurable", {}).get("employee_id")
+
+
 def _dump(result: dict) -> str:
     return json.dumps(result, ensure_ascii=False)
 
 
-def make_tools(data, rep_queue, cfg: dict, specs=None) -> list:
-    """specs: the car specs store; None = the snapshot in git (tests, evals, the console chat)."""
-    advisor = Advisor(data, rep_queue, cfg)
+def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
+    """specs: the car specs store; None = the snapshot in git (tests, evals, the console chat).
+    profiles: the employees' profiles; None = none."""
+    advisor = Advisor(data, rep_queue, cfg, profiles=profiles)
     options = CarOptions(advisor, specs if specs is not None else snapshot_store(BACKEND_DIR),
                          load_specs_config(BACKEND_DIR))
 
@@ -73,7 +82,8 @@ def make_tools(data, rep_queue, cfg: dict, specs=None) -> list:
                     alternative_car=alternative_car, alternative_car_year=alternative_car_year,
                     children=children)
         with timed("tool check_eligibility"):
-            return _dump(advisor.check_eligibility(args, history=state["messages"], thread_id=_thread(config)))
+            return _dump(advisor.check_eligibility(args, history=state["messages"], thread_id=_thread(config),
+                                                   employee_id=_employee(config)))
 
     @tool
     def calculate(
@@ -99,7 +109,8 @@ def make_tools(data, rep_queue, cfg: dict, specs=None) -> list:
         """נטו היום מול נטו בחלופה, עם הפרש מוכן לכל רכיב וכרטיס השוואה. כל המספרים מחושבים בקוד."""
         args = {k: v for k, v in locals().items() if k in Advisor.CALCULATE_FIELDS}
         with timed("tool calculate"):
-            return _dump(advisor.calculate(args, history=state["messages"], thread_id=_thread(config)))
+            return _dump(advisor.calculate(args, history=state["messages"], thread_id=_thread(config),
+                                           employee_id=_employee(config)))
 
     @tool
     def ask_rep(
@@ -158,19 +169,38 @@ def make_tools(data, rep_queue, cfg: dict, specs=None) -> list:
         filters = {k: local[k] for k in FILTERS}
         with timed("tool rank_options"):
             result, card = options.rank_options(args, filters, sort_by, history=state["messages"],
-                                                thread_id=_thread(config))
+                                                thread_id=_thread(config), employee_id=_employee(config))
         # the model reads the short result; the card (full specs) goes to the screen as the artifact
         return _dump(result), card
 
-    tools = [lookup_vehicle, check_eligibility, calculate, ask_rep, car_specs, rank_options]
+    @tool
+    def occupation_to_group(
+        occupation: Annotated[str, "העיסוק כמו שהעובד כתב אותו"],
+        config: RunnableConfig,
+    ) -> str:
+        """קבוצת הזכאות לפי העיסוק, מגיליון העיסוקים של שטראוס. סלחני לניסוח. עיסוק שלא נמצא: not_found והצעות קרובות."""
+        with timed("tool occupation_to_group"):
+            return _dump(advisor.occupation_to_group(occupation, employee_id=_employee(config)))
+
+    tools = [lookup_vehicle, check_eligibility, calculate, ask_rep, car_specs, rank_options, occupation_to_group]
     assert {t.name for t in tools} == TOOL_NAMES
     return tools
 
 
-def build_agent(model, data, rep_queue, cfg: dict, checkpointer=None, specs=None):
+def build_agent(model, data, rep_queue, cfg: dict, checkpointer=None, specs=None, profiles=None):
+    """profiles: the employees' profiles (app/profile.py). With them, the prompt of a logged-in
+    employee's run ends with which profile fields are there - their names, never their values."""
+    base = build_prompt(data, cfg)
+    prompt = base
+    if profiles is not None:
+        def prompt(state, config: RunnableConfig):
+            employee = _employee(config)
+            text = base if not employee else base + "\n\n" + profile_section(profiles.get(employee), cfg)
+            return [SystemMessage(content=text)] + state["messages"]
+
     return create_react_agent(
         model,
-        make_tools(data, rep_queue, cfg, specs),
-        prompt=build_prompt(data, cfg),
+        make_tools(data, rep_queue, cfg, specs, profiles),
+        prompt=prompt,
         checkpointer=checkpointer if checkpointer is not None else InMemorySaver(),
     )

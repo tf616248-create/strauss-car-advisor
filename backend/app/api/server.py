@@ -52,7 +52,8 @@ cfg = load_agent_config(BACKEND_DIR)
 
 database_url = os.environ.get("DATABASE_URL")
 if database_url:
-    from app.db import PostgresEmployees, PostgresPayslips, PostgresRepQueue, PostgresThreads, make_checkpointer, make_pool
+    from app.db import (PostgresEmployees, PostgresPayslips, PostgresProfiles, PostgresRepQueue, PostgresThreads,
+                        make_checkpointer, make_pool)
 
     pool = make_pool(database_url)
     rep_queue = PostgresRepQueue(pool)
@@ -63,10 +64,12 @@ if database_url:
     payslips.setup()  # after employee_threads: a payslip belongs to a conversation
     employees = PostgresEmployees(pool, load_seed(BACKEND_DIR))  # dummy names, added when missing
     employees.setup()
+    profiles = PostgresProfiles(pool)  # after employees: a profile belongs to an employee
+    profiles.setup()
     checkpointer = make_checkpointer(pool)
 else:
     # None: create_app keeps them in memory
-    rep_queue, checkpointer, threads, payslips, employees = InMemoryRepQueue(), None, None, None, None
+    rep_queue, checkpointer, threads, payslips, employees, profiles = InMemoryRepQueue(), None, None, None, None, None
 
 data = load_all(BACKEND_DIR)
 
@@ -91,6 +94,7 @@ app = create_app(
     threads=threads,
     payslips=payslips,
     employees=employees,
+    profiles=profiles,
     payslip_reader=PayslipReader(vision, model, cfg),
     checkpointer=checkpointer,
     origins=origins,

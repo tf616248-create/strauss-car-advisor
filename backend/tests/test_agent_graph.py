@@ -49,8 +49,9 @@ def tool_results(out, name):
     return [json.loads(m.content) for m in out["messages"] if isinstance(m, ToolMessage) and m.name == name]
 
 
-def test_six_tools(data):
-    assert TOOL_NAMES == {"lookup_vehicle", "check_eligibility", "calculate", "ask_rep", "car_specs", "rank_options"}
+def test_seven_tools(data):
+    assert TOOL_NAMES == {"lookup_vehicle", "check_eligibility", "calculate", "ask_rep", "car_specs", "rank_options",
+                          "occupation_to_group"}
 
 
 def test_car_specs_through_the_graph(data):
@@ -234,6 +235,7 @@ def test_statuses_and_errors_speak_as_kobi():
         "calculate": "כובי מחשב נטו…",
         "ask_rep": "כובי שלח שאלה לנציג התחבורה ⏳",
         "payslip": "כובי קורא את התלוש…",
+        "occupation_to_group": "כובי בודק את העיסוק…",
     }
     assert texts["overloaded"] == "כובי עמוס כרגע. נסו שוב בעוד רגע."
 

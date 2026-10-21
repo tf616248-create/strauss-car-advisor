@@ -1,5 +1,5 @@
 """Postgres (Neon): the connection pool, the rep queue, the employees' conversation list,
-the employees' names, the payslips, and LangGraph's checkpointer.
+the employees' names and profiles, the payslips, and LangGraph's checkpointer.
 
 Used only when DATABASE_URL is set; without it everything stays in memory.
 
@@ -15,6 +15,8 @@ from typing import Mapping, Optional
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
+
+from app.profile import PROFILE_FIELDS, tidy
 
 SCHEMA = """
 create table if not exists rep_requests (
@@ -228,6 +230,56 @@ class PostgresEmployees:
         """For tests: remove throwaway employees."""
         with self.pool.connection() as conn:
             conn.execute("delete from employees where employee_id = any(%s)", (list(employee_ids),))
+
+
+PROFILE_SCHEMA = """
+create table if not exists employee_profile (
+    employee_id           text primary key references employees (employee_id) on delete cascade,
+    occupation            text,
+    base                  double precision,
+    commission            double precision,
+    bonus                 double precision,
+    pension_pct           double precision,
+    keren_pct             double precision,
+    credit_points         double precision,
+    children              integer,
+    current_kind          text,
+    current_car           text,
+    current_car_year      integer,
+    current_participation double precision,
+    updated_at            timestamptz not null default clock_timestamp()
+);
+"""
+
+
+class PostgresProfiles:
+    """Same methods as app/profile.InMemoryProfiles. A column per field (no group: it is computed from
+    the occupation). Set up after employees (the foreign key)."""
+
+    def __init__(self, pool: ConnectionPool):
+        self.pool = pool
+
+    def setup(self) -> None:
+        with self.pool.connection() as conn:
+            conn.execute(PROFILE_SCHEMA)
+
+    def get(self, employee_id: str) -> dict:
+        with self.pool.connection() as conn:
+            row = conn.execute("select * from employee_profile where employee_id = %s", (employee_id,)).fetchone()
+        return tidy(row or {})
+
+    def update(self, employee_id: str, values: Mapping) -> None:
+        """Only these fields (the column names come from PROFILE_FIELDS, never from the request)."""
+        fields = [f for f in PROFILE_FIELDS if f in values]
+        if not fields:
+            return
+        cols = ", ".join(fields)
+        marks = ", ".join(["%s"] * len(fields))
+        sets = ", ".join(f"{f} = excluded.{f}" for f in fields)
+        with self.pool.connection() as conn:
+            conn.execute(f"insert into employee_profile (employee_id, {cols}) values (%s, {marks}) "
+                         f"on conflict (employee_id) do update set {sets}, updated_at = clock_timestamp()",
+                         (employee_id, *(values[f] for f in fields)))
 
 
 PAYSLIPS_SCHEMA = """

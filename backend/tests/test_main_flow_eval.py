@@ -35,8 +35,8 @@ def test_cases_cover_the_five_groups():
     cases = json.loads(MAIN_FLOW_FILE.read_text(encoding="utf-8"))
     kinds = [c["kind"] for c in cases]
     assert {k: kinds.count(k) for k in set(kinds)} == {
-        "demo": 4, "matrix": 5, "missing": 3, "rep_after_two": 2, "injection": 3}
-    assert len({c["id"] for c in cases}) == len(cases) == 17
+        "demo": 4, "matrix": 5, "missing": 3, "rep_after_two": 2, "injection": 3, "profile": 3}
+    assert len({c["id"] for c in cases}) == len(cases) == 20
     assert all(c["expect"] for c in cases)
     # every net question names its expected calculation; the number comes from the engine, not from the file
     for c in cases:
@@ -51,7 +51,7 @@ def test_every_expected_calculation_runs(data):
     from tests.conftest import BACKEND_DIR
     engine = Advisor(data, InMemoryRepQueue(), load_agent_config(BACKEND_DIR))
     cases = [c for c in json.loads(MAIN_FLOW_FILE.read_text(encoding="utf-8")) if "net_from_calculate" in c["expect"]]
-    assert len(cases) == 8
+    assert len(cases) == 9
     for c in cases:
         res = engine.calculate(c["expect"]["net_from_calculate"])
         assert res["status"] == "ok" and res["card"]["diff"]["net"] != 0, c["id"]
@@ -151,3 +151,35 @@ def test_results_markdown_has_a_row_per_case():
     assert "| x | demo | ✅ |" in md
     assert "| y | missing | ❌ | did not ask \\| x |" in md
     assert "1/2" in md and "תשובה" in md
+
+
+def test_profile_cases_set_a_profile_and_a_full_one_gives_the_expected_calculation(data):
+    """The runner puts each case's profile in a profile store for a throwaway employee. With the full
+    profile, calculate with only the alternative must give the same result as the expected details."""
+    from app.agent.advisor import Advisor, load_agent_config
+    from app.agent.rep_queue import InMemoryRepQueue
+    from app.profile import InMemoryProfiles, validate, OccupationMatcher
+    from tests.conftest import BACKEND_DIR
+    cfg = load_agent_config(BACKEND_DIR)
+    cases = {c["id"]: c for c in json.loads(MAIN_FLOW_FILE.read_text(encoding="utf-8")) if c["kind"] == "profile"}
+    assert set(cases) == {"profile-full", "profile-missing-3", "profile-unknown-occupation"}
+    matcher = OccupationMatcher(data.occupations, cfg["profile"]["maxSuggestions"])
+    for c in cases.values():
+        assert validate(c["profile"], cfg, matcher)[1] == {}, c["id"]  # a profile the endpoint would take
+    profiles = InMemoryProfiles()
+    engine = Advisor(data, InMemoryRepQueue(), cfg, profiles=profiles)
+    full = cases["profile-full"]
+    profiles.update("eval", full["profile"])
+    want = engine.calculate(full["expect"]["net_from_calculate"])["card"]["diff"]["net"]
+    got = engine.calculate({"alternative_kind": "car", "alternative_car": "EV3"}, employee_id="eval")
+    assert got["card"]["diff"]["net"] == want
+    profiles.update("eval3", cases["profile-missing-3"]["profile"])
+    res = engine.calculate({"alternative_kind": "car", "alternative_car": "EV3"}, employee_id="eval3")
+    assert res["status"] == "missing" and res["profile_link"] == "/profile"
+
+
+def test_not_ok_fails_when_the_tool_gave_a_result():
+    msgs = turn("שאלה", "חישבתי.", [("calculate", CALC, calc_ok(1153))])
+    ok, why = judge(msgs, {"not_ok": ["calculate"]})
+    assert not ok and "calculate" in why
+    assert judge(turn("שאלה", "מה העיסוק?", [("calculate", {}, {"status": "missing"})]), {"not_ok": ["calculate"]})[0]

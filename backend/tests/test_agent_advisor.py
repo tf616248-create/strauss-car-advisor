@@ -198,11 +198,13 @@ def test_missing_value_keeps_asking_and_then_says_where_to_find_it(advisor, data
     assert "תלוש" in second["instruction"]
 
 
-def test_unknown_occupation_lists_options(advisor, data):
+def test_unknown_occupation_offers_2_or_3_close_ones(advisor, data):
+    """Not the whole list any more: the closest occupations from the sheet (app/profile.py), to ask about."""
     args = dict(employee_args(data, "E-001"), occupation="אסטרונאוט")
     res = advisor.calculate(args)
     assert res["status"] == "invalid" and "occupation" in res["fields"]
-    assert set(res["options"]["occupation"]) == set(data.occupations)
+    assert 2 <= len(res["options"]["occupation"]) <= 3
+    assert set(res["options"]["occupation"]) <= set(data.occupations)
 
 
 def test_no_participation_argument_for_the_alternative(advisor):

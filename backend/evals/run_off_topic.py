@@ -17,7 +17,8 @@ Recalc (recalc.json): two questions in one conversation - the employee corrects 
 switches car - and the last one is judged like recommend: calculate has to run again.
 
 Main flow (main_flow.json): the PDF demo, a group x option matrix of net questions, missing details,
-the rep after two failed attempts, and prompt injection - judged by judge_main, in code only (no LLM
+the rep after two failed attempts, prompt injection, and the employee profile (a case's "profile" is
+put in a profile store for a throwaway employee) - judged by judge_main, in code only (no LLM
 judge): which tools ran and with what, the net in the answer equals what calculate gives for the
 case's details, no number the tools or the employee did not give, no forbidden phrase.
 
@@ -171,6 +172,9 @@ def judge_main(messages: list, case: dict, sentence: str, car_names: list[str],
             guessed = [f for f in fields if tc["name"] == name and tc["args"].get(f) not in (None, "")]
             if guessed:
                 return False, f"{name} guessed {guessed}"
+    for name in expect.get("not_ok", []):  # e.g. calculate before the missing details were given
+        if any(r.get("status") == "ok" for r in _results_of(scope, name)):
+            return False, f"{name} gave a result (status ok)"
     if "net_from_calculate" in expect:
         want = expected_net(expect["net_from_calculate"])
         got = [r["card"]["diff"]["net"] for r in _results_of(scope, "calculate") if r.get("status") == "ok"]
@@ -221,6 +225,7 @@ def main() -> None:
     from app.agent.models import ModelStalledError, build_model
     from app.agent.rep_queue import InMemoryRepQueue
     from app.data.loader import load_all
+    from app.profile import InMemoryProfiles
     from app.usage import turn_usage
 
     sys.stdout.reconfigure(encoding="utf-8")
@@ -229,8 +234,9 @@ def main() -> None:
     cfg = load_agent_config(BACKEND_DIR)
     sentence = cfg["texts"]["outOfScope"]
     data = load_all(BACKEND_DIR)
+    profiles = InMemoryProfiles()  # main flow's profile cases: each one's profile, for a throwaway employee
     agent = build_agent(build_model(cfg["modelTimeoutSeconds"], thinking_level=cfg["geminiThinkingLevel"]),
-                        data, InMemoryRepQueue(), cfg)  # car specs: the snapshot in git
+                        data, InMemoryRepQueue(), cfg, profiles=profiles)  # car specs: the snapshot in git
     cars = [c["name"] for c in data.catalog.values()]
     engine = Advisor(data, InMemoryRepQueue(), cfg)  # the expected numbers: the same code, no model
 
@@ -254,6 +260,10 @@ def main() -> None:
         print(f"\n== {title} ==")
         for case in cases:
             config = eval_config(f"eval-{uuid.uuid4()}", title, case["id"])  # LangSmith: tagged "eval"
+            if "profile" in case:
+                employee = f"eval-{uuid.uuid4().hex[:8]}"
+                profiles.update(employee, case["profile"])
+                config["configurable"]["employee_id"] = employee
             try:
                 for question in questions_of(case):
                     out = agent.invoke({"messages": [("user", question)]}, config)

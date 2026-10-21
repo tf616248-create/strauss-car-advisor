@@ -19,6 +19,7 @@ from app.agent.graph import build_agent
 from app.api import employee, rep
 from app.employees import InMemoryEmployees, load_seed
 from app.payslip import InMemoryPayslips, PayslipReader
+from app.profile import InMemoryProfiles
 from app.threads import InMemoryThreads
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -27,15 +28,17 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Optional[str],
                checkpointer=None, origins: tuple[str, ...] = ("http://localhost:5173",),
                usage_file=None, specs=None, employee_auth=None, threads=None, payslips=None,
-               payslip_reader=None, employees=None) -> FastAPI:
+               payslip_reader=None, employees=None, profiles=None) -> FastAPI:
     """usage_file: a CSV with the cost of each question (app/usage.py); None writes nothing (tests).
     specs: the car specs store (app/data/specs_store.py); None = the snapshot in git, no network.
     employee_auth: app/auth.EmployeeAuth; None = the employee screen is closed (no EMPLOYEE_CODES).
     threads: who owns which conversation (app/threads.py, app/db.py); None = in memory.
     payslips: the payslip kept with each conversation (app/payslip.py, app/db.py); None = in memory.
     payslip_reader: app/payslip.PayslipReader; None = no model that reads images, pasted text with `model`.
-    employees: login id -> name (app/employees.py, app/db.py); None = in memory, from config/employees.json."""
-    agent = build_agent(model, data, rep_queue, cfg, checkpointer, specs=specs)
+    employees: login id -> name (app/employees.py, app/db.py); None = in memory, from config/employees.json.
+    profiles: each employee's profile (app/profile.py, app/db.py); None = in memory."""
+    profiles = profiles if profiles is not None else InMemoryProfiles()
+    agent = build_agent(model, data, rep_queue, cfg, checkpointer, specs=specs, profiles=profiles)
     app = FastAPI(title="Strauss car advisor")
     app.state.agent = agent
     app.add_middleware(CORSMiddleware, allow_origins=list(origins), allow_methods=["*"], allow_headers=["*"])
@@ -50,6 +53,7 @@ def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Opt
                                         payslips=payslips if payslips is not None else InMemoryPayslips(),
                                         payslip_reader=payslip_reader or PayslipReader(None, model, cfg),
                                         employees=employees if employees is not None
-                                        else InMemoryEmployees(load_seed(BACKEND_DIR))))
+                                        else InMemoryEmployees(load_seed(BACKEND_DIR)),
+                                        profiles=profiles, occupations=data.occupations))
     app.include_router(rep.router(agent=agent, rep_queue=rep_queue, notifier=notifier, rep_passcode=rep_passcode))
     return app

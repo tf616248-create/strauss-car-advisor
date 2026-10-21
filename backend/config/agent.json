@@ -31,7 +31,8 @@
     "keren_pct": [0, 10],
     "credit_points": [0, 20],
     "children": [0, 20],
-    "current_participation": [0, 10000]
+    "current_participation": [0, 10000],
+    "current_car_year": [1990, 2035]
   },
   "texts": {
     "outOfScope": "אני כובי, ואני יודע לעזור רק בשאלות על רכב החברה והנטו שלכם בשטראוס. רוצים לבדוק מה יקרה לנטו אם תחליפו רכב, תעברו לחשמלי, למסלול המשפחתי או תוותרו על הרכב?",
@@ -44,7 +45,8 @@
       "check_eligibility": "כובי בודק זכאות…",
       "calculate": "כובי מחשב נטו…",
       "ask_rep": "כובי שלח שאלה לנציג התחבורה ⏳",
-      "payslip": "כובי קורא את התלוש…"
+      "payslip": "כובי קורא את התלוש…",
+      "occupation_to_group": "כובי בודק את העיסוק…"
     },
     "sources": {
       "employee": "עובד",
@@ -54,7 +56,8 @@
       "rules": "כללים",
       "occupation": "טבלת עיסוקים",
       "calculation": "חישוב",
-      "payslip": "תלוש"
+      "payslip": "תלוש",
+      "profile": "פרופיל"
     },
     "reasons": {
       "today": "המצב היום.",
@@ -66,6 +69,26 @@
       "not_family_track_car": "הרכב הזה לא במסלול המשפחתי.",
       "not_enough_children": "המסלול המשפחתי מחייב לפחות {minChildren} ילדים עד גיל 23, וציינת {children}.",
       "waiver_not_allowed": "בעיסוק {occupation} הרכב הוא חובה, ולכן אי אפשר לוותר עליו."
+    },
+    "profile": {
+      "updated": "עדכנתי בפרופיל: {fields}.",
+      "link": "חסרים לי כמה נתונים, ובמקום לשאול אחד-אחד: הכי מהיר למלא אותם בפרופיל שלכם, /profile. אפשר גם להעלות תלוש שכר (📎), ואני אקח ממנו את הנתונים.",
+      "noteUpdated": "הערכים נשמרו גם בפרופיל של העובד: כתוב לו בתשובה גם \"עדכנתי בפרופיל\".",
+      "promptHeading": "פרופיל העובד",
+      "labels": {
+        "occupation": "עיסוק",
+        "base": "שכר בסיס",
+        "commission": "עמלות",
+        "bonus": "בונוס",
+        "pension_pct": "הפרשת עובד לפנסיה (%)",
+        "keren_pct": "הפרשת עובד לקרן השתלמות (%)",
+        "credit_points": "נקודות זיכוי",
+        "children": "ילדים עד גיל 23",
+        "current_kind": "רכב היום או אחזקה",
+        "current_car": "הרכב של היום",
+        "current_car_year": "שנת הרישום של הרכב של היום",
+        "current_participation": "השתתפות ברכב"
+      }
     },
     "payslip": {
       "offer": "אפשר לענות על השאלות כאן, או להעלות תלוש שכר ואני אקח ממנו את הנתונים.",
@@ -102,5 +125,13 @@
     "maxTextChars": 8000,
     "fields": ["base", "commission", "bonus", "pension_pct", "keren_pct", "credit_points", "current_participation"],
     "visionModels": ["gemini", "gemma-3", "gemma-4", "llama-4"]
+  },
+  "profile": {
+    "note": "The employee's profile (app/profile.py): the details calculate needs from the employee, kept per employee (table employee_profile), filled in by the code in every conversation. No group: it comes from the occupation (occupation_to_group). linkWhenMissing: from this many missing details, the profile link instead of one question at a time.",
+    "fields": ["occupation", "base", "commission", "bonus", "pension_pct", "keren_pct", "credit_points", "children",
+               "current_kind", "current_car", "current_car_year", "current_participation"],
+    "linkWhenMissing": 3,
+    "link": "/profile",
+    "maxSuggestions": 3
   }
 }
