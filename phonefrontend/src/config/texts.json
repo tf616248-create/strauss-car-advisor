@@ -1,0 +1,5 @@
+{
+  "note": "The app's settings file for texts (like frontend/src/config/payslip.json on the website). payslipLine: a payslip uploaded on the website, shown in the conversation as the employee's bubble, without the image (the app has no payslip upload yet - docs/phone-app-gaps.md).",
+  "payslipLine": "📄 תלוש שכר",
+  "payslipLabel": "תלוש שכר שהועלה"
+}

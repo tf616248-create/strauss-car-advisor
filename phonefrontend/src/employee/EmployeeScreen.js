@@ -19,6 +19,7 @@ import EmptyPanel from '../components/EmptyPanel'
 import logo from '../assets/logo'
 import { FONTS, useColors } from '../theme'
 import { Btn, T } from '../components/ui'
+import TEXTS from '../config/texts.json'
 
 const REP_ANSWERED = 'הנציג ענה, והחלופה מתעדכנת'
 const PARKED_MS = 2500
@@ -336,18 +337,25 @@ function Message({ m }) {
   const c = useColors()
   if (m.role === 'system') return <T size={14} weight={700} color={c.cyanText} style={{ textAlign: 'center' }}>{REP_ANSWERED}</T>
   if (m.role === 'error') return <T weight={600} color={c.error} accessibilityRole="alert">{m.text}</T>
-  if (m.role === 'user') {
+  // a payslip uploaded on the website: the employee's bubble, the app's own short text, no image
+  if (m.role === 'user' || m.role === 'payslip') {
+    const payslip = m.role === 'payslip'
     return (
-      <View style={{ alignSelf: 'flex-start', maxWidth: '85%', backgroundColor: c.surface, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8 }}>
-        <T>{m.text}</T>
+      <View accessibilityLabel={payslip ? TEXTS.payslipLabel : undefined}
+        style={{ alignSelf: 'flex-start', maxWidth: '85%', backgroundColor: c.surface, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8 }}>
+        <T>{payslip ? TEXTS.payslipLine : m.text}</T>
       </View>
     )
   }
   if (!m.text) return null
-  return (
-    <View style={{ alignSelf: 'stretch', gap: 2 }}>
-      <T size={12} weight={700} muted>כובי · בוט</T>
-      <Answer text={m.text} />
-    </View>
-  )
+  if (m.role === 'assistant') {
+    return (
+      <View style={{ alignSelf: 'stretch', gap: 2 }}>
+        <T size={12} weight={700} muted>כובי · בוט</T>
+        <Answer text={m.text} />
+      </View>
+    )
+  }
+  // a kind of line the app does not know yet: a neutral line, never as if Kobi wrote it
+  return <T size={14} muted style={{ textAlign: 'center' }}>{m.text}</T>
 }
