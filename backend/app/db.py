@@ -322,6 +322,40 @@ class PostgresProfiles:
                          (employee_id, *(values[f] for f in fields), Jsonb(added), Jsonb(added), cleared))
 
 
+USAGE_SCHEMA = """
+create table if not exists employee_usage (
+    employee_id text not null references employees (employee_id) on delete cascade,
+    week_start  date not null,
+    tokens      bigint not null default 0,
+    primary key (employee_id, week_start)
+);
+"""
+
+
+class PostgresUsage:
+    """Same methods as app/usage_limit.InMemoryUsage: the billed tokens per employee and week (the week
+    starts on Sunday, Israel time - a new week is a new row). Set up after employees (the foreign key)."""
+
+    def __init__(self, pool: ConnectionPool):
+        self.pool = pool
+
+    def setup(self) -> None:
+        with self.pool.connection() as conn:
+            conn.execute(USAGE_SCHEMA)
+
+    def used(self, employee_id: str, week) -> int:
+        with self.pool.connection() as conn:
+            row = conn.execute("select tokens from employee_usage where employee_id = %s and week_start = %s",
+                               (employee_id, week)).fetchone()
+        return int(row["tokens"]) if row else 0
+
+    def add(self, employee_id: str, week, tokens: int) -> None:
+        with self.pool.connection() as conn:
+            conn.execute("insert into employee_usage (employee_id, week_start, tokens) values (%s, %s, %s) "
+                         "on conflict (employee_id, week_start) do update "
+                         "set tokens = employee_usage.tokens + excluded.tokens", (employee_id, week, tokens))
+
+
 PAYSLIPS_SCHEMA = """
 create table if not exists payslips (
     thread_id  text primary key references employee_threads (thread_id) on delete cascade,

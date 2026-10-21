@@ -775,3 +775,17 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
   .modal:has(.customize) { place-items: center; padding: 16px; }
   .customize { height: auto; border-radius: var(--radius); }
 }
+
+/* ---- the weekly usage (employee/Sidebar.jsx): a progress bar and how many conversations are left ---- */
+.sidebar__usage { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 8px 12px 0; }
+.sidebar__usage .sidebar__heading { padding: 0; }
+.usage__bar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.usage__fill { display: block; height: 100%; border-radius: 999px; background: var(--brand-cyan-text); }
+.usage__text { font-size: 0.9rem; font-weight: 700; }
+.usage__reset { font-size: 0.8rem; color: var(--muted); }
+/* the limit's message in the conversation: not Kobi's answer, a notice with the address */
+.msg--limit {
+  align-self: stretch; max-width: none; padding: 12px 16px; border: 1px dashed var(--muted); border-radius: var(--radius);
+  background: var(--surface); line-height: 1.6;
+}
+.msg--limit a { color: var(--brand-cyan-text); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }

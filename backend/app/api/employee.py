@@ -7,6 +7,7 @@
   PATCH /profile                   {fields}: update some fields (null clears one); 422 {invalid} - nothing kept
   GET  /settings                   {theme, tone}: "התאמה אישית", kept with the profile (defaults: light, professional)
   PATCH /settings                  {theme?, tone?}; 422 {invalid} - nothing kept. The tone applies from the next message
+  GET  /usage                      this week's usage: used, limit, remaining, conversations_left, blocked, resets_on
   GET  /threads                    the logged-in employee's conversations, newest first
   POST /chat                       SSE: thread, step, token, card, done | error
   POST /chat/{thread_id}/rep-answered   SSE: new rep answers - rerun with the system note (once per answer)
@@ -23,6 +24,8 @@ stream takes ?token=, since EventSource can't send headers). A conversation belo
 employee who started it (app/threads.py); anyone else's is 404, not 403, so a guessed id says
 nothing. No codes configured (EMPLOYEE_CODES) = the employee screen is closed (503).
 Every run of the agent gets the employee id, so the tools fill in the employee's profile, in code.
+The weekly usage limit (app/usage_limit.py) is checked before each message: at 0 the answer is the
+"limit" event with the fixed message, and no model is called. An answer that started is not cut.
 """
 from __future__ import annotations
 
@@ -75,11 +78,12 @@ PAYSLIP_HTTP = {"too_large": 413, "bad_type": 415, "unreadable": 422}
 
 
 def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_reader, employees, profiles,
-           occupations: dict, auth=None, usage_file=None) -> APIRouter:
+           occupations: dict, meter, auth=None, usage_file=None) -> APIRouter:
     """auth: app/auth.EmployeeAuth, or None = closed. threads: who owns which conversation.
     payslips: the payslip kept with each conversation (app/payslip.py, app/db.py).
     employees: login id -> name, for GET /me (app/employees.py, app/db.py).
-    profiles: each employee's profile (app/profile.py, app/db.py); occupations: the sheet, for the group."""
+    profiles: each employee's profile (app/profile.py, app/db.py); occupations: the sheet, for the group.
+    meter: the weekly usage limit (app/usage_limit.UsageMeter)."""
     matcher = profile_mod.OccupationMatcher(occupations, cfg["profile"]["maxSuggestions"])
     texts = cfg["texts"]
     ptexts = texts["payslip"]
@@ -106,8 +110,13 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
         if threads.owner(thread_id) != employee:
             raise HTTPException(404, "unknown conversation")
 
-    def record_usage(thread_id: str, question: str, answers: list) -> None:
-        """Cost of the question: one line in the server log, and a row in usage_file."""
+    def record_usage(thread_id: str, question: str, answers: list, employee: str) -> None:
+        """Cost of the question: one line in the server log, a row in usage_file, and the employee's
+        weekly count (every billed token, the fallback models too)."""
+        try:
+            meter.record(employee, answers, thread_config(thread_id, employee))
+        except Exception:  # noqa: BLE001 - the answer was given; the count must not break it
+            log.exception("could not count the usage of %s", employee)
         u = turn_usage(answers, prices)
         cost = "-" if u["cost_usd"] is None else f"${u['cost_usd']:.5f}"
         timing_log.info("💲 question: %d model calls, %d tokens in, %d out (%s), %s",
@@ -141,10 +150,20 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
             profile_mod.trace_profile("profile_updated", sorted(changed))
         return sorted(changed)
 
+    def limit_reached():
+        """The weekly limit is used up: the fixed message (with the address for a mailto link), no model."""
+        yield sse("limit", {"message": texts["usage"]["limitReached"], "email": cfg["usage"]["supportEmail"]})
+        yield sse("done", {})
+
     def answer(thread_id: str, message, question: str, employee: str, new: bool = False, extra_answers=()):
         """The bot's answer as SSE events. message: the employee's text, or a ready message (a system note)."""
         if new:
             yield sse("thread", {"thread_id": thread_id})
+        if meter.blocked(employee):  # checked before the model; counted after it (an answer is never cut)
+            if extra_answers:
+                record_usage(thread_id, question, list(extra_answers), employee)
+            yield from limit_reached()
+            return
         start = time.perf_counter()
         first_token = None
         answers = list(extra_answers)  # the model's messages in this question, for its cost
@@ -178,7 +197,7 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
             yield sse("error", {"message": texts["overloaded"]})
         finally:
             if answers:
-                record_usage(thread_id, question, answers)
+                record_usage(thread_id, question, answers, employee)
             touch(thread_id)
 
     def run(thread_id: str, message: str, new: bool, employee: str) -> StreamingResponse:
@@ -189,6 +208,9 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
         """Reads the payslip (the model sees it once), keeps the values, and the bot carries on with them -
         no confirmation from the employee. Unreadable: the fixed message, and the questions go on."""
         def stream():
+            if meter.blocked(employee):  # the payslip is read by a model: not at 0
+                yield from limit_reached()
+                return
             yield sse("step", {"tool": "payslip", "label": texts["steps"]["payslip"]})
             reading = read()
             payslip_mod.trace_upload(thread_id, kind, reading.status, sorted(reading.fields))
@@ -220,7 +242,7 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
                 log.exception("payslip failed (thread %s)", thread_id)
                 yield sse("error", {"message": texts["overloaded"]})
             if reading.answers:
-                record_usage(thread_id, "[payslip]", reading.answers)
+                record_usage(thread_id, "[payslip]", reading.answers, employee)
             touch(thread_id)
 
         return StreamingResponse(stream(), media_type="text/event-stream", headers=SSE_HEADERS)
@@ -289,6 +311,10 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
         profiles.update_settings(employee, clean)
         return profiles.settings(employee)
 
+    @r.get("/usage")
+    def my_usage(employee: str = Depends(current_employee)):
+        return meter.status(employee)
+
     @r.get("/threads")
     def my_threads(employee: str = Depends(current_employee)):
         return {"threads": threads.list(employee)}
@@ -298,6 +324,8 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
         if body.thread_id:
             own(body.thread_id, employee)
             return run(body.thread_id, body.message, False, employee)
+        if meter.blocked(employee):  # no new conversation that would stay empty
+            return StreamingResponse(limit_reached(), media_type="text/event-stream", headers=SSE_HEADERS)
         thread_id = str(uuid.uuid4())
         threads.add(employee, thread_id)
         return run(thread_id, body.message, True, employee)
@@ -344,6 +372,8 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
                              employee: str = Depends(current_employee)):
         """The raw file as the body (fetch(url, {body: file})): recognised by its bytes, not its Content-Type."""
         await run_in_threadpool(own, thread_id, employee)
+        if await run_in_threadpool(meter.blocked, employee):  # at 0 the file is not even kept
+            return StreamingResponse(limit_reached(), media_type="text/event-stream", headers=SSE_HEADERS)
         raw = await body_capped(request)
         try:
             prepared = await run_in_threadpool(payslip_mod.prepare, raw, cfg["payslip"])
@@ -356,6 +386,8 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
     def paste_payslip(body: PayslipTextIn, thread_id: str = Path(pattern=UUID_RE),
                       employee: str = Depends(current_employee)):
         own(thread_id, employee)
+        if meter.blocked(employee):
+            return StreamingResponse(limit_reached(), media_type="text/event-stream", headers=SSE_HEADERS)
         payslips.save(thread_id, None, "text")  # the values only: the pasted text itself is not kept
         return read_payslip(thread_id, "text", lambda: payslip_reader.read_text(body.text), employee)
 

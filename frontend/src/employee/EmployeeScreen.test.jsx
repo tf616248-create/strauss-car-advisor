@@ -78,7 +78,9 @@ describe('EmployeeScreen', () => {
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('הודעה'), 'שלום')
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
-    expect(await screen.findByText('כובי עמוס כרגע. נסו שוב בעוד רגע.')).toBeInTheDocument()
+    // in the conversation (the status line for screen readers also says it, a moment later)
+    const list = screen.getByRole('list', { name: 'השיחה' })
+    expect(await within(list).findByText('כובי עמוס כרגע. נסו שוב בעוד רגע.')).toBeInTheDocument()
   })
 
   it('keeps the part of the answer already written when an error arrives mid-answer', async () => {

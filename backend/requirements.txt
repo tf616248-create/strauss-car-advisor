@@ -19,3 +19,4 @@ langgraph-checkpoint-postgres>=2.0
 # payslip upload: shrink to JPEG, the first page of a PDF (app/payslip.py)
 Pillow>=10
 pypdfium2>=4
+tzdata  # Asia/Jerusalem for the weekly usage reset (Windows has no IANA time zones)

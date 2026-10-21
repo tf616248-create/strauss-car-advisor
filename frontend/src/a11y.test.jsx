@@ -14,6 +14,7 @@ import payslipCfg from './config/payslip.json'
 import sidebarCfg from './config/sidebar.json'
 import profileCfg from './config/profile.json'
 import settingsCfg from './config/settings.json'
+import usageCfg from './config/usage.json'
 import Intro from './components/Intro'
 import EmployeeApp from './employee/EmployeeApp'
 import EmployeeScreen from './employee/EmployeeScreen'
@@ -49,6 +50,8 @@ function chatApi(events = []) {
     streamPayslip: vi.fn(),
     payslipImage: vi.fn().mockResolvedValue('blob:x'),
     me: vi.fn().mockResolvedValue({ employee_id: 'E01', name: 'נועה לוי' }),
+    usage: vi.fn().mockResolvedValue({ used: 152945, limit: 764725, remaining: 611780, avg_tokens_per_conversation: 30589,
+      conversations_left: 20, blocked: false, resets_on: '2026-10-25' }),
     profile: vi.fn().mockResolvedValue({
       employee_id: 'E01', fields: { occupation: 'מנהל/ת מוצר', base: 15000, current_kind: 'car' },
       sources: { occupation: 'profile', base: 'payslip', current_kind: 'chat' }, group: 'ג' }),
@@ -109,7 +112,7 @@ describe.each(WIDTHS)('axe at %ipx', (width) => {
     await expectClean()
   })
 
-  it('the sidebar: usage disabled ("soon"); on a phone open over the chat', async () => {
+  it('the sidebar, with the usage bar; on a phone open over the chat', async () => {
     viewport(width)
     sessionStorage.setItem('threadId', TID)
     const api = chatApi()
@@ -119,6 +122,22 @@ describe.each(WIDTHS)('axe at %ipx', (width) => {
     await userEvent.setup().click(screen.getByRole('button', { name: sidebarCfg.texts.toggle }))
     await screen.findByText('ATTO 3')
     await screen.findByText('נועה לוי')
+    await screen.findByRole('progressbar', { name: usageCfg.texts.barLabel })
+    await expectClean()
+  })
+
+  it('the usage bar with less than one conversation, and the message at 0', async () => {
+    viewport(width)
+    sessionStorage.setItem('threadId', TID)
+    const api = chatApi([['limit', { message: 'לשיחות נוספות אפשר לפנות ל-support@strauss-in.com', email: 'support@strauss-in.com' }],
+      ['done', {}]])
+    api.usage = vi.fn().mockResolvedValue({ used: 764725, limit: 764725, remaining: 0, avg_tokens_per_conversation: 30589,
+      conversations_left: 0, blocked: true, resets_on: '2026-10-25' })
+    render(<EmployeeScreen api={api} {...quiet} />)
+    await ask(api, 'שאלה')
+    await screen.findByRole('link', { name: 'support@strauss-in.com' })
+    await userEvent.setup().click(screen.getByRole('button', { name: sidebarCfg.texts.toggle }))
+    await screen.findByRole('progressbar', { name: usageCfg.texts.barLabel })
     await expectClean()
   })
 

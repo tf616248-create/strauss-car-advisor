@@ -12,6 +12,12 @@
     "failedLoginWindowSeconds": 300
   },
   "usage": {
+    "avg_tokens_per_conversation": 30589,
+    "weekly_token_limit": 764725,
+    "limitNote": "Measured 2026-10-21 from logs/usage.csv: 3 conversations (9 questions), the tokens in + out of each thread_id summed: 26,645 / 6,497 / 58,624, average 30,589. weekly_token_limit = avg_tokens_per_conversation x 25 conversations. A small sample (one conversation had a single question): measure again with more conversations, and change both numbers here - no code.",
+    "timezone": "Asia/Jerusalem",
+    "supportEmail": "support@strauss-in.com",
+    "supportEmailNote": "⚠️ Not a real address: להחליף בכתובת אמיתית בפיילוט (here, in texts.usage.limitReached, and VITE_SUPPORT_EMAIL).",
     "note": "Cost of each question (app/usage.py): a line in the server log and a row in this file (relative to backend/, not in git). Prices in USD per million tokens, per provider; a provider without a price gets no cost. Output includes thinking tokens.",
     "file": "logs/usage.csv",
     "prices": {
@@ -35,6 +41,7 @@
     "current_car_year": [1990, 2035]
   },
   "texts": {
+    "usage": {"limitReached": "לשיחות נוספות אפשר לפנות ל-support@strauss-in.com"},
     "outOfScope": "אני כובי, ואני יודע לעזור רק בשאלות על רכב החברה והנטו שלכם בשטראוס. רוצים לבדוק מה יקרה לנטו אם תחליפו רכב, תעברו לחשמלי, למסלול המשפחתי או תוותרו על הרכב?",
     "repSent": "שלחתי שאלה לנציג התחבורה, והחלופה תתעדכן",
     "repAnswered": "[עדכון מהמערכת: הנציג ענה על השאלה]",

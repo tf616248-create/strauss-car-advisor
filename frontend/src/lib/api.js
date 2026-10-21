@@ -117,6 +117,8 @@ export const settings = (fetchImpl = fetch) => employeeJson(`${API_URL}/settings
 export const saveSettings = (values, fetchImpl = fetch) => employeeJson(`${API_URL}/settings`, {
   method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values),
 }, fetchImpl)
+// this week's usage: { used, limit, remaining, avg_tokens_per_conversation, conversations_left, blocked, resets_on }
+export const usage = (fetchImpl = fetch) => employeeJson(`${API_URL}/usage`, {}, fetchImpl)
 // my conversations, newest first: [{ thread_id, title, updated_at }]
 export const threads = async (fetchImpl = fetch) => (await employeeJson(`${API_URL}/threads`, {}, fetchImpl)).threads
 // the conversation's current state: messages, cards, rep { pending, new_answers }

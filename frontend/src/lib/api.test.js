@@ -152,6 +152,18 @@ describe('employee login', () => {
     expect(init.headers.Authorization).toBe('Bearer tok-5')
   })
 
+  it('usage gives this week\'s usage, with the token', async () => {
+    const { usage } = await import('./api')
+    const { setToken } = await import('./session')
+    setToken('tok-6')
+    const view = { used: 1, limit: 2, remaining: 1, avg_tokens_per_conversation: 1, conversations_left: 1,
+      blocked: false, resets_on: '2026-10-25' }
+    const fetchImpl = vi.fn().mockResolvedValue(ok(view))
+    expect(await usage(fetchImpl)).toEqual(view)
+    expect(fetchImpl.mock.calls[0][0]).toMatch(/\/usage$/)
+    expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe('Bearer tok-6')
+  })
+
   it('me gives the logged-in employee (the name for the sidebar), with the token', async () => {
     const { me } = await import('./api')
     const { setToken } = await import('./session')

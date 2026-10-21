@@ -47,6 +47,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const [threadId, setThreadId] = useState(() => getCurrentThread())
   const [history, setHistory] = useState([])
   const [me, setMe] = useState(null) // { employee_id, name } (GET /me), for the sidebar
+  const [usage, setUsage] = useState(null) // this week's usage (GET /usage), for the sidebar
   const [messages, setMessages] = useState([])
   const [cards, setCards] = useState([])
   const [step, setStep] = useState(null)
@@ -133,6 +134,11 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     }
   }
 
+  // the weekly usage: read on load and after every answer (the server counts it)
+  function loadUsage() {
+    Promise.resolve(api.usage?.()).then((u) => { if (u) setUsage(u) }).catch(() => {})
+  }
+
   // my conversations, newest first (GET /threads): read on load and after every answer
   async function loadHistory() {
     try {
@@ -146,6 +152,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   useEffect(() => {
     Promise.resolve(api.me?.()).then((m) => setMe(m ?? null)).catch(() => {})
     Promise.resolve(api.settings?.()).then((s) => { if (s) setSettings(s) }).catch(() => {})
+    loadUsage()
     const tid = getCurrentThread()
     if (tid) refresh(tid)
     loadHistory().then((list) => {
@@ -286,6 +293,11 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         setStep(null)
         said.text += data.text
         setMessages((ms) => ms.map((m) => (m.id === assistantId ? { ...m, text: m.text + data.text } : m)))
+      } else if (event === 'limit') {
+        // the weekly limit is used up: no answer from Kobi, the server's fixed message with a mailto link
+        said.limit = data.message
+        setMessages((ms) => ms.map((m) => (m.id === assistantId
+          ? { ...m, role: 'limit', text: data.message, email: data.email } : m)))
       } else if (event === 'error') {
         said.error = data.message
         // keep what was already written; the error goes below it as its own message
@@ -307,11 +319,12 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     const said = { text: '', error: null }
     await start(handler(assistantId, said))
     const spoken = plainText(said.text)
-    announce([spoken && `${A11Y.live.answered} ${spoken}`, said.error].filter(Boolean).join(' '))
+    announce([spoken && `${A11Y.live.answered} ${spoken}`, said.limit, said.error].filter(Boolean).join(' '))
     setStep(null)
     busyRef.current = false
     setBusy(false)
     loadHistory() // a new conversation, or a new title from the card
+    loadUsage()
     return assistantId
   }
 
@@ -431,7 +444,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
       style={{ '--side-w': `${sidebarCfg.width}px`, '--rail-w': `${sidebarCfg.railWidth}px` }}>
       <div className="side">
         <Sidebar state={side} busy={busy} onNew={newConversation} onProfile={openProfile}
-          onCustomize={(opener) => setCustomizer(opener ?? true)} history={history} threadId={threadId}
+          onCustomize={(opener) => setCustomizer(opener ?? true)} usage={usage} history={history} threadId={threadId}
           onOpenThread={openThread} name={me?.name} onLogout={onLogout} />
       </div>
       <header className="topbar" inert={behind}>
@@ -470,7 +483,9 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         {/* not a live region (it would read the answer letter by letter): the status line below speaks.
             Focusable, so the keyboard can scroll it */}
         <ol className={`chat__messages ${messages.length ? '' : 'chat__messages--empty'}`} aria-label="השיחה" tabIndex={0}>
-          {messages.map((m) => m.role === 'payslip' ? (
+          {messages.map((m) => m.role === 'limit' ? (
+            <li key={m.id} className="msg msg--limit"><LimitText text={m.text} email={m.email} /></li>
+          ) : m.role === 'payslip' ? (
             <li key={m.id} className="msg msg--user msg--payslip">
               {m.thumb ? (
                 <button type="button" className="msg__thumb" aria-label={PT.open}
@@ -597,6 +612,13 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
 
     </div>
   )
+}
+
+// the weekly limit's message from the server, its address as a mailto link
+function LimitText({ text, email }) {
+  const at = email ? text.indexOf(email) : -1
+  if (at < 0) return text
+  return <>{text.slice(0, at)}<a href={`mailto:${email}`}><bdi>{email}</bdi></a>{text.slice(at + email.length)}</>
 }
 
 // a PDF payslip: an icon (with a name for screen readers when it stands alone)

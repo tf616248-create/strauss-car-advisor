@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import cfg from '../config/sidebar.json'
+import usageCfg from '../config/usage.json'
 
 const T = cfg.texts
 const fmtWhen = (iso) => new Date(iso).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -90,7 +91,8 @@ export function useSidebar(chatRef) {
 }
 
 // the sidebar itself: new conversation, three items for later, my conversations, the name and logout
-export default function Sidebar({ state, busy, onNew, onProfile, onCustomize, history, threadId, onOpenThread, name, onLogout }) {
+export default function Sidebar({ state, busy, onNew, onProfile, onCustomize, usage, history, threadId, onOpenThread,
+  name, onLogout }) {
   const { phone, expanded, floating, focusTo } = state
   const topRef = useRef(null)
   const listRef = useRef(null)
@@ -145,15 +147,14 @@ export default function Sidebar({ state, busy, onNew, onProfile, onCustomize, hi
           <Icon><path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4" /></Icon>
           <span className="sidebar__label">{T.customize}</span>
         </button>
-        {/* not built yet: focusable (so the keyboard finds it), aria-disabled, "soon" */}
-        {[['usage', <path d="M5 20V12M12 20V5M19 20v-9" />]].map(([key, shape]) => (
-          <button key={key} type="button" className="sidebar__item" data-item={key} aria-disabled="true"
-            title={`${T[key]} · ${T.soon}`}>
-            <Icon>{shape}</Icon>
-            <span className="sidebar__label">{T[key]}</span>{' '}
-            <span className="sidebar__soon">{T.soon}</span>
+        {/* this week's usage (GET /usage): open, a progress bar and how many conversations are left;
+            in the strip, an icon that opens the sidebar */}
+        {expanded ? <UsageBar usage={usage} /> : (
+          <button type="button" className="sidebar__item" aria-label={T.usage} aria-expanded="false"
+            aria-controls="sidebar" onClick={() => state.open()}>
+            <Icon d="M5 20V12M12 20V5M19 20v-9" />
           </button>
-        ))}
+        )}
 
         <div className="sidebar__gap" aria-hidden="true" />
 
@@ -204,6 +205,33 @@ export default function Sidebar({ state, busy, onNew, onProfile, onCustomize, hi
   // over the chat: straight in <body>, so no ancestor (the chat's entrance animation moves it with
   // a transform) can hold a position: fixed element inside itself
   return floating ? createPortal(sidebar, document.body) : sidebar
+}
+
+const U = usageCfg.texts
+
+// "נשארו לך כ-X שיחות השבוע": X = what is left / the average conversation, rounded down (by the server)
+export function usageSentence(usage) {
+  if (!usage) return U.loading
+  if (usage.blocked) return U.none
+  const n = usage.conversations_left
+  if (n < 1) return U.lessThanOne
+  return n === 1 ? U.leftOne : U.left.replace('{n}', n)
+}
+
+function UsageBar({ usage }) {
+  const used = usage ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0
+  const sentence = usageSentence(usage)
+  return (
+    <div className="sidebar__usage" data-item-block="usage">
+      <span className="sidebar__heading">{T.usage}</span>
+      <div className="usage__bar" role="progressbar" aria-label={U.barLabel} aria-valuemin={0} aria-valuemax={100}
+        aria-valuenow={used} aria-valuetext={sentence}>
+        <span className="usage__fill" style={{ width: `${used}%` }} />
+      </div>
+      <span className="usage__text" aria-hidden="true">{sentence}</span>
+      <span className="usage__reset">{U.resets}</span>
+    </div>
+  )
 }
 
 function Icon({ d, children }) {

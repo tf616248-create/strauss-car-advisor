@@ -68,24 +68,20 @@ describe('the sidebar on a computer', () => {
     const { sidebar } = setup()
     await userEvent.setup().click(toggle())
     const names = within(sidebar()).getAllByRole('button').map((b) => b.dataset.item).filter(Boolean)
-    expect(names).toEqual(['new', 'profile', 'customize', 'usage', 'thread', 'thread', 'logout'])
+    expect(names).toEqual(['new', 'profile', 'customize', 'thread', 'thread', 'logout'])
+    // usage: open, it is a progress bar (Usage.test.jsx), between customize and the conversations
+    const bar = within(sidebar()).getByRole('progressbar')
     const nav = screen.getByRole('navigation', { name: T.history })
+    expect(bar.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(nav.compareDocumentPosition(await screen.findByText('נועה לוי')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('usage is only an item for now: disabled, "soon", it does nothing', async () => {
+  it('no item is "soon" any more: profile, customize and usage all work', async () => {
     const { sidebar } = setup()
-    const user = userEvent.setup()
-    for (const key of ['profile', 'customize']) {
+    for (const key of ['profile', 'customize', 'usage']) {
       expect(within(sidebar()).getByRole('button', { name: T[key] })).not.toHaveAttribute('aria-disabled')
     }
-    for (const key of ['usage']) {
-      const item = within(sidebar()).getByRole('button', { name: new RegExp(T[key]) })
-      expect(item).toHaveAttribute('aria-disabled', 'true')
-      expect(item).toHaveAccessibleName(`${T[key]} ${T.soon}`)
-      await user.click(item)
-    }
-    expect(toggle()).toHaveAttribute('aria-expanded', 'false')
+    expect(within(sidebar()).queryByText(T.soon)).toBeNull()
   })
 
   it('the conversations: newest first, the open one marked, a click opens one', async () => {
@@ -174,8 +170,8 @@ describe('the sidebar on a computer', () => {
     expect(document.activeElement).toHaveAccessibleName(T.profile) // opens the profile (ProfileDialog.test.jsx)
     await user.tab()
     expect(document.activeElement).toHaveAccessibleName(T.customize) // CustomizeDialog.test.jsx
-    await user.tab()
-    expect(document.activeElement).toHaveAccessibleName(`${T.usage} ${T.soon}`)
+    await user.tab() // usage is a progress bar, not a stop for Tab: the conversations come next
+    expect(document.activeElement).toHaveAttribute('data-item', 'thread')
   })
 })
 
