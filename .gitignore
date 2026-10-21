@@ -9,3 +9,6 @@ venv/
 .env.*
 !.env.example
 backend/logs/
+
+# the hero video source (large, not for git); scripts/build-hero-media.mjs builds frontend/public/media from it
+media-src/
