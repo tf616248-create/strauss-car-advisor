@@ -42,11 +42,11 @@
   },
   "texts": {
     "usage": {"limitReached": "לשיחות נוספות אפשר לפנות ל-support@strauss-in.com"},
-    "outOfScope": "אני כובי, ואני יודע לעזור רק בשאלות על רכב החברה והנטו שלכם בשטראוס. רוצים לבדוק מה יקרה לנטו אם תחליפו רכב, תעברו לחשמלי, למסלול המשפחתי או תוותרו על הרכב?",
+    "outOfScope": "אני כובי, ואני יודע לעזור רק בשאלות על רכב החברה והנטו בשטראוס. אפשר לבדוק איתי מה יקרה לנטו במעבר לרכב אחר, לחשמלי או למסלול המשפחתי, או בוויתור על הרכב.",
     "repSent": "שלחתי שאלה לנציג התחבורה, והחלופה תתעדכן",
     "repAnswered": "[עדכון מהמערכת: הנציג ענה על השאלה]",
     "pending": "⏳ ממתין לנציג",
-    "overloaded": "כובי עמוס כרגע. נסו שוב בעוד רגע.",
+    "overloaded": "כובי עמוס כרגע. אפשר לנסות שוב בעוד רגע.",
     "steps": {
       "lookup_vehicle": "כובי מחפש את הרכב…",
       "check_eligibility": "כובי בודק זכאות…",
@@ -68,10 +68,10 @@
     },
     "reasons": {
       "today": "המצב היום.",
-      "own_group_or_lower": "הרכב בקבוצה {carGroup}, בתוך הזכאות שלך (קבוצה {employeeGroup}).",
+      "own_group_or_lower": "הרכב בקבוצה {carGroup}, בתוך הזכאות (קבוצה {employeeGroup}).",
       "family_track": "מסלול משפחתי: {children} ילדים עד גיל 23 (נדרשים לפחות {minChildren}).",
-      "waiver_allowed": "העיסוק שלך מאפשר לוותר על הרכב ולקבל אחזקת רכב.",
-      "group_too_high": "הרכב בקבוצה {carGroup}, מעל הזכאות שלך (קבוצה {employeeGroup}).",
+      "waiver_allowed": "העיסוק מאפשר לוותר על הרכב ולקבל אחזקת רכב.",
+      "group_too_high": "הרכב בקבוצה {carGroup}, מעל הזכאות (קבוצה {employeeGroup}).",
       "family_track_only": "הרכב הזה שייך רק למסלול המשפחתי.",
       "not_family_track_car": "הרכב הזה לא במסלול המשפחתי.",
       "not_enough_children": "המסלול המשפחתי מחייב לפחות {minChildren} ילדים עד גיל 23, וציינת {children}.",
@@ -79,7 +79,7 @@
     },
     "profile": {
       "updated": "עדכנתי בפרופיל: {fields}.",
-      "link": "חסרים לי כמה נתונים, ובמקום לשאול אחד-אחד: הכי מהיר למלא אותם בפרופיל שלכם, /profile. אפשר גם להעלות תלוש שכר (📎), ואני אקח ממנו את הנתונים.",
+      "link": "חסרים לי כמה נתונים, ובמקום לשאול אחד-אחד: הכי מהיר למלא אותם בפרופיל, /profile. אפשר גם להעלות תלוש שכר (📎), ואני אקח ממנו את הנתונים.",
       "noteUpdated": "הערכים נשמרו גם בפרופיל של העובד: כתוב לו בתשובה גם \"עדכנתי בפרופיל\".",
       "promptHeading": "פרופיל העובד",
       "labels": {
@@ -110,7 +110,7 @@
       "failed": "כובי לא הצליח לקרוא את התלוש. אפשר לענות על השאלות כאן בצ'אט.",
       "tooLarge": "הקובץ גדול מדי. אפשר להעלות עד 10MB.",
       "badType": "אפשר להעלות רק JPG, PNG או PDF.",
-      "unreadable": "כובי לא הצליח לפתוח את הקובץ. נסו קובץ אחר.",
+      "unreadable": "כובי לא הצליח לפתוח את הקובץ. אפשר לנסות קובץ אחר.",
       "labels": {
         "base": "שכר בסיס",
         "commission": "עמלות",
@@ -148,7 +148,8 @@
     ],
     "defaults": {
       "theme": "light",
-      "tone": "professional"
+      "tone": "professional",
+      "address": "plural"
     }
   },
   "tones": {
@@ -161,5 +162,19 @@
       "friendly": "חברותי: חם ואישי יותר מהרגיל. משפט פתיחה שמראה הבנה (\"אני מבין, זה באמת מבלבל\"), מילים יומיומיות ופשוטות, ופנייה ישירה. עדיין בלי חנופה, בלי סימני קריאה מרובים ובלי אימוג'י, ובאותו אורך.",
       "funny": "מצחיק: קליל ומשועשע. מותרת הלצה קצרה אחת לכל היותר בתשובה, ורק על הרכב, על הכביש או על כובי עצמו (מכונית לבנה בלי פנים). כל מה שנוגע לשכר, למס, לנטו, לזכאות או לסירוב נכתב ברצינות, כמו בטון המקצועי. בלי אימוג'י, ובאותו אורך."
     }
+  },
+  "address": {
+    "note": "How Kobi addresses the employee (פנייה), chosen in the profile; plural until chosen (settings.defaults). The fixed texts are neutral, so they need no version per form. The name: the prompt has only the placeholder, and the server puts the first name in its place (app/names.py) - the name never reaches the model or LangSmith.",
+    "options": [
+      "male",
+      "female",
+      "plural"
+    ],
+    "labels": {
+      "male": "זכר",
+      "female": "נקבה",
+      "plural": "רבים"
+    },
+    "placeholder": "{name}"
   }
 }

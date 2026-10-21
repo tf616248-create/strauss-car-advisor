@@ -57,7 +57,8 @@ function chatApi(events = []) {
       sources: { occupation: 'profile', base: 'payslip', current_kind: 'chat' }, group: 'ג' }),
     settings: vi.fn().mockResolvedValue({ theme: 'light', tone: 'professional' }),
     saveSettings: vi.fn(async (values) => ({ theme: 'light', tone: 'professional', ...values })),
-    saveProfile: vi.fn().mockResolvedValue({ invalid: { base: { range: [1, 500000] }, occupation: { suggestions: ['מנהל/ת מוצר', 'מנהל/ת פיתוח'] } } }),
+    saveProfile: vi.fn().mockResolvedValue({ invalid: { base: { range: [1, 500000] }, occupation: { suggestions: ['מנהל/ת מוצר', 'מנהל/ת פיתוח'] },
+      address: { options: ['male', 'female', 'plural'] } } }),
   }
 }
 const quiet = { subscribe: () => () => {}, notifier: { beep: vi.fn(), setUnread: vi.fn() } }
@@ -194,6 +195,7 @@ describe.each(WIDTHS)('axe at %ipx', (width) => {
     window.history.replaceState(null, '', profileCfg.path)
     render(<EmployeeScreen api={chatApi()} {...quiet} />)
     const base = await screen.findByDisplayValue('15000')
+    await screen.findByRole('radiogroup', { name: profileCfg.texts.address }) // "פנייה"
     await expectClean()
     const user = userEvent.setup()
     await user.clear(base)

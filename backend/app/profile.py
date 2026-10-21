@@ -28,8 +28,10 @@ SOURCES = ("profile", "chat", "payslip")
 
 
 def validate_settings(values: Mapping, cfg: dict) -> tuple[dict, dict]:
-    """The settings ("התאמה אישית"): theme (light | dark) and tone (agent.json tones). (clean, {field: why not})."""
-    options = {"theme": list(cfg["settings"]["themes"]), "tone": list(cfg["tones"]["styles"])}
+    """The settings: theme (light | dark) and tone (agent.json tones) - "התאמה אישית" - and the form of
+    address (male | female | plural), in the profile. (clean, {field: why not})."""
+    options = {"theme": list(cfg["settings"]["themes"]), "tone": list(cfg["tones"]["styles"]),
+               "address": list(cfg["address"]["options"])}
     clean, bad = {}, {}
     for field, value in values.items():
         if field not in options:

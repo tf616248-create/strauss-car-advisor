@@ -150,7 +150,8 @@ def test_the_profile_endpoints_need_a_login(data, cfg):
 
 def test_read_an_empty_profile(data, cfg):
     client, _, _ = make(data, cfg)
-    assert client.get("/profile").json() == {"employee_id": "E01", "fields": {}, "sources": {}, "group": None}
+    assert client.get("/profile").json() == {"employee_id": "E01", "fields": {}, "sources": {}, "group": None,
+                                             "address": "plural"}
 
 
 def test_update_then_read_with_the_group_computed(data, cfg):

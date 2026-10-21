@@ -48,9 +48,9 @@ describe('the live region', () => {
   })
 
   it('an error is announced too', async () => {
-    setup(vi.fn(async (p, onEvent) => onEvent('error', { message: 'כובי עמוס כרגע. נסו שוב בעוד רגע.' })))
+    setup(vi.fn(async (p, onEvent) => onEvent('error', { message: 'כובי עמוס כרגע. אפשר לנסות שוב בעוד רגע.' })))
     await ask()
-    await waitFor(() => expect(live()).toHaveTextContent('כובי עמוס כרגע. נסו שוב בעוד רגע.'))
+    await waitFor(() => expect(live()).toHaveTextContent('כובי עמוס כרגע. אפשר לנסות שוב בעוד רגע.'))
   })
 
   it('the conversation itself is not a live region (no letter-by-letter reading)', () => {

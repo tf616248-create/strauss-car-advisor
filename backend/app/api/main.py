@@ -40,7 +40,8 @@ def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Opt
     profiles: each employee's profile (app/profile.py, app/db.py); None = in memory.
     usage: the weekly token count per employee (app/usage_limit.py, app/db.py); None = in memory."""
     profiles = profiles if profiles is not None else InMemoryProfiles(cfg["settings"]["defaults"])
-    agent = build_agent(model, data, rep_queue, cfg, checkpointer, specs=specs, profiles=profiles)
+    employees = employees if employees is not None else InMemoryEmployees(load_seed(BACKEND_DIR))
+    agent = build_agent(model, data, rep_queue, cfg, checkpointer, specs=specs, profiles=profiles, employees=employees)
     app = FastAPI(title="Strauss car advisor")
     app.state.agent = agent
     app.add_middleware(CORSMiddleware, allow_origins=list(origins), allow_methods=["*"], allow_headers=["*"])
@@ -54,8 +55,7 @@ def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Opt
                                         threads=threads if threads is not None else InMemoryThreads(),
                                         payslips=payslips if payslips is not None else InMemoryPayslips(),
                                         payslip_reader=payslip_reader or PayslipReader(None, model, cfg),
-                                        employees=employees if employees is not None
-                                        else InMemoryEmployees(load_seed(BACKEND_DIR)),
+                                        employees=employees,
                                         profiles=profiles, occupations=data.occupations,
                                         meter=UsageMeter(usage if usage is not None else InMemoryUsage(), cfg)))
     app.include_router(rep.router(agent=agent, rep_queue=rep_queue, notifier=notifier, rep_passcode=rep_passcode))

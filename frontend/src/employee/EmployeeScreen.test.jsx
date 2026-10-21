@@ -74,24 +74,24 @@ describe('EmployeeScreen', () => {
   })
 
   it('shows a calm message when the server is overloaded', async () => {
-    setup({ chatEvents: [['error', { message: 'כובי עמוס כרגע. נסו שוב בעוד רגע.' }]] })
+    setup({ chatEvents: [['error', { message: 'כובי עמוס כרגע. אפשר לנסות שוב בעוד רגע.' }]] })
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('הודעה'), 'שלום')
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
     // in the conversation (the status line for screen readers also says it, a moment later)
     const list = screen.getByRole('list', { name: 'השיחה' })
-    expect(await within(list).findByText('כובי עמוס כרגע. נסו שוב בעוד רגע.')).toBeInTheDocument()
+    expect(await within(list).findByText('כובי עמוס כרגע. אפשר לנסות שוב בעוד רגע.')).toBeInTheDocument()
   })
 
   it('keeps the part of the answer already written when an error arrives mid-answer', async () => {
     setup({ chatEvents: [
       ['token', { text: 'בדקתי את הרכב' }],
-      ['error', { message: 'כובי עמוס כרגע. נסו שוב בעוד רגע.' }],
+      ['error', { message: 'כובי עמוס כרגע. אפשר לנסות שוב בעוד רגע.' }],
     ] })
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('הודעה'), 'שלום')
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
-    expect(await screen.findByText('כובי עמוס כרגע. נסו שוב בעוד רגע.')).toBeInTheDocument()
+    expect(await screen.findByText('כובי עמוס כרגע. אפשר לנסות שוב בעוד רגע.')).toBeInTheDocument()
     // in the conversation (the status line for screen readers also says it, a moment later)
     expect(within(screen.getByRole('list', { name: 'השיחה' })).getByText(/בדקתי את הרכב/)).toBeInTheDocument()
   })

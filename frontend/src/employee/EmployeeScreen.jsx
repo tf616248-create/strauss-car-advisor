@@ -14,6 +14,7 @@ import PayslipViewer from '../components/PayslipViewer'
 import { checkFile, usePhone } from '../lib/payslip'
 import payslipCfg from '../config/payslip.json'
 import A11Y from '../config/accessibility.json'
+import chatCfg from '../config/chat.json'
 import SiteFooter from '../components/SiteFooter'
 import Sidebar, { useSidebar } from './Sidebar'
 import ProfileDialog from './ProfileDialog'
@@ -35,7 +36,6 @@ const CHOICES = [
   ['מסלול משפחתי', 'מה יקרה לנטו שלי אם אעבור למסלול המשפחתי?'],
   ['לוותר על הרכב', 'מה יקרה לנטו שלי אם אוותר על הרכב?'],
 ]
-const WELCOME = 'שלום, אני כובי'
 
 const fmtNet = (v) => `${v > 0 ? '+' : '−'}${Math.abs(v).toLocaleString('he-IL')} ₪`
 // the answer as a screen reader should hear it: no Markdown marks (it would read "כוכבית")
@@ -48,6 +48,9 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const [history, setHistory] = useState([])
   const [me, setMe] = useState(null) // { employee_id, name } (GET /me), for the sidebar
   const [usage, setUsage] = useState(null) // this week's usage (GET /usage), for the sidebar
+  // "שלום נועה, אני כובי": the first name from GET /me; without one, the welcome as it was
+  const firstName = me?.name?.trim().split(/\s+/)[0]
+  const welcome = firstName ? chatCfg.welcomeNamed.replace('{name}', firstName) : chatCfg.welcome
   const [messages, setMessages] = useState([])
   const [cards, setCards] = useState([])
   const [step, setStep] = useState(null)
@@ -468,7 +471,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         {messages.length === 0 && (
           <section className="welcome" aria-labelledby="welcome-title">
             <div className="welcome__car" aria-hidden="true"><CarBody /></div>
-            <h2 id="welcome-title" className="welcome__title">{WELCOME}</h2>
+            <h2 id="welcome-title" className="welcome__title">{welcome}</h2>
             <p className="welcome__sub">רכב חברה משפיע על המשכורת שלכם, גם אם לא שמתם לב.</p>
             <p className="welcome__sub">אני מראה בדיוק כמה כסף יישאר לכם בכל חודש, היום ואחרי שינוי ברכב.</p>
             <p id="welcome-ask" className="welcome__ask">מה תרצו לבדוק?</p>

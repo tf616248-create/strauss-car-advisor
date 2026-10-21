@@ -42,6 +42,7 @@ from pydantic import BaseModel, Field
 
 from app import payslip as payslip_mod
 from app import profile as profile_mod
+from app.names import NameFiller, fill, first_name
 from app.agent.models import ModelStalledError
 from app.api.common import (SSE_HEADERS, UUID_RE, EventStreamResponse, cards_of, messages_of, sse,
                             text_of, thread_config, title_of)
@@ -63,7 +64,8 @@ class ChatIn(BaseModel):
 
 
 class ProfileIn(BaseModel):
-    fields: dict
+    fields: dict = {}
+    address: Optional[str] = None  # the form of address: male | female | plural
 
 
 class SettingsIn(BaseModel):
@@ -138,7 +140,14 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
     def profile_view(employee: str) -> dict:
         fields = profiles.get(employee)
         return {"employee_id": employee, "fields": fields, "sources": profiles.sources(employee),
-                "group": profile_mod.group_of(fields, occupations)}
+                "group": profile_mod.group_of(fields, occupations), "address": profiles.settings(employee).get("address") or cfg["settings"]["defaults"]["address"]}
+
+    def name_of(employee: str):
+        """The first name, for the answers on screen only (app/names.py); None = no name."""
+        try:
+            return first_name(employees.name(employee))
+        except Exception:  # noqa: BLE001 - no name is fine: the answer reads well without it
+            return None
 
     def update_profile(employee: str, values: dict, source: str) -> list[str]:
         """Keeps the values that differ from the profile, with their source (profile | chat | payslip);
@@ -168,13 +177,15 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
         first_token = None
         answers = list(extra_answers)  # the model's messages in this question, for its cost
         item = ("user", message) if isinstance(message, str) else message
+        filler = NameFiller(name_of(employee))  # the model writes {name}; the employee sees their name
+        address = profiles.settings(employee).get("address")
         try:
-            for mode, chunk in agent.stream({"messages": [item]}, thread_config(thread_id, employee),
+            for mode, chunk in agent.stream({"messages": [item]}, thread_config(thread_id, employee, address),
                                             stream_mode=["messages", "updates"]):
                 if mode == "messages":
                     msg, meta = chunk
                     if isinstance(msg, AIMessageChunk) and meta.get("langgraph_node") == "agent":
-                        text = text_of(msg.content)
+                        text = filler.feed(text_of(msg.content))
                         if text:
                             if first_token is None:
                                 first_token = time.perf_counter() - start
@@ -186,8 +197,14 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
                         for tc in getattr(msg, "tool_calls", []) or []:
                             yield sse("step", {"tool": tc["name"], "label": texts["steps"].get(tc["name"], "")})
                 elif "tools" in chunk:
+                    rest = filler.flush()  # the model's words so far, before the tool's step
+                    if rest:
+                        yield sse("token", {"text": rest})
                     for card in cards_of(chunk["tools"].get("messages", [])):
                         yield sse("card", card)
+            rest = filler.flush()
+            if rest:
+                yield sse("token", {"text": rest})
             timing_log.info("⏱ answer: total %.3fs", time.perf_counter() - start)
             yield sse("done", {})
         except (Exception, ModelStalledError):  # every model failed, one went silent, or a bug -
@@ -294,9 +311,14 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
     def write_profile(body: ProfileIn, employee: str = Depends(current_employee)):
         """All or nothing: one bad value and nothing is kept (the page shows what to fix)."""
         clean, bad = profile_mod.validate(body.fields, cfg, matcher)
-        if bad:
-            raise HTTPException(422, {"invalid": bad})
+        address = {} if body.address is None else {"address": body.address}
+        clean_address, bad_address = profile_mod.validate_settings(address, cfg)
+        if bad or bad_address:
+            raise HTTPException(422, {"invalid": {**bad, **bad_address}})
         update_profile(employee, clean, "profile")
+        if clean_address:
+            profiles.update_settings(employee, clean_address)
+            profile_mod.trace_profile("profile_updated", ["address"])
         return profile_view(employee)
 
     @r.get("/settings")
@@ -354,7 +376,7 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
                 text = text_of(m.content)
                 shown.append({"role": "system" if text == texts["repAnswered"] else "user", "text": text})
             elif m.type == "ai" and text_of(m.content):
-                shown.append({"role": "assistant", "text": text_of(m.content)})
+                shown.append({"role": "assistant", "text": fill(text_of(m.content), name_of(employee))})
         rep = {"pending": len(rep_queue.pending(thread_id)), "new_answers": rep_queue.new_answers(thread_id)}
         return {"thread_id": thread_id, "messages": shown, "cards": cards_of(msgs), "rep": rep,
                 "payslip": payslip_view(thread_id)}

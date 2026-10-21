@@ -253,6 +253,7 @@ create table if not exists employee_profile (
 alter table employee_profile add column if not exists sources jsonb not null default '{}'::jsonb;
 alter table employee_profile add column if not exists theme text;
 alter table employee_profile add column if not exists tone text;
+alter table employee_profile add column if not exists address text;
 """
 
 
@@ -266,16 +267,16 @@ class PostgresProfiles:
         self._defaults = dict(defaults or {})
 
     def settings(self, employee_id: str) -> dict:
-        """theme and tone, kept with the profile; a setting never chosen is its default."""
+        """theme, tone and the form of address, kept with the profile; one never chosen is its default."""
         with self.pool.connection() as conn:
-            row = conn.execute("select theme, tone from employee_profile where employee_id = %s",
+            row = conn.execute("select theme, tone, address from employee_profile where employee_id = %s",
                                (employee_id,)).fetchone()
         chosen = {k: v for k, v in (row or {}).items() if v is not None}
         return {**self._defaults, **chosen}
 
     def update_settings(self, employee_id: str, values: Mapping) -> None:
         """Checked already (validate_settings); the column names are fixed here, never from the request."""
-        fields = [f for f in ("theme", "tone") if f in values]
+        fields = [f for f in ("theme", "tone", "address") if f in values]
         if not fields:
             return
         cols = ", ".join(fields)

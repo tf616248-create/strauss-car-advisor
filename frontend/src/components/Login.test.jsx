@@ -39,10 +39,10 @@ describe('Login', () => {
   })
 
   it.each([
-    [401, 'הקוד לא נכון. נסו שוב.'],
-    [429, 'יותר מדי ניסיונות. נסו שוב בעוד כמה דקות.'],
+    [401, 'הקוד לא נכון. אפשר לנסות שוב.'],
+    [429, 'יותר מדי ניסיונות. אפשר לנסות שוב בעוד כמה דקות.'],
     [503, 'הכניסה סגורה כרגע: לא הוגדרו קודים בשרת.'],
-    [undefined, 'כובי לא מצליח להתחבר כרגע. נסו שוב בעוד דקה.'],
+    [undefined, 'כובי לא מצליח להתחבר כרגע. אפשר לנסות שוב בעוד דקה.'],
   ])('error %s says what to do', async (status, text) => {
     const onLogin = await enter('9999', { login: fail(status) })
     expect(await screen.findByRole('alert')).toHaveTextContent(text)

@@ -6,12 +6,12 @@ import intro from '../config/intro.json'
 
 const T = intro.texts
 
-// errors always say what to do next
+// errors always say what to do next, in one wording for anyone (not "נסו")
 function errorText(err) {
-  if (err?.status === 401) return 'הקוד לא נכון. נסו שוב.'
-  if (err?.status === 429) return 'יותר מדי ניסיונות. נסו שוב בעוד כמה דקות.'
+  if (err?.status === 401) return 'הקוד לא נכון. אפשר לנסות שוב.'
+  if (err?.status === 429) return 'יותר מדי ניסיונות. אפשר לנסות שוב בעוד כמה דקות.'
   if (err?.status === 503) return 'הכניסה סגורה כרגע: לא הוגדרו קודים בשרת.'
-  return 'כובי לא מצליח להתחבר כרגע. נסו שוב בעוד דקה.'
+  return 'כובי לא מצליח להתחבר כרגע. אפשר לנסות שוב בעוד דקה.'
 }
 
 // Demo login: an employee code -> a token for this tab (app/auth.py). A pilot replaces it with SSO.

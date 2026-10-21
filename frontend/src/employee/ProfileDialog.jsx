@@ -38,6 +38,7 @@ export default function ProfileDialog({ api, onClose }) {
   const [errors, setErrors] = useState({})
   const [notice, setNotice] = useState(null) // { kind: 'saved' | 'alert', text }
   const [saving, setSaving] = useState(false)
+  const [address, setAddress] = useState(null) // "פנייה": male | female | plural (kept with the settings)
   const boxRef = useRef(null)
   const closeRef = useRef(null)
   useModalFocus(boxRef, closeRef, onClose)
@@ -45,6 +46,7 @@ export default function ProfileDialog({ api, onClose }) {
 
   function take(v) {
     setView(v)
+    setAddress(v.address ?? 'plural')
     setForm(Object.fromEntries(cfg.fields.map((f) => [f.name, shown(v.fields[f.name])])))
   }
 
@@ -64,12 +66,13 @@ export default function ProfileDialog({ api, onClose }) {
     for (const f of cfg.fields) {
       if (form[f.name] !== shown(view.fields[f.name])) changed[f.name] = parsed(f, form[f.name])
     }
+    const newAddress = address !== (view.address ?? 'plural') ? address : null
     setNotice(null)
     setErrors({})
-    if (!Object.keys(changed).length) { setNotice({ kind: 'saved', text: T.saved }); return }
+    if (!Object.keys(changed).length && !newAddress) { setNotice({ kind: 'saved', text: T.saved }); return }
     setSaving(true)
     try {
-      const res = await api.saveProfile(changed)
+      const res = await (newAddress ? api.saveProfile(changed, { address: newAddress }) : api.saveProfile(changed))
       if (res.invalid) {
         setErrors(res.invalid)
         setNotice({ kind: 'alert', text: T.fixErrors })
@@ -110,6 +113,29 @@ export default function ProfileDialog({ api, onClose }) {
     )
   }
 
+  // "פנייה": how Kobi speaks to the employee - three radio buttons, saved with the profile
+  function addressGroup() {
+    const problem = errors.address
+    const described = ['pf-address-hint', problem && 'pf-address-err'].filter(Boolean).join(' ')
+    return (
+      <div className="profile__field profile__address" role="radiogroup" aria-labelledby="pf-address"
+        aria-describedby={described} aria-invalid={problem ? 'true' : undefined}>
+        <span id="pf-address" className="profile__label">{T.address}</span>
+        <span id="pf-address-hint" className="profile__source">{T.addressHint}</span>
+        <span className="customize__options">
+          {Object.entries(T.addresses).map(([value, label]) => (
+            <label key={value} className="customize__option">
+              <input type="radio" name="pf-address" value={value} checked={address === value}
+                onChange={() => { setAddress(value); setNotice(null) }} />
+              {label}
+            </label>
+          ))}
+        </span>
+        {problem && <span id="pf-address-err" className="profile__error">{why(null, problem)}</span>}
+      </div>
+    )
+  }
+
   const group = view?.group ? fill(T.group, { group: view.group }) : T.groupUnknown
 
   return createPortal(
@@ -133,6 +159,7 @@ export default function ProfileDialog({ api, onClose }) {
               <span className="profile__label">{T.groupLabel}</span>
               <span className="profile__group">{group}</span>
             </p>
+            {addressGroup()}
             {cfg.fields.slice(1).map(control)}
             <div className="profile__foot">
               <button type="submit" disabled={saving}>{saving ? T.saving : T.save}</button>

@@ -42,14 +42,15 @@ def test_three_tones_in_agent_json_professional_by_default(cfg):
     for name in ("friendly", "funny"):
         assert tones["styles"][name].strip()
     assert "בלי הומור על שכר, מס או סירוב" in tones["rule"]
-    assert cfg["settings"] == {"themes": ["light", "dark"], "defaults": {"theme": "light", "tone": "professional"}}
+    assert cfg["settings"] == {"themes": ["light", "dark"],
+                               "defaults": {"theme": "light", "tone": "professional", "address": "plural"}}
 
 
 def test_validate_settings(cfg):
     assert validate_settings({"theme": "dark", "tone": "funny"}, cfg) == ({"theme": "dark", "tone": "funny"}, {})
     clean, bad = validate_settings({"theme": "pink", "tone": "rude", "font": "x"}, cfg)
     assert clean == {}
-    assert bad == {"theme": {"options": ["light", "dark"]}, "tone": {"options": ["professional", "friendly", "funny"]},
+    assert bad == {"theme": {"options": ["light", "dark"]}, "tone": {"options": ["professional", "friendly", "funny"]},  # noqa: E501
                    "font": {"reason": "unknown_field"}}
 
 
@@ -77,7 +78,7 @@ def store(request, cfg):
 
 def test_the_defaults_light_and_professional_even_without_a_profile(store):
     profiles, emp = store
-    assert profiles.settings(emp) == {"theme": "light", "tone": "professional"}
+    assert profiles.settings(emp) == {"theme": "light", "tone": "professional", "address": "plural"}
 
 
 def test_settings_are_kept_and_leave_the_profile_alone(store):
@@ -85,7 +86,7 @@ def test_settings_are_kept_and_leave_the_profile_alone(store):
     profiles.update(emp, {"base": 15000})
     profiles.update_settings(emp, {"theme": "dark"})
     profiles.update_settings(emp, {"tone": "funny"})
-    assert profiles.settings(emp) == {"theme": "dark", "tone": "funny"}
+    assert profiles.settings(emp) == {"theme": "dark", "tone": "funny", "address": "plural"}
     assert profiles.get(emp) == {"base": 15000}
     assert profiles.sources(emp) == {"base": "profile"}
 
@@ -108,9 +109,9 @@ def test_the_settings_endpoints_need_a_login(data, cfg):
 
 def test_read_and_change_the_settings(data, cfg):
     client, profiles, _ = make(data, cfg)
-    assert client.get("/settings").json() == {"theme": "light", "tone": "professional"}
+    assert client.get("/settings").json() == {"theme": "light", "tone": "professional", "address": "plural"}
     r = client.patch("/settings", json={"tone": "friendly"})
-    assert r.status_code == 200 and r.json() == {"theme": "light", "tone": "friendly"}
+    assert r.status_code == 200 and r.json() == {"theme": "light", "tone": "friendly", "address": "plural"}
     assert profiles.settings("E01")["tone"] == "friendly"
 
 
@@ -118,7 +119,7 @@ def test_a_bad_setting_is_refused_and_nothing_is_kept(data, cfg):
     client, profiles, _ = make(data, cfg)
     r = client.patch("/settings", json={"theme": "dark", "tone": "sarcastic"})
     assert r.status_code == 422 and set(r.json()["detail"]["invalid"]) == {"tone"}
-    assert profiles.settings("E01") == {"theme": "light", "tone": "professional"}
+    assert profiles.settings("E01") == {"theme": "light", "tone": "professional", "address": "plural"}
 
 
 # --- the tone in the prompt -------------------------------------------------------------------

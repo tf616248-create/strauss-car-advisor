@@ -237,7 +237,7 @@ def test_statuses_and_errors_speak_as_kobi():
         "payslip": "כובי קורא את התלוש…",
         "occupation_to_group": "כובי בודק את העיסוק…",
     }
-    assert texts["overloaded"] == "כובי עמוס כרגע. נסו שוב בעוד רגע."
+    assert texts["overloaded"] == "כובי עמוס כרגע. אפשר לנסות שוב בעוד רגע."  # neutral: any form of address
 
 
 # --- recommending: only through rank_options --------------------------------------

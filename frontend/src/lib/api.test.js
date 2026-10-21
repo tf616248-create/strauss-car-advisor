@@ -28,19 +28,19 @@ describe('streamChat', () => {
     const fetchImpl = vi.fn().mockRejectedValue(new TypeError('offline'))
     const got = []
     await streamChat({ message: 'x' }, (e, d) => got.push([e, d]), fetchImpl)
-    expect(got).toEqual([['error', { message: 'כובי לא מצליח להתחבר כרגע. נסו שוב בעוד דקה.' }]])
+    expect(got).toEqual([['error', { message: 'כובי לא מצליח להתחבר כרגע. אפשר לנסות שוב בעוד דקה.' }]])
   })
 
   it('a server that is down (e.g. 502/503) is "cannot connect", with what to do', async () => {
     const got = []
     await streamChat({ message: 'x' }, (e, d) => got.push([e, d]), vi.fn().mockResolvedValue({ ok: false, status: 503 }))
-    expect(got).toEqual([['error', { message: 'כובי לא מצליח להתחבר כרגע. נסו שוב בעוד דקה.' }]])
+    expect(got).toEqual([['error', { message: 'כובי לא מצליח להתחבר כרגע. אפשר לנסות שוב בעוד דקה.' }]])
   })
 
   it('429 (too many requests) is "busy", with what to do', async () => {
     const got = []
     await streamChat({ message: 'x' }, (e, d) => got.push([e, d]), vi.fn().mockResolvedValue({ ok: false, status: 429 }))
-    expect(got).toEqual([['error', { message: 'כובי עמוס כרגע. נסו שוב בעוד רגע.' }]])
+    expect(got).toEqual([['error', { message: 'כובי עמוס כרגע. אפשר לנסות שוב בעוד רגע.' }]])
   })
 })
 
@@ -125,15 +125,18 @@ describe('employee login', () => {
     const { saveProfile } = await import('./api')
     const view = { employee_id: 'E01', fields: { base: 2 }, sources: {}, group: null }
     let fetchImpl = vi.fn().mockResolvedValue(ok(view))
-    expect(await saveProfile({ base: 2 }, fetchImpl)).toEqual({ profile: view })
+    expect(await saveProfile({ base: 2 }, { fetchImpl })).toEqual({ profile: view })
     const [, init] = fetchImpl.mock.calls[0]
     expect(init.method).toBe('PATCH')
     expect(JSON.parse(init.body)).toEqual({ fields: { base: 2 } })
     const invalid = { base: { range: [1, 500000] } }
     fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 422, json: async () => ({ detail: { invalid } }) })
-    expect(await saveProfile({ base: 0 }, fetchImpl)).toEqual({ invalid })
+    expect(await saveProfile({ base: 0 }, { fetchImpl })).toEqual({ invalid })
     fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) })
-    await expect(saveProfile({ base: 3 }, fetchImpl)).rejects.toMatchObject({ status: 500 })
+    await expect(saveProfile({ base: 3 }, { fetchImpl })).rejects.toMatchObject({ status: 500 })
+    fetchImpl = vi.fn().mockResolvedValue(ok(view))
+    await saveProfile({}, { address: 'female', fetchImpl })
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ fields: {}, address: 'female' })
   })
 
   it('settings and saveSettings: GET and PATCH /settings, with the token', async () => {

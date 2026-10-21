@@ -19,7 +19,7 @@ from langgraph.prebuilt import InjectedState, create_react_agent
 
 from app.agent.advisor import Advisor
 from app.agent.car_options import CarOptions
-from app.agent.prompt import build_prompt, profile_section, tone_section
+from app.agent.prompt import address_section, build_prompt, profile_section, tone_section
 from app.data.specs_store import load_specs_config, snapshot_store
 from app.timing import timed
 
@@ -187,10 +187,11 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
     return tools
 
 
-def build_agent(model, data, rep_queue, cfg: dict, checkpointer=None, specs=None, profiles=None):
+def build_agent(model, data, rep_queue, cfg: dict, checkpointer=None, specs=None, profiles=None, employees=None):
     """profiles: the employees' profiles (app/profile.py). With them, the prompt of a logged-in
     employee's run ends with which profile fields are there - their names, never their values - and the
-    style block of the tone they chose. Read at every model call: a new setting applies from the next message."""
+    style block of the tone they chose. Read at every model call: a new setting applies from the next message.
+    employees: whether the employee has a name (app/employees.py) - only the placeholder goes in the prompt."""
     base = build_prompt(data, cfg)
     prompt = base
     if profiles is not None:
@@ -199,6 +200,8 @@ def build_agent(model, data, rep_queue, cfg: dict, checkpointer=None, specs=None
             text = base
             if employee:
                 text += "\n\n" + profile_section(profiles.get(employee), cfg)
+                has_name = bool(employees is not None and (employees.name(employee) or "").strip())
+                text += "\n\n" + address_section(profiles.settings(employee).get("address"), has_name, cfg)
                 tone = tone_section(profiles.settings(employee).get("tone"), cfg)
                 if tone:
                     text += "\n\n" + tone

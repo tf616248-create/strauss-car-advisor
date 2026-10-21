@@ -8,9 +8,9 @@ export function apiBase(env) {
 }
 
 export const API_URL = apiBase(import.meta.env)
-// errors always say what to do next
-const NETWORK_ERROR = 'כובי לא מצליח להתחבר כרגע. נסו שוב בעוד דקה.'
-const BUSY = 'כובי עמוס כרגע. נסו שוב בעוד רגע.'
+// errors always say what to do next, in one wording for anyone (no "נסו": the form of address)
+const NETWORK_ERROR = 'כובי לא מצליח להתחבר כרגע. אפשר לנסות שוב בעוד דקה.'
+const BUSY = 'כובי עמוס כרגע. אפשר לנסות שוב בעוד רגע.' // the same as the server's (agent.json)
 
 // the employee's login token on every request (lib/session.js)
 function withToken(headers = {}) {
@@ -99,10 +99,12 @@ export const me = (fetchImpl = fetch) => employeeJson(`${API_URL}/me`, {}, fetch
 // the employee's profile: { employee_id, fields, sources, group } (group: read only, from the occupation)
 export const profile = (fetchImpl = fetch) => employeeJson(`${API_URL}/profile`, {}, fetchImpl)
 
-// some fields (null clears one) -> { profile } once kept, or { invalid: { field: why } } (422: nothing kept)
-export async function saveProfile(fields, fetchImpl = fetch) {
+// some fields (null clears one), and the form of address if it changed -> { profile } once kept,
+// or { invalid: { field: why } } (422: nothing kept)
+export async function saveProfile(fields, { address, fetchImpl = fetch } = {}) {
+  const body = address ? { fields, address } : { fields }
   const res = await fetchImpl(`${API_URL}/profile`, {
-    method: 'PATCH', headers: withToken({ 'Content-Type': 'application/json' }), body: JSON.stringify({ fields }),
+    method: 'PATCH', headers: withToken({ 'Content-Type': 'application/json' }), body: JSON.stringify(body),
   })
   if (res.status === 401) unauthorized()
   if (res.status === 422) {

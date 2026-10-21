@@ -9,8 +9,9 @@ from app.agent.prompt import build_prompt
 from evals.run_off_topic import CASES_FILE, judge
 from tests.conftest import BACKEND_DIR
 
-SENTENCE = ("אני כובי, ואני יודע לעזור רק בשאלות על רכב החברה והנטו שלכם בשטראוס. "
-            "רוצים לבדוק מה יקרה לנטו אם תחליפו רכב, תעברו לחשמלי, למסלול המשפחתי או תוותרו על הרכב?")
+# neutral: the same sentence fits a man, a woman or many (the form of address, test_address.py)
+SENTENCE = ("אני כובי, ואני יודע לעזור רק בשאלות על רכב החברה והנטו בשטראוס. "
+            "אפשר לבדוק איתי מה יקרה לנטו במעבר לרכב אחר, לחשמלי או למסלול המשפחתי, או בוויתור על הרכב.")
 REMINDER = "תזכורת: רק רכב חברה ונטו בשטראוס. כל השאר – המשפט הקבוע, בלי חריגים."
 
 

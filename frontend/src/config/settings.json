@@ -15,11 +15,12 @@
     },
     "toneHint": "הטון משתנה מההודעה הבאה. המספרים, הכללים וההסברים נשארים אותו דבר.",
     "saved": "נשמר",
-    "saveError": "כובי לא הצליח לשמור כרגע. נסו שוב בעוד דקה.",
+    "saveError": "כובי לא הצליח לשמור כרגע. אפשר לנסות שוב בעוד דקה.",
     "loading": "טוען…"
   },
   "defaults": {
     "theme": "light",
-    "tone": "professional"
+    "tone": "professional",
+    "address": "plural"
   }
 }

@@ -154,7 +154,7 @@ describe('without a token: the login card', () => {
     await user.click(screen.getByRole('button', { name: T.skipLabel }))
     await user.type(codeField(), '9')
     await user.click(enterButton())
-    expect(await screen.findByRole('alert')).toHaveTextContent('הקוד לא נכון. נסו שוב.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('הקוד לא נכון. אפשר לנסות שוב.')
     expect(onEnter).not.toHaveBeenCalled()
   })
 })

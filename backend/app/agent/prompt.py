@@ -190,6 +190,25 @@ def tone_section(tone: Optional[str], cfg: dict) -> str:
     return f'{cfg["tones"]["heading"]}\n{style}\n{cfg["tones"]["rule"]}'
 
 
+ADDRESS_TEMPLATE = """## עם מי אתה מדבר
+{who}פנה בלשון {label}. הלשון הזו גוברת על הלשון שבה העובד כותב (ראו "## טון").{name_rule}"""
+
+NAME_RULE = """
+- השם: כתוב תמיד {placeholder}, בדיוק כך, עם הסוגריים. הקוד מחליף אותו בשם הפרטי של העובד. אל תכתוב שם אחר, ואל תנחש.
+- פנה בשם בפתיחה (למשל "שלום {placeholder}, ..."), ומדי פעם ברגעים חשובים, כמו בסיכום של תוצאה. לא בכל הודעה."""
+
+
+def address_section(address: Optional[str], has_name: bool, cfg: dict) -> str:
+    """For a logged-in employee: the form of address (plural until chosen), and the name as a placeholder only
+    - the name itself never reaches the prompt (app/names.py)."""
+    a = cfg["address"]
+    label = a["labels"].get(address or cfg["settings"]["defaults"]["address"], a["labels"]["plural"])
+    ph = a["placeholder"]
+    who = f"אתה מדבר עם {ph}. " if has_name else ""
+    return ADDRESS_TEMPLATE.format(who=who, label=label,
+                                   name_rule=NAME_RULE.format(placeholder=ph) if has_name else "")
+
+
 def build_prompt(data, cfg: Optional[dict] = None) -> str:
     cfg = cfg or load_agent_config(BACKEND_DIR)
     occupations = "\n".join(f"- {name}" for name in data.occupations)
