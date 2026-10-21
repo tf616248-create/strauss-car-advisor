@@ -109,6 +109,16 @@ describe('employee login', () => {
     expect(await threads(fetchImpl)).toEqual(list)
     expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe('Bearer tok-2')
   })
+
+  it('me gives the logged-in employee (the name for the sidebar), with the token', async () => {
+    const { me } = await import('./api')
+    const { setToken } = await import('./session')
+    setToken('tok-3')
+    const fetchImpl = vi.fn().mockResolvedValue(ok({ employee_id: 'E01', name: 'נועה לוי' }))
+    expect(await me(fetchImpl)).toEqual({ employee_id: 'E01', name: 'נועה לוי' })
+    expect(fetchImpl.mock.calls[0][0]).toMatch(/\/me$/)
+    expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe('Bearer tok-3')
+  })
 })
 
 describe('payslip upload', () => {

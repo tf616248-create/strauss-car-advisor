@@ -13,6 +13,7 @@ from app.agent.rep_queue import InMemoryRepQueue
 from app.api.events import InMemoryNotifier
 from app.api.main import create_app
 from app.auth import EmployeeAuth, LoginLimiter
+from app.employees import InMemoryEmployees, load_seed
 from app.threads import InMemoryThreads
 from tests.auth_helpers import CODES, SECRET, authed, make_auth
 from tests.conftest import BACKEND_DIR
@@ -109,11 +110,12 @@ def test_auth_settings_in_the_config(cfg):
 # --- the API ---------------------------------------------------------------------
 
 
-def build(data, cfg, script=(), auth="default", threads=None):
+def build(data, cfg, script=(), auth="default", threads=None, employees=None):
     auth = make_auth() if auth == "default" else auth
     threads = threads if threads is not None else InMemoryThreads()
     app = create_app(data=data, model=ScriptedModel(messages=iter(list(script))), rep_queue=InMemoryRepQueue(),
-                     notifier=InMemoryNotifier(), cfg=cfg, rep_passcode=None, employee_auth=auth, threads=threads)
+                     notifier=InMemoryNotifier(), cfg=cfg, rep_passcode=None, employee_auth=auth, threads=threads,
+                     employees=employees)
     return app, auth, threads
 
 
@@ -155,9 +157,26 @@ def test_every_employee_route_needs_a_token(data, cfg):
     assert client.post(f"/chat/{tid}/rep-answered").status_code == 401
     assert client.get(f"/conversations/{tid}/events").status_code == 401
     assert client.get("/threads").status_code == 401
+    assert client.get("/me").status_code == 401
     bad = {"Authorization": "Bearer not-a-token"}
     assert client.get("/threads", headers=bad).status_code == 401
     assert client.get("/health").status_code == 200  # health stays open (UptimeRobot)
+
+
+def test_me_gives_the_logged_in_employees_name(data, cfg):
+    app, auth, _ = build(data, cfg, employees=InMemoryEmployees({"E01": "עובדת דמה", "E02": "עובד דמה"}))
+    assert authed(app, auth, "E01").get("/me").json() == {"employee_id": "E01", "name": "עובדת דמה"}
+    assert authed(app, auth, "E02").get("/me").json() == {"employee_id": "E02", "name": "עובד דמה"}
+
+
+def test_me_without_a_name_in_the_table_gives_none(data, cfg):
+    app, auth, _ = build(data, cfg, employees=InMemoryEmployees({}))
+    assert authed(app, auth, "E01").get("/me").json() == {"employee_id": "E01", "name": None}
+
+
+def test_by_default_the_names_come_from_the_seed_file(data, cfg):
+    app, auth, _ = build(data, cfg)
+    assert authed(app, auth, "E01").get("/me").json()["name"] == load_seed(BACKEND_DIR)["E01"]
 
 
 def test_a_new_conversation_belongs_to_its_employee(data, cfg):

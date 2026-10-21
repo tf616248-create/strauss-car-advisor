@@ -1,0 +1,21 @@
+{
+  "texts": {
+    "label": "סרגל הצד",
+    "toggle": "סרגל הצד",
+    "close": "סגירת סרגל הצד",
+    "newConversation": "שיחה חדשה",
+    "soon": "בקרוב",
+    "profile": "פרופיל",
+    "customize": "התאמה אישית",
+    "usage": "שימוש",
+    "history": "השיחות שלי",
+    "historyEmpty": "עוד אין שיחות קודמות.",
+    "untitled": "שיחה חדשה",
+    "logout": "יציאה"
+  },
+  "width": 240,
+  "railWidth": 64,
+  "minChatWidth": 480,
+  "storageKey": "kobi.sidebarOpen",
+  "phoneQuery": "(max-width: 767px)"
+}

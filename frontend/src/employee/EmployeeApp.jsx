@@ -7,11 +7,13 @@ import EmployeeScreen from './EmployeeScreen'
 // The employee side. Every visit opens with the intro scene (components/Intro.jsx): its card logs in,
 // or, with a token for this tab already, only its button goes on. Then the picture shrinks to a
 // banner and the chat comes in below it, with the focus in the message box.
-// A 401 from the server (expired login) and "logout" come back to the card - without the video again.
+// A 401 from the server (expired login) comes back to the card - without the video again.
+// "Logout" (in the sidebar) starts over: the intro with the video, as on a new visit.
 export default function EmployeeApp({ api = realApi, ...screenProps }) {
   const [loggedIn, setLoggedIn] = useState(() => Boolean(getToken()))
   const [inside, setInside] = useState(false)
   const [backAgain, setBackAgain] = useState(false) // returned from inside: no replay
+  const [visit, setVisit] = useState(0) // a new key after logout: the intro starts again
 
   function backToCard() {
     setLoggedIn(false)
@@ -31,13 +33,16 @@ export default function EmployeeApp({ api = realApi, ...screenProps }) {
 
   function logout() {
     clearSession()
-    backToCard()
+    setLoggedIn(false)
+    setInside(false)
+    setBackAgain(false)
+    setVisit((v) => v + 1)
   }
 
   return (
     <div className={`shell ${inside ? 'shell--inside' : ''}`}>
       {/* a new key on the way back: the scene starts at its end, without the video */}
-      <Intro key={backAgain ? 'back' : 'first'} api={api} hasToken={loggedIn} onEnter={enter}
+      <Intro key={backAgain ? 'back' : `visit-${visit}`} api={api} hasToken={loggedIn} onEnter={enter}
         banner={inside} startFinal={backAgain} />
       {inside && (
         <div className="shell__app">

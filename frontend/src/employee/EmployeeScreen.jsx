@@ -15,6 +15,8 @@ import { checkFile, usePhone } from '../lib/payslip'
 import payslipCfg from '../config/payslip.json'
 import A11Y from '../config/accessibility.json'
 import SiteFooter from '../components/SiteFooter'
+import Sidebar, { useSidebar } from './Sidebar'
+import sidebarCfg from '../config/sidebar.json'
 import logo from '../assets/strauss-logo.svg'
 
 const REP_ANSWERED = 'הנציג ענה, והחלופה מתעדכנת'
@@ -34,14 +36,13 @@ const WELCOME = 'שלום, אני כובי'
 const fmtNet = (v) => `${v > 0 ? '+' : '−'}${Math.abs(v).toLocaleString('he-IL')} ₪`
 // the answer as a screen reader should hear it: no Markdown marks (it would read "כוכבית")
 const plainText = (md) => md.replace(/[*_`#>]+/g, '').replace(/^\s*[-+]\s+/gm, '').replace(/\s+/g, ' ').trim()
-const fmtWhen = (iso) => new Date(iso).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
 
 // autoFocus: coming in from the intro, the focus goes straight to the message box
 export default function EmployeeScreen({ api = realApi, subscribe = subscribeChanges, notifier = realNotifier, onLogout, autoFocus = false }) {
   // the open conversation, kept for this tab (a reload stays on it); the list is on the server
   const [threadId, setThreadId] = useState(() => getCurrentThread())
   const [history, setHistory] = useState([])
-  const [historyOpen, setHistoryOpen] = useState(false)
+  const [me, setMe] = useState(null) // { employee_id, name } (GET /me), for the sidebar
   const [messages, setMessages] = useState([])
   const [cards, setCards] = useState([])
   const [step, setStep] = useState(null)
@@ -57,6 +58,8 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const cameraRef = useRef(null)
   const payslipUrl = useRef({ tid: null, url: null }) // the server's image (a promise), read once per conversation
   const isPhone = usePhone()
+  const chatRef = useRef(null)
+  const side = useSidebar(chatRef)
 
   // the message box grows with its text, like other chats (CSS caps it at ~7 lines, then it scrolls)
   useLayoutEffect(() => {
@@ -130,6 +133,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
 
   // after a reload: the conversation open in this tab; right after login: the newest one
   useEffect(() => {
+    Promise.resolve(api.me?.()).then((m) => setMe(m ?? null)).catch(() => {})
     const tid = getCurrentThread()
     if (tid) refresh(tid)
     loadHistory().then((list) => {
@@ -226,7 +230,6 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     setStops([])
     setStep(null)
     setParked(false)
-    setHistoryOpen(false)
     notifier.setUnread(0)
   }
 
@@ -327,14 +330,6 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     clearScreen()
   }
 
-  // Escape closes the list
-  useEffect(() => {
-    if (!historyOpen) return
-    const onKey = (e) => { if (e.key === 'Escape') setHistoryOpen(false) }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [historyOpen])
-
   // the server rang ("changed", e.g. the rep answered): beep, mark the tab, read the state
   useEffect(() => {
     if (!threadId) return
@@ -369,54 +364,34 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const nets = cards.map((c) => c.card?.diff?.net).filter((v) => typeof v === 'number' && v !== 0)
   const togglePanel = () => setPanelOpen((o) => !o)
 
+  // the sidebar over the chat (a phone, or no room): the rest of the page waits behind it
+  const behind = side.floating || undefined
+
   return (
-    <div className={`employee ${panelOpen ? '' : 'employee--closed'}`}>
-      <header className="topbar">
+    <div className={`employee ${panelOpen ? '' : 'employee--closed'} ${side.expanded && !side.floating ? 'employee--side' : ''}`}
+      style={{ '--side-w': `${sidebarCfg.width}px`, '--rail-w': `${sidebarCfg.railWidth}px` }}>
+      <div className="side">
+        <Sidebar state={side} busy={busy} onNew={newConversation} history={history} threadId={threadId}
+          onOpenThread={openThread} name={me?.name} onLogout={onLogout} />
+      </div>
+      <header className="topbar" inert={behind}>
         <img className="topbar__logo" src={logo} alt="שטראוס" />
         <span className="topbar__sep" aria-hidden="true" />
         <h1 className="topbar__title">
           <span className="topbar__name">כובי</span>
           <span className="topbar__product">יועץ הרכב של שטראוס</span>
         </h1>
-        <button type="button" className="topbar__logout" onClick={() => onLogout?.()}>יציאה</button>
+        {side.phone && (
+          <button type="button" className="topbar__menu" aria-label={sidebarCfg.texts.toggle}
+            aria-expanded={side.expanded} aria-controls="sidebar" onClick={() => side.open()}>
+            <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+        )}
         <p className="topbar__sub"><strong>רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלכם</strong> · לפי כללי שטראוס ורשות המסים</p>
       </header>
 
-      <main className={`chat ${dragging ? 'chat--drop' : ''}`} {...drag}>
+      <main ref={chatRef} className={`chat ${dragging ? 'chat--drop' : ''}`} inert={behind} {...drag}>
         {dragging && <div className="chat__dropzone" aria-hidden="true">{PT.drop}</div>}
-        <div className="chat__top">
-          <button type="button" className="chat__new" onClick={() => setHistoryOpen((o) => !o)}
-            aria-expanded={historyOpen} aria-controls="history" disabled={busy}>
-            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
-            השיחות שלי
-          </button>
-          {(threadId || messages.length > 0) && (
-            <button type="button" className="chat__new" onClick={newConversation} disabled={busy}>
-              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-              שיחה חדשה
-            </button>
-          )}
-        </div>
-        {historyOpen && (
-          <nav id="history" className="history" aria-label="השיחות שלי">
-            {history.length === 0
-              ? <p className="history__empty">עוד אין שיחות קודמות.</p>
-              : (
-                <ul className="history__list">
-                  {history.map((t) => (
-                    <li key={t.thread_id}>
-                      <button type="button" className="history__item" data-thread={t.thread_id}
-                        aria-current={t.thread_id === threadId ? 'true' : undefined}
-                        onClick={() => openThread(t.thread_id)}>
-                        <span className="history__title">{t.title || 'שיחה חדשה'}</span>
-                        <span className="history__when">{fmtWhen(t.updated_at)}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-          </nav>
-        )}
         {messages.length === 0 && (
           <section className="welcome" aria-labelledby="welcome-title">
             <div className="welcome__car" aria-hidden="true"><CarBody /></div>
@@ -510,7 +485,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         {viewing && <PayslipViewer src={viewing.src} opener={viewing.opener} onClose={() => setViewing(null)} />}
       </main>
 
-      <div className="divider">
+      <div className="divider" inert={behind}>
         {panelOpen && (
           <button type="button" className="divider__btn" onClick={togglePanel}
             aria-expanded="true" aria-controls="cmp-panel" aria-label="סגירת פאנל ההשוואה">
@@ -519,7 +494,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         )}
       </div>
 
-      <section className="panel">
+      <section className="panel" inert={behind}>
         <button type="button" className="panel__head" onClick={togglePanel}
           aria-expanded={panelOpen} aria-controls="cmp-panel">
           <span className="panel__title">
@@ -550,7 +525,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
       </section>
 
       {!panelOpen && (
-        <button type="button" className="sidetab" onClick={togglePanel}
+        <button type="button" className="sidetab" onClick={togglePanel} inert={behind}
           aria-expanded="false" aria-controls="cmp-panel" aria-label="פתיחת פאנל השוואה">
           <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
           <span className="sidetab__text">השוואה</span>

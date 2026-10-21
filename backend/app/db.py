@@ -1,5 +1,5 @@
 """Postgres (Neon): the connection pool, the rep queue, the employees' conversation list,
-the payslips, and LangGraph's checkpointer.
+the employees' names, the payslips, and LangGraph's checkpointer.
 
 Used only when DATABASE_URL is set; without it everything stays in memory.
 
@@ -10,7 +10,7 @@ Used only when DATABASE_URL is set; without it everything stays in memory.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Mapping, Optional
 
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
@@ -194,6 +194,40 @@ class PostgresThreads:
         """For tests: remove throwaway conversations."""
         if thread_ids:
             self._all("delete from employee_threads where thread_id = any(%s)", (list(thread_ids),))
+
+
+EMPLOYEES_SCHEMA = """
+create table if not exists employees (
+    employee_id text primary key,
+    name        text not null
+);
+"""
+
+
+class PostgresEmployees:
+    """Same methods as app/employees.InMemoryEmployees. setup() adds the seed's employees that
+    are missing; a name already in the table stays (the table is the source)."""
+
+    def __init__(self, pool: ConnectionPool, seed: Mapping[str, str]):
+        self.pool = pool
+        self._seed = dict(seed)
+
+    def setup(self) -> None:
+        with self.pool.connection() as conn:
+            conn.execute(EMPLOYEES_SCHEMA)
+            for employee_id, name in self._seed.items():
+                conn.execute("insert into employees (employee_id, name) values (%s, %s) "
+                             "on conflict (employee_id) do nothing", (employee_id, name))
+
+    def name(self, employee_id: str) -> Optional[str]:
+        with self.pool.connection() as conn:
+            row = conn.execute("select name from employees where employee_id = %s", (employee_id,)).fetchone()
+        return row["name"] if row else None
+
+    def delete(self, employee_ids: list[str]) -> None:
+        """For tests: remove throwaway employees."""
+        with self.pool.connection() as conn:
+            conn.execute("delete from employees where employee_id = any(%s)", (list(employee_ids),))
 
 
 PAYSLIPS_SCHEMA = """

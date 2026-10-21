@@ -94,6 +94,8 @@ async function employeeJson(url, init = {}, fetchImpl = fetch) {
 export const login = (code, fetchImpl = fetch) => json(`${API_URL}/login`, {
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }),
 }, fetchImpl)
+// the logged-in employee: { employee_id, name } (name: dummy names, the employees table)
+export const me = (fetchImpl = fetch) => employeeJson(`${API_URL}/me`, {}, fetchImpl)
 // my conversations, newest first: [{ thread_id, title, updated_at }]
 export const threads = async (fetchImpl = fetch) => (await employeeJson(`${API_URL}/threads`, {}, fetchImpl)).threads
 // the conversation's current state: messages, cards, rep { pending, new_answers }

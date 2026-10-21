@@ -2,7 +2,7 @@
 // (375) and a computer width (1280). Any violation fails, of any impact: a new problem is caught here.
 // Color contrast is computed from the color tokens in styles.css (jsdom cannot render colors).
 import { readFileSync } from 'node:fs'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import noa from './test-fixtures/card-noa.json'
@@ -11,6 +11,7 @@ import specs from './test-fixtures/card-specs.json'
 import rachel from './test-fixtures/card-rachel-waiting.json'
 import intro from './config/intro.json'
 import payslipCfg from './config/payslip.json'
+import sidebarCfg from './config/sidebar.json'
 import Intro from './components/Intro'
 import EmployeeApp from './employee/EmployeeApp'
 import EmployeeScreen from './employee/EmployeeScreen'
@@ -41,6 +42,7 @@ function chatApi(events = []) {
     streamRepAnswered: vi.fn(),
     streamPayslip: vi.fn(),
     payslipImage: vi.fn().mockResolvedValue('blob:x'),
+    me: vi.fn().mockResolvedValue({ employee_id: 'E01', name: 'נועה לוי' }),
   }
 }
 const quiet = { subscribe: () => () => {}, notifier: { beep: vi.fn(), setUnread: vi.fn() } }
@@ -79,7 +81,7 @@ describe.each(WIDTHS)('axe at %ipx', (width) => {
     await expectClean()
   })
 
-  it('the chat under the banner (the welcome, the history list open)', async () => {
+  it('the chat under the banner (the welcome; the sidebar closed, then open with the conversations)', async () => {
     viewport(width)
     setToken('tok')
     render(<EmployeeApp api={chatApi()} {...quiet} />)
@@ -88,8 +90,23 @@ describe.each(WIDTHS)('axe at %ipx', (width) => {
     await user.click(screen.getByRole('button', { name: intro.texts.enterLabel }))
     await screen.findByLabelText('הודעה')
     await expectClean()
-    await user.click(screen.getByRole('button', { name: /השיחות שלי/ }))
-    await screen.findByRole('navigation', { name: 'השיחות שלי' })
+    await user.click(screen.getByRole('button', { name: sidebarCfg.texts.toggle }))
+    await screen.findByRole('navigation', { name: sidebarCfg.texts.history })
+    await screen.findByText('ATTO 3')
+    await screen.findByText('נועה לוי')
+    await expectClean()
+  })
+
+  it('the sidebar: profile, customize and usage disabled; on a phone open over the chat', async () => {
+    viewport(width)
+    sessionStorage.setItem('threadId', TID)
+    const api = chatApi()
+    render(<EmployeeScreen api={api} {...quiet} />)
+    await waitFor(() => expect(api.me).toHaveBeenCalled())
+    await expectClean() // closed: the strip on a computer, a header button on a phone
+    await userEvent.setup().click(screen.getByRole('button', { name: sidebarCfg.texts.toggle }))
+    await screen.findByText('ATTO 3')
+    await screen.findByText('נועה לוי')
     await expectClean()
   })
 

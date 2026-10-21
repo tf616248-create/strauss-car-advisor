@@ -90,7 +90,8 @@ describe('EmployeeScreen', () => {
     await user.type(screen.getByLabelText('הודעה'), 'שלום')
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
     expect(await screen.findByText('כובי עמוס כרגע. נסו שוב בעוד רגע.')).toBeInTheDocument()
-    expect(screen.getByText(/בדקתי את הרכב/)).toBeInTheDocument()
+    // in the conversation (the status line for screen readers also says it, a moment later)
+    expect(within(screen.getByRole('list', { name: 'השיחה' })).getByText(/בדקתי את הרכב/)).toBeInTheDocument()
   })
 
   it('"changed": reads the conversation again, beeps, and puts (1) in the tab title', async () => {
@@ -236,11 +237,6 @@ describe('EmployeeScreen', () => {
   it('has a "talk to a rep" button with contact details', () => {
     setup()
     expect(screen.getByRole('button', { name: 'שיחה עם נציג' })).toBeInTheDocument()
-  })
-
-  it('no "new conversation" link on an empty screen', () => {
-    setup()
-    expect(screen.queryByRole('button', { name: /שיחה חדשה/ })).toBeNull()
   })
 
   it('"new conversation" clears the screen and the next message starts a new conversation', async () => {
@@ -513,24 +509,7 @@ describe('conversation history', () => {
     expect(restore).not.toHaveBeenCalledWith(OTHER)
   })
 
-  it('"my conversations" lists them, newest first, the open one marked', async () => {
-    sessionStorage.setItem('threadId', TID)
-    const threads = vi.fn().mockResolvedValue(list)
-    setup({ threads, restore: vi.fn().mockResolvedValue(state()) })
-    await waitFor(() => expect(threads).toHaveBeenCalled())
-    const user = userEvent.setup()
-    const toggle = screen.getByRole('button', { name: 'השיחות שלי' })
-    expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    await user.click(toggle)
-    expect(toggle).toHaveAttribute('aria-expanded', 'true')
-    const nav = screen.getByRole('navigation', { name: 'השיחות שלי' })
-    const items = within(nav).getAllByRole('button').filter((b) => b.dataset.thread)
-    expect(items.map((b) => b.dataset.thread)).toEqual([OTHER, TID])
-    expect(items[0]).toHaveTextContent('ATTO 3 (2025)')
-    expect(items[1]).toHaveAttribute('aria-current', 'true')
-  })
-
-  it('picking one opens it: its messages and card, and closes the list', async () => {
+  it('picking one opens it: its messages and card', async () => {
     sessionStorage.setItem('threadId', TID)
     const restore = vi.fn(async (tid) => (tid === OTHER
       ? { thread_id: OTHER, messages: [{ role: 'assistant', text: 'השיחה האחרת' }], cards: [noa], rep: { pending: 0, new_answers: 0 } }
@@ -538,29 +517,13 @@ describe('conversation history', () => {
     setup({ threads: vi.fn().mockResolvedValue(list), restore })
     await screen.findByText('שאלה')
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'השיחות שלי' }))
-    await user.click(screen.getByText('ATTO 3 (2025)'))
+    await user.click(screen.getByRole('button', { name: 'סרגל הצד' })) // the list is in the sidebar (Sidebar.test.jsx)
+    await user.click(await screen.findByText('ATTO 3 (2025)'))
     expect(await screen.findByText('השיחה האחרת')).toBeInTheDocument()
     expect(screen.queryByText('שאלה')).toBeNull()
     const cards = screen.getByRole('complementary', { name: 'כרטיס השוואה' })
     expect(within(cards).getByText(noa.card.alternative.label)).toBeInTheDocument()
     expect(sessionStorage.getItem('threadId')).toBe(OTHER)
-    expect(screen.queryByRole('navigation', { name: 'השיחות שלי' })).toBeNull()
-  })
-
-  it('Escape closes the list', async () => {
-    setup()
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'השיחות שלי' }))
-    await user.keyboard('{Escape}')
-    expect(screen.queryByRole('navigation', { name: 'השיחות שלי' })).toBeNull()
-  })
-
-  it('no conversations yet: says so', async () => {
-    setup()
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'השיחות שלי' }))
-    expect(screen.getByText('עוד אין שיחות קודמות.')).toBeInTheDocument()
   })
 
   it('the list is read again after each answer (a new conversation, a new title)', async () => {
@@ -574,11 +537,4 @@ describe('conversation history', () => {
     await waitFor(() => expect(threads).toHaveBeenCalledTimes(2))
   })
 
-  it('"logout" is in the header', async () => {
-    const onLogout = vi.fn()
-    setup({ onLogout })
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'יציאה' }))
-    expect(onLogout).toHaveBeenCalled()
-  })
 })

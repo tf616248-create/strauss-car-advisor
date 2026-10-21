@@ -1,6 +1,7 @@
 """Employee routes (the chat screen, /).
 
   POST /login                      {code} -> {token}: a demo code -> a JWT (app/auth.py)
+  GET  /me                         the logged-in employee: {employee_id, name} (app/employees.py)
   GET  /threads                    the logged-in employee's conversations, newest first
   POST /chat                       SSE: thread, step, token, card, done | error
   POST /chat/{thread_id}/rep-answered   SSE: new rep answers - rerun with the system note (once per answer)
@@ -58,10 +59,11 @@ class PayslipTextIn(BaseModel):
 PAYSLIP_HTTP = {"too_large": 413, "bad_type": 415, "unreadable": 422}
 
 
-def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_reader, auth=None,
+def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_reader, employees, auth=None,
            usage_file=None) -> APIRouter:
     """auth: app/auth.EmployeeAuth, or None = closed. threads: who owns which conversation.
-    payslips: the payslip kept with each conversation (app/payslip.py, app/db.py)."""
+    payslips: the payslip kept with each conversation (app/payslip.py, app/db.py).
+    employees: login id -> name, for GET /me (app/employees.py, app/db.py)."""
     texts = cfg["texts"]
     ptexts = texts["payslip"]
     max_bytes = cfg["payslip"]["maxBytes"]
@@ -216,6 +218,10 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
             limiter.failed(key)
             raise HTTPException(401, "wrong code")
         return {"token": auth.issue(employee), "employee_id": employee}
+
+    @r.get("/me")
+    def me(employee: str = Depends(current_employee)):
+        return {"employee_id": employee, "name": employees.name(employee)}
 
     @r.get("/threads")
     def my_threads(employee: str = Depends(current_employee)):

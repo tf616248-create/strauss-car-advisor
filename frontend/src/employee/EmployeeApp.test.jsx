@@ -56,7 +56,7 @@ describe('EmployeeApp', () => {
     expect(await screen.findByLabelText('הודעה')).toHaveFocus()
   })
 
-  it('"logout" forgets the login and the open conversation, and shows the card (no replay)', async () => {
+  it('"logout" (in the sidebar) forgets the login and the open conversation, and replays the intro with the video', async () => {
     setToken('tok')
     setCurrentThread('11111111-2222-3333-4444-555555555555')
     render(<EmployeeApp {...props} />)
@@ -64,13 +64,15 @@ describe('EmployeeApp', () => {
     await skip(user)
     await user.click(enter())
     await user.click(await screen.findByRole('button', { name: 'יציאה' }))
+    expect(document.querySelector('video')).toBeInTheDocument()
+    expect(screen.queryByLabelText('הודעה')).toBeNull()
+    await skip(user)
     expect(screen.getByLabelText(T.code)).toBeInTheDocument()
-    expect(document.querySelector('video')).toBeNull()
     expect(getToken()).toBeNull()
     expect(sessionStorage.getItem('threadId')).toBeNull()
   })
 
-  it('an expired login (401 from the server) goes back to the card', async () => {
+  it('an expired login (401 from the server) goes back to the card, without the video', async () => {
     setToken('tok')
     render(<EmployeeApp {...props} />)
     const user = userEvent.setup()
@@ -79,6 +81,7 @@ describe('EmployeeApp', () => {
     expect(await screen.findByLabelText('הודעה')).toBeInTheDocument()
     act(() => unauthorized())
     expect(screen.getByLabelText(T.code)).toBeInTheDocument()
+    expect(document.querySelector('video')).toBeNull()
     expect(screen.queryByLabelText('הודעה')).toBeNull()
   })
 })
