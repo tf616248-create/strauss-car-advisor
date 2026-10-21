@@ -1,0 +1,31 @@
+{
+  "note": "The opening scene before the chat (components/Intro.jsx): the hero video (public/media, built by scripts/build-hero-media.mjs), the slogan, and the login card. Times are seconds of the video. loadTimeoutSeconds: no playback by then (slow or blocked) = the final picture at once.",
+  "media": {
+    "webm": "/media/hero.webm",
+    "mp4": "/media/hero.mp4",
+    "poster": {
+      "jpg": { "640": "/media/hero-poster-640.jpg", "1280": "/media/hero-poster-1280.jpg" },
+      "webp": { "640": "/media/hero-poster-640.webp", "1280": "/media/hero-poster-1280.webp" }
+    }
+  },
+  "times": {
+    "slogan": 2,
+    "answer": 6,
+    "card": 7,
+    "end": 9
+  },
+  "loadTimeoutSeconds": 4,
+  "texts": {
+    "slogan": "שוברים את הבלבול.",
+    "answer": "מקבלים תשובה.",
+    "enter": "לתשובה שלי עם כובי ←",
+    "enterLabel": "לתשובה שלי עם כובי",
+    "skip": "דלג",
+    "skipLabel": "דילוג על הפתיחה",
+    "soundOn": "הפעלת הקול",
+    "soundOff": "השתקת הקול",
+    "cardTitle": "כובי · יועץ הרכב של שטראוס",
+    "cardSub": "הקלידו את קוד העובד שקיבלתם, ונתחיל.",
+    "code": "קוד עובד"
+  }
+}

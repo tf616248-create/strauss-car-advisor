@@ -7,3 +7,8 @@ afterEach(() => {
   localStorage.clear()
   sessionStorage.clear()
 })
+
+// jsdom plays no media: play() resolves and pause() does nothing; tests drive the video's time
+// themselves (components/Intro.test.jsx)
+HTMLMediaElement.prototype.play = function play() { return Promise.resolve() }
+HTMLMediaElement.prototype.pause = function pause() {}

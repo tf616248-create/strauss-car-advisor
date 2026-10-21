@@ -526,19 +526,125 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .history__when { color: var(--muted); font-size: 0.8rem; }
 .history__empty { margin: 0; padding: 12px; color: var(--muted); }
 
-/* ---- the login screen ---- */
-.login { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: var(--surface); }
-.login__card {
-  width: min(400px, 100%); display: flex; flex-direction: column; align-items: center; gap: 12px;
-  padding: 28px 24px; background: var(--bg); border: 1px solid var(--line); border-radius: 20px; text-align: center;
+/* ---- the intro scene (components/Intro.jsx): the hero video full screen, the slogan, the login card;
+   after going in, the same picture as a banner above the chat ---- */
+.intro {
+  position: relative; height: 100svh; overflow: hidden; background: #0E0F11; color: #FFFFFF;
+  transition: height .6s cubic-bezier(.2, .7, .2, 1);
 }
-.login__logo { height: 56px; width: auto; background: #FFFFFF; border-radius: 10px; padding: 4px 8px; }
-.login__title { display: flex; flex-direction: column; line-height: 1.15; margin: 0; }
-.login__sub { color: var(--muted); margin: 0; }
-.login__label { align-self: flex-start; font-weight: 700; }
-.login__card input { text-align: center; letter-spacing: 0.3em; font-size: 1.25rem; }
-.login__card button { width: 100%; min-height: 52px; }
-.login__card .error { margin: 0; }
+.intro__video, .intro__poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.intro__poster { position: absolute; inset: 0; animation: intro-in .35s ease-out; }
+/* white text over a bright sky: dark at the top under the slogan, and at the bottom under the card
+   (AA: at least 4.5:1 for the small text, 3:1 for the large slogan) */
+.intro__shade {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgb(0 0 0 / 0.72) 0%, rgb(0 0 0 / 0.6) 24%, rgb(0 0 0 / 0) 52%),
+    linear-gradient(to top, rgb(0 0 0 / 0.6) 0%, rgb(0 0 0 / 0) 34%);
+}
+.intro__controls { position: absolute; top: 20px; inset-inline-end: 20px; z-index: 3; display: flex; gap: 10px; }
+.intro__skip, .intro__sound {
+  min-width: 52px; min-height: 52px; padding: 0 20px; border-radius: 999px; font-weight: 800;
+  background: rgb(0 0 0 / 0.55); color: #FFFFFF; border: 1.5px solid rgb(255 255 255 / 0.7);
+}
+.intro__sound { padding: 0; font-size: 1.3rem; }
+.intro__skip:hover, .intro__sound:hover { background: rgb(0 0 0 / 0.75); }
+.intro :focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+
+.intro__slogan {
+  position: absolute; z-index: 2; top: 9vh; inset-inline: 0; margin: 0; padding: 0 6vw; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 0.4em; line-height: 1.05;
+  text-shadow: 0 2px 18px rgb(0 0 0 / 0.55); transition: top .6s ease, font-size .6s ease;
+}
+.intro__line { display: block; opacity: 0; font-size: clamp(2.6rem, 7.4vw, 6.4rem); font-weight: 800; letter-spacing: -0.01em; }
+.intro__line--answer { font-size: clamp(1.4rem, 3.2vw, 2.6rem); font-weight: 700; }
+.intro__line.is-shown { opacity: 1; }
+/* 2 s: the slogan breaks in big - a short shake, and a crack that flashes across it */
+.intro__slogan--break.is-shown { position: relative; animation: intro-break .55s cubic-bezier(.3, 1.6, .5, 1) both; }
+.intro__slogan--break.is-shown::after {
+  content: ""; position: absolute; inset: 8% -4%; pointer-events: none; opacity: 0;
+  background: linear-gradient(105deg, transparent 47%, #FFFFFF 48%, transparent 49.5%),
+              linear-gradient(72deg, transparent 58%, rgb(255 255 255 / 0.85) 58.6%, transparent 59.6%);
+  clip-path: polygon(0 40%, 22% 52%, 41% 38%, 60% 58%, 78% 44%, 100% 56%, 100% 64%, 78% 52%, 60% 66%, 41% 46%, 22% 60%, 0 48%);
+  animation: intro-crack .6s ease-out .05s;
+}
+/* 6 s: the answer rises gently */
+.intro__line--answer.is-shown { animation: intro-rise 1s ease-out both; }
+.intro--final .intro__line.is-shown { animation-duration: .4s; }
+
+/* the car fills the middle ~28%-74% of the frame: the card sits narrow at the edge, beside it */
+.intro__dock {
+  position: absolute; z-index: 2; inset-inline-start: 24px; bottom: calc(32px + var(--kb, 0px));
+  width: min(300px, calc(100% - 48px)); animation: intro-rise .6s ease-out both;
+}
+.intro__card {
+  display: flex; flex-direction: column; gap: 10px; padding: 22px 22px 18px; border-radius: 20px;
+  background: var(--bg); color: var(--text); box-shadow: 0 18px 50px rgb(0 0 0 / 0.35);
+}
+.intro__cardtitle { margin: 0; font-size: 1.15rem; font-weight: 800; }
+.intro__cardsub { margin: 0; color: var(--muted); }
+.intro__label { font-weight: 700; }
+.intro__row { display: flex; flex-direction: column; gap: 8px; }
+.intro__row input { flex: 1; min-width: 0; min-height: 52px; text-align: center; letter-spacing: 0.3em; font-size: 1.2rem; }
+.intro__row input::placeholder { letter-spacing: normal; font-size: 1rem; }
+.intro__enter { min-width: 44px; min-height: 52px; padding: 0 22px; white-space: nowrap; }
+.intro__card .error { margin: 0; }
+.intro__go { min-height: 60px; padding: 0 32px; font-size: 1.15rem; box-shadow: 0 12px 34px rgb(0 0 0 / 0.35); }
+
+/* after going in: the picture shrinks to a banner, the slogan stays in it, small */
+.intro--banner { height: 33vh; }
+.intro--banner .intro__slogan { top: auto; bottom: 18px; align-items: flex-start; text-align: start; gap: 2px; }
+.intro--banner .intro__line { font-size: clamp(1.3rem, 2.6vw, 2.1rem); animation: none; }
+.intro--banner .intro__line--answer { font-size: clamp(0.95rem, 1.5vw, 1.2rem); }
+.intro--banner .intro__shade { background: linear-gradient(to top, rgb(0 0 0 / 0.7) 0%, rgb(0 0 0 / 0.15) 70%); }
+.shell--inside .employee { height: 67vh; }
+.shell__app { animation: intro-rise .6s ease-out both; }
+
+@keyframes intro-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes intro-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes intro-break {
+  0% { opacity: 0; transform: scale(1.35); }
+  35% { opacity: 1; transform: scale(0.97) translateX(-7px) rotate(-1deg); }
+  50% { transform: translateX(6px) rotate(0.8deg); }
+  65% { transform: translateX(-4px); }
+  80% { transform: translateX(2px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes intro-crack { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+
+/* intro: phone */
+@media (max-width: 767px) {
+  .intro__controls { top: 14px; inset-inline-end: 14px; }
+  .intro__slogan { top: 11svh; padding: 0 20px; }
+  .intro__line { font-size: clamp(2.2rem, 11vw, 3.4rem); }
+  .intro__line--answer { font-size: 1.35rem; }
+  /* at the bottom, under the car (the car is in the middle of the frame); above the keyboard (--kb) */
+  .intro__dock {
+    inset-inline: 12px; width: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--kb, 0px));
+  }
+  .intro__card { padding: 14px 14px 12px; gap: 6px; border-radius: 16px; }
+  .intro__row { flex-direction: row; }
+  /* short, so it stays under the car: the label is read but not shown (the field says it), and
+     the test-codes note is one line */
+  .intro__cardsub, .intro__card .test-codes__later { display: none; }
+  .intro__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .intro__card .test-codes { padding: 4px 8px; font-size: 0.8rem; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 0 6px; }
+  .intro__enter { padding: 0 14px; font-size: 0.95rem; }
+  .intro__go { width: 100%; }
+  .intro--banner { height: 120px; }
+  .intro--banner .intro__slogan { bottom: 10px; padding: 0 16px; }
+  .intro--banner .intro__line { font-size: 1.15rem; }
+  .intro--banner .intro__line--answer { font-size: 0.85rem; }
+  .shell--inside .employee { height: auto; }
+}
+
+/* intro: reduced motion */
+/* no video (Intro.jsx), and no animation or transition here either */
+@media (prefers-reduced-motion: reduce) {
+  .intro, .intro__slogan { transition: none; }
+  .intro__poster, .intro__line, .intro__line.is-shown, .intro__slogan--break.is-shown::after,
+  .intro__dock, .shell__app { animation: none; }
+}
 
 /* TEMPORARY: the test codes on the login screens (lib/testCodes.jsx) */
 .test-codes { margin: 0; padding: 8px 12px; border: 1px dashed var(--line); border-radius: 12px; background: var(--surface); color: var(--text); font-size: 0.9rem; display: flex; flex-direction: column; gap: 2px; text-align: center; }

@@ -32,7 +32,8 @@ const WELCOME = 'שלום, אני כובי'
 const fmtNet = (v) => `${v > 0 ? '+' : '−'}${Math.abs(v).toLocaleString('he-IL')} ₪`
 const fmtWhen = (iso) => new Date(iso).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
 
-export default function EmployeeScreen({ api = realApi, subscribe = subscribeChanges, notifier = realNotifier, onLogout }) {
+// autoFocus: coming in from the intro, the focus goes straight to the message box
+export default function EmployeeScreen({ api = realApi, subscribe = subscribeChanges, notifier = realNotifier, onLogout, autoFocus = false }) {
   // the open conversation, kept for this tab (a reload stays on it); the list is on the server
   const [threadId, setThreadId] = useState(() => getCurrentThread())
   const [history, setHistory] = useState([])
@@ -70,6 +71,8 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const turnStartCards = useRef(cards) // the cards before this answer began
 
   useEffect(() => { document.title = EMPLOYEE_TITLE }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (autoFocus) boxRef.current?.focus() }, [])
 
   useEffect(() => { endRef.current?.scrollIntoView?.({ block: 'end' }) }, [messages])
 

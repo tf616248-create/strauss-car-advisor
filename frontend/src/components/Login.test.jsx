@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { getToken } from '../lib/session'
 import Login from './Login'
+import intro from '../config/intro.json'
 
 const fail = (status) => vi.fn().mockRejectedValue(Object.assign(new Error('x'), { status }))
 
@@ -11,7 +12,7 @@ async function enter(code, api) {
   render(<Login api={api} onLogin={onLogin} />)
   const user = userEvent.setup()
   if (code) await user.type(screen.getByLabelText('קוד עובד'), code)
-  await user.click(screen.getByRole('button', { name: 'כניסה' }))
+  await user.click(screen.getByRole('button', { name: intro.texts.enterLabel }))
   return onLogin
 }
 
@@ -49,8 +50,9 @@ describe('Login', () => {
     expect(getToken()).toBeNull()
   })
 
-  it('says it is Kobi, a bot', () => {
+  it('says it is Kobi (the h1 is the slogan above it, in the intro)', () => {
     render(<Login api={{ login: vi.fn() }} onLogin={vi.fn()} />)
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('כובי')
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('כובי')
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
   })
 })
