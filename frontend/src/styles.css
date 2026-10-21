@@ -44,12 +44,12 @@ p { margin: 0; }
 .hint { color: var(--muted); font-size: 0.875rem; }
 
 /* the empty comparison panel: a short explanation and three steps */
-.intro { display: flex; flex-direction: column; gap: 10px; }
-.intro__title { font-size: 1.05rem; font-weight: 800; }
-.intro__title:not(:first-child) { margin-top: 8px; }
-.intro__text { color: var(--muted); line-height: 1.65; }
-.intro__steps { margin: 0; padding-inline-start: 22px; display: flex; flex-direction: column; gap: 6px; line-height: 1.5; }
-.intro__steps li::marker { color: var(--brand-cyan-text); font-weight: 800; }
+.explainer { display: flex; flex-direction: column; gap: 10px; }
+.explainer__title { font-size: 1.05rem; font-weight: 800; }
+.explainer__title:not(:first-child) { margin-top: 8px; }
+.explainer__text { color: var(--muted); line-height: 1.65; }
+.explainer__steps { margin: 0; padding-inline-start: 22px; display: flex; flex-direction: column; gap: 6px; line-height: 1.5; }
+.explainer__steps li::marker { color: var(--brand-cyan-text); font-weight: 800; }
 .error { color: var(--error); font-weight: 600; }
 .num { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
 bdi { unicode-bidi: isolate; }
@@ -597,7 +597,7 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .intro--banner .intro__line { font-size: clamp(1.3rem, 2.6vw, 2.1rem); animation: none; }
 .intro--banner .intro__line--answer { font-size: clamp(0.95rem, 1.5vw, 1.2rem); }
 .intro--banner .intro__shade { background: linear-gradient(to top, rgb(0 0 0 / 0.7) 0%, rgb(0 0 0 / 0.15) 70%); }
-.shell--inside .employee { height: 67vh; }
+/* the chat under it keeps its full height (.employee: 100vh); the page scrolls down to it */
 .shell__app { animation: intro-rise .6s ease-out both; }
 
 @keyframes intro-in { from { opacity: 0; } to { opacity: 1; } }
@@ -635,7 +635,6 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
   .intro--banner .intro__slogan { bottom: 10px; padding: 0 16px; }
   .intro--banner .intro__line { font-size: 1.15rem; }
   .intro--banner .intro__line--answer { font-size: 0.85rem; }
-  .shell--inside .employee { height: auto; }
 }
 
 /* intro: reduced motion */

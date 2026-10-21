@@ -8,14 +8,14 @@ const STEPS = [
 
 export default function EmptyPanel() {
   return (
-    <div className="intro">
-      <h2 className="intro__title">למה רכב משנה את המשכורת?</h2>
-      <p className="intro__text">
+    <div className="explainer">
+      <h2 className="explainer__title">למה רכב משנה את המשכורת?</h2>
+      <p className="explainer__text">
         כשהחברה נותנת לכם רכב, המדינה רואה בו חלק מהשכר שלכם. הסכום הזה נקרא "שווי שימוש",
         ומשלמים עליו מס, גם בלי לקבל אותו בכסף. לכל רכב יש שווי שימוש אחר, ולכן כל החלפה משנה כמה יישאר לכם בנטו.
       </p>
-      <h2 className="intro__title">איך זה עובד?</h2>
-      <ol className="intro__steps">
+      <h2 className="explainer__title">איך זה עובד?</h2>
+      <ol className="explainer__steps">
         {STEPS.map((s) => <li key={s}>{s}</li>)}
       </ol>
     </div>

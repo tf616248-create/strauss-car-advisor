@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -37,6 +38,12 @@ describe('EmployeeApp', () => {
     expect(document.querySelector('.intro')).toHaveClass('intro--banner')
     expect(document.querySelector('.intro__slogan')).toHaveTextContent(T.slogan) // the slogan stays, small
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('כובי') // one h1: the chat's
+  })
+
+  it('under the banner the chat keeps its full height; the page scrolls instead', () => {
+    const css = readFileSync('src/styles.css', 'utf8')
+    expect(css).toMatch(/\.employee \{[^}]*height:\s*100vh/)
+    expect(css).not.toMatch(/\.shell--inside \.employee \{[^}]*height/)
   })
 
   it('with a login already: the same intro, only the button, then the chat', async () => {
