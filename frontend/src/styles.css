@@ -6,7 +6,7 @@
   --cyan: #16BDE6;
   --orange: #FF5700;
   --on-brand: #1A1A1A;
-  --brand-cyan-text: #0B7F9E; /* cyan for text: 4.6:1 on white. #16BDE6 is never a text color */
+  --brand-cyan-text: #0A7896; /* cyan for text: 5.1:1 on white, 4.7:1 on --surface (#0B7F9E was 4.3 there). #16BDE6 is never a text color */
 
   --bg: #FFFFFF;
   --surface: #F5F6F7;
@@ -32,7 +32,7 @@
     --muted: #AAB1BB;
     --line: #30353D;
     --error: #FF8A80;
-    --brand-cyan-text: #4CCBEB; /* #0B7F9E is only 4:1 on the dark background */
+    --brand-cyan-text: #4CCBEB; /* the light-mode cyan is only 4:1 on the dark background */
   }
 }
 
@@ -294,8 +294,8 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .rep {
   display: grid; height: 100vh; gap: 0 24px; padding-bottom: 20px;
   grid-template-columns: 300px minmax(0, 1fr) 440px;
-  grid-template-rows: auto minmax(0, 1fr);
-  grid-template-areas: "top top top" "queue detail card";
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: "top top top" "queue detail card" "foot foot foot";
 }
 .rep > :not(.topbar) { min-height: 0; overflow-y: auto; padding-top: 20px; }
 .rep__queue { grid-area: queue; padding-inline-start: 28px; display: flex; flex-direction: column; gap: 10px; }
@@ -620,7 +620,7 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
   .intro__line--answer { font-size: 1.35rem; }
   /* at the bottom, under the car (the car is in the middle of the frame); above the keyboard (--kb) */
   .intro__dock {
-    inset-inline: 12px; width: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--kb, 0px));
+    inset-inline: 12px; width: auto; bottom: calc(40px + env(safe-area-inset-bottom, 0px) + var(--kb, 0px));
   }
   .intro__card { padding: 14px 14px 12px; gap: 6px; border-radius: 16px; }
   .intro__row { flex-direction: row; }
@@ -644,6 +644,42 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
   .intro__poster, .intro__line, .intro__line.is-shown, .intro__slogan--break.is-shown::after,
   .intro__dock, .shell__app { animation: none; }
 }
+
+/* ---- "הצהרת נגישות" at the bottom of every screen (components/SiteFooter.jsx) ---- */
+.site-footer { display: flex; justify-content: center; font-size: 0.85rem; }
+.site-footer a {
+  display: inline-flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 8px;
+  color: var(--muted); text-decoration: underline; text-underline-offset: 3px;
+}
+.site-footer a:hover { color: var(--text); }
+/* on the opening scene: light on a dark pill, at the bottom edge opposite the card */
+.intro__footer { position: absolute; z-index: 3; bottom: 12px; inset-inline-end: 20px; }
+.intro__footer a { color: #FFFFFF; background: rgb(0 0 0 / 0.6); }
+.intro__footer a:hover { color: #FFFFFF; background: rgb(0 0 0 / 0.8); }
+/* phone: under the card (which sits 40px up for it), at the very bottom */
+@media (max-width: 767px) {
+  .intro__footer { inset-inline: 0; bottom: calc(4px + env(safe-area-inset-bottom, 0px)); }
+}
+.rep__footer { grid-area: foot; }
+.rep > .rep__footer { overflow: visible; padding-top: 8px; }
+
+/* the empty answer bubble while Kobi has not written a word yet */
+.msg__typing { color: var(--muted); font-style: italic; }
+
+/* ---- the accessibility statement (/accessibility) ---- */
+.statement { min-height: 100vh; background: var(--bg); }
+.statement__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px clamp(16px, 4vw, 28px); border-bottom: 1px solid var(--line);
+}
+.statement__logo { height: 56px; width: auto; }
+.statement__back { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; font-weight: 700; color: var(--brand-cyan-text); }
+.statement__body { max-width: 760px; margin: 0 auto; padding: 24px clamp(16px, 4vw, 28px) 48px; line-height: 1.7; }
+.statement__body h1 { font-size: 1.8rem; margin: 0 0 12px; }
+.statement__body h2 { font-size: 1.2rem; margin: 28px 0 8px; }
+.statement__body ul { padding-inline-start: 22px; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.statement__contact { font-weight: 700; padding: 10px 14px; border: 1.5px dashed var(--muted); border-radius: 10px; }
+.statement__date { margin-top: 28px; color: var(--muted); }
 
 /* TEMPORARY: the test codes on the login screens (lib/testCodes.jsx) */
 .test-codes { margin: 0; padding: 8px 12px; border: 1px dashed var(--line); border-radius: 12px; background: var(--surface); color: var(--text); font-size: 0.9rem; display: flex; flex-direction: column; gap: 2px; text-align: center; }

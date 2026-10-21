@@ -4,7 +4,7 @@
   "accept": "image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf",
   "texts": {
     "attach": "צירוף תלוש שכר",
-    "camera": "צילום תלוש",
+    "camera": "צלם תלוש",
     "cameraLabel": "צלם תלוש",
     "remove": "הסרת התלוש",
     "open": "הצגת התלוש בגדול",

@@ -13,6 +13,8 @@ import EmptyPanel from '../components/EmptyPanel'
 import PayslipViewer from '../components/PayslipViewer'
 import { checkFile, usePhone } from '../lib/payslip'
 import payslipCfg from '../config/payslip.json'
+import A11Y from '../config/accessibility.json'
+import SiteFooter from '../components/SiteFooter'
 import logo from '../assets/strauss-logo.svg'
 
 const REP_ANSWERED = 'הנציג ענה, והחלופה מתעדכנת'
@@ -30,6 +32,8 @@ const CHOICES = [
 const WELCOME = 'שלום, אני כובי'
 
 const fmtNet = (v) => `${v > 0 ? '+' : '−'}${Math.abs(v).toLocaleString('he-IL')} ₪`
+// the answer as a screen reader should hear it: no Markdown marks (it would read "כוכבית")
+const plainText = (md) => md.replace(/[*_`#>]+/g, '').replace(/^\s*[-+]\s+/gm, '').replace(/\s+/g, ' ').trim()
 const fmtWhen = (iso) => new Date(iso).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
 
 // autoFocus: coming in from the intro, the focus goes straight to the message box
@@ -241,7 +245,16 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     return m.id
   }
 
-  function handler(assistantId) {
+  // what a screen reader hears (the hidden role="status" region): "כובי מקליד…" when an answer
+  // starts, then the whole answer once it is done - never the letters as they stream in.
+  // Cleared first, so the same words twice in a row are still read.
+  const [announcement, setAnnouncement] = useState('')
+  function announce(text) {
+    setAnnouncement('')
+    setTimeout(() => setAnnouncement(text), 50)
+  }
+
+  function handler(assistantId, said) {
     let turnCards = []
     return (event, data) => {
       if (event === 'thread') {
@@ -256,8 +269,10 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         setCards(turnCards)
       } else if (event === 'token') {
         setStep(null)
+        said.text += data.text
         setMessages((ms) => ms.map((m) => (m.id === assistantId ? { ...m, text: m.text + data.text } : m)))
       } else if (event === 'error') {
+        said.error = data.message
         // keep what was already written; the error goes below it as its own message
         setMessages((ms) => {
           const current = ms.find((m) => m.id === assistantId)
@@ -273,7 +288,11 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     setBusy(true)
     const assistantId = append({ role: 'assistant', text: '' })
     setCurrentId(assistantId)
-    await start(handler(assistantId))
+    announce(A11Y.live.typing)
+    const said = { text: '', error: null }
+    await start(handler(assistantId, said))
+    const spoken = plainText(said.text)
+    announce([spoken && `${A11Y.live.answered} ${spoken}`, said.error].filter(Boolean).join(' '))
     setStep(null)
     busyRef.current = false
     setBusy(false)
@@ -413,7 +432,9 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
             <p className="welcome__more">לא בטוחים מה זה "שווי שימוש" או "השתתפות עצמית"? פשוט שאלו אותי.</p>
           </section>
         )}
-        <ol className={`chat__messages ${messages.length ? '' : 'chat__messages--empty'}`} aria-live="polite">
+        {/* not a live region (it would read the answer letter by letter): the status line below speaks.
+            Focusable, so the keyboard can scroll it */}
+        <ol className={`chat__messages ${messages.length ? '' : 'chat__messages--empty'}`} aria-label="השיחה" tabIndex={0}>
           {messages.map((m) => m.role === 'payslip' ? (
             <li key={m.id} className="msg msg--user msg--payslip">
               {m.thumb ? (
@@ -429,11 +450,14 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
           ) : (
             <li key={m.id} className={`msg msg--${m.role}`}>
               {m.role === 'assistant' && m.text && <span className="msg__who">כובי · בוט</span>}
-              {m.role === 'system' ? REP_ANSWERED : m.role === 'assistant' ? <Answer text={m.text} /> : m.text}
+              {m.role === 'assistant' && !m.text && busy && m.id === currentId
+                ? <span className="msg__typing">{A11Y.live.typing}</span>
+                : m.role === 'system' ? REP_ANSWERED : m.role === 'assistant' ? <Answer text={m.text} /> : m.text}
             </li>
           ))}
           <li ref={endRef} aria-hidden="true" />
         </ol>
+        <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true" aria-label={A11Y.live.name}>{announcement}</p>
         {/* a new key per answer: the car starts each trip from the start line */}
         {roadPhase && <Road key={currentId ?? 'idle'} phase={roadPhase} stops={stops} label={step} />}
         {attachment && (
@@ -482,6 +506,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
             placeholder="כתבו שאלה…" />
           <button type="submit" disabled={busy}>שליחה</button>
         </form>
+        <SiteFooter />
         {viewing && <PayslipViewer src={viewing.src} opener={viewing.opener} onClose={() => setViewing(null)} />}
       </main>
 
@@ -512,6 +537,8 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
           </span>
         </button>
         <aside id="cmp-panel" className="cards" aria-label="כרטיס השוואה" inert={!panelOpen}>
+          {/* the cards' headings are h3: this h2 keeps the outline in order (the visible title is a button) */}
+          <h2 className="visually-hidden">השוואה</h2>
           {cards.length === 0
             ? <EmptyPanel />
             : cards.map((c, i) => {
@@ -524,7 +551,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
 
       {!panelOpen && (
         <button type="button" className="sidetab" onClick={togglePanel}
-          aria-expanded="false" aria-controls="cmp-panel" aria-label="פתיחת פאנל ההשוואה">
+          aria-expanded="false" aria-controls="cmp-panel" aria-label="פתיחת פאנל השוואה">
           <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
           <span className="sidetab__text">השוואה</span>
           {waiting && <span aria-hidden="true">⏳</span>}

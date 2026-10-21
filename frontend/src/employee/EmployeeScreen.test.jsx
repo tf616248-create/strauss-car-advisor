@@ -156,13 +156,13 @@ describe('EmployeeScreen', () => {
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
 
     act(() => { emit('step', { tool: 'check_eligibility', label: 'כובי בודק זכאות…' }) })
-    expect(screen.getByRole('status')).toHaveTextContent('כובי בודק זכאות…')
+    expect(document.querySelector('.road [role=status]')).toHaveTextContent('כובי בודק זכאות…')
     // the bot asks a follow-up question: no calculation yet, so the car must not arrive
     act(() => { emit('token', { text: 'מה השכר שלך?' }) })
-    expect(screen.getByRole('status')).not.toHaveTextContent('התשובה מוכנה')
+    expect(document.querySelector('.road [role=status]')).not.toHaveTextContent('התשובה מוכנה')
 
     act(() => { emit('card', noa) })
-    expect(screen.getByRole('status')).toHaveTextContent('התשובה מוכנה')
+    expect(document.querySelector('.road [role=status]')).toHaveTextContent('התשובה מוכנה')
     await act(async () => { finish() })
   })
 
@@ -203,7 +203,7 @@ describe('EmployeeScreen', () => {
     const close = screen.getByRole('button', { name: 'סגירת פאנל ההשוואה' })
     expect(close).toHaveAttribute('aria-expanded', 'true')
     await user.click(close)
-    const open = screen.getByRole('button', { name: 'פתיחת פאנל ההשוואה' })
+    const open = screen.getByRole('button', { name: 'פתיחת פאנל השוואה' })
     expect(open).toHaveAttribute('aria-expanded', 'false')
     await user.click(open)
     expect(screen.getByRole('complementary', { name: 'כרטיס השוואה' })).toBeVisible()

@@ -34,8 +34,8 @@ describe('Answer (the bot\'s Markdown)', () => {
 describe('text colors (styles.css)', () => {
   const css = readFileSync('src/styles.css', 'utf8')
 
-  it('has the dark brand cyan for text', () => {
-    expect(css).toMatch(/--brand-cyan-text:\s*#0B7F9E/i)
+  it('has the dark brand cyan for text (AA on white and on the gray surface: a11y.test.jsx)', () => {
+    expect(css).toMatch(/--brand-cyan-text:\s*#0A7896/i)
   })
 
   it('bold words use it; the bright cyan #16BDE6 is never a text color', () => {

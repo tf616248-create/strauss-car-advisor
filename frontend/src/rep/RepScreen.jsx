@@ -3,6 +3,7 @@ import * as realApi from '../lib/api'
 import CompareCard from '../components/CompareCard'
 import { REP_TITLE } from '../lib/notify'
 import logo from '../assets/strauss-logo.svg'
+import SiteFooter from '../components/SiteFooter'
 import { TEST_REP_PASSCODE, TestCodesNote } from '../lib/testCodes'
 
 const POLL_MS = 5000
@@ -152,6 +153,7 @@ export default function RepScreen({ api = realApi }) {
         </form>
         {error && <p className="error" role="alert">{error}</p>}
         <TestCodesNote>{`סיסמת נציג: ${TEST_REP_PASSCODE}.`}</TestCodesNote>
+        <SiteFooter />
       </main>
     )
   }
@@ -188,7 +190,7 @@ export default function RepScreen({ api = realApi }) {
         <p className="hint rep__note">הנציג לא מדבר עם העובד. התשובה מעדכנת את כרטיס ההשוואה שלו.</p>
       </nav>
 
-      <section className="rep__detail" aria-label="שאלה נבחרת">
+      <main className="rep__detail" aria-label="שאלה נבחרת">
         {sent && (
           <div className="sentbox" role="status">
             <span className="sentbox__check" aria-hidden="true">
@@ -213,7 +215,7 @@ export default function RepScreen({ api = realApi }) {
             <span>שאלה חדשה תופיע כאן.</span>
           </div>
         )}
-      </section>
+      </main>
 
       <aside className="rep__card" aria-label="כרטיס ההשוואה של העובד">
         {selected?.card && (
@@ -223,6 +225,7 @@ export default function RepScreen({ api = realApi }) {
           </>
         )}
       </aside>
+      <SiteFooter className="rep__footer" />
     </div>
   )
 }

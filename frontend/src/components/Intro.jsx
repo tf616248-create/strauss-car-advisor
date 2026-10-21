@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import cfg from '../config/intro.json'
 import Login from './Login'
+import SiteFooter from './SiteFooter'
 
 // The opening scene, on every visit before the chat. The hero video plays once, muted: at
 // times.slogan the slogan breaks in, at times.answer the answer rises, after it the card (the login,
@@ -128,6 +129,7 @@ export default function Intro({ api, hasToken, onEnter, banner = false, startFin
             : <Login api={api} onLogin={onEnter} onFocusField={keepFieldInView} />}
         </div>
       )}
+      {!banner && <SiteFooter className="intro__footer" />}
     </section>
   )
 }
