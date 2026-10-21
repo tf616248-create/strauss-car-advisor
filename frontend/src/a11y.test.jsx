@@ -15,6 +15,7 @@ import sidebarCfg from './config/sidebar.json'
 import profileCfg from './config/profile.json'
 import settingsCfg from './config/settings.json'
 import usageCfg from './config/usage.json'
+import chatCfg from './config/chat.json'
 import Intro from './components/Intro'
 import EmployeeApp from './employee/EmployeeApp'
 import EmployeeScreen from './employee/EmployeeScreen'
@@ -44,7 +45,8 @@ function chatApi(events = []) {
   return {
     login: vi.fn().mockResolvedValue({ token: 'tok' }),
     threads: vi.fn().mockResolvedValue([{ thread_id: TID, title: 'ATTO 3', updated_at: '2026-10-20T10:00:00Z' }]),
-    restore: vi.fn().mockRejectedValue(new Error('none')),
+    // an empty conversation (writing waits until a conversation has loaded - ChatLayout.test.jsx)
+    restore: vi.fn(async (tid) => ({ thread_id: tid, messages: [], cards: [], rep: { pending: 0, new_answers: 0 } })),
     streamChat: vi.fn(async (p, onEvent) => { for (const [e, d] of events) onEvent(e, d) }),
     streamRepAnswered: vi.fn(),
     streamPayslip: vi.fn(),
@@ -219,6 +221,20 @@ describe.each(WIDTHS)('axe at %ipx', (width) => {
     await screen.findByRole('dialog', { name: settingsCfg.texts.title })
     await expectClean()
     delete document.documentElement.dataset.theme
+  })
+
+  it('loading a conversation (after the delay), then a failure with its button', async () => {
+    viewport(width)
+    sessionStorage.setItem('threadId', TID)
+    let fail
+    const api = chatApi()
+    api.restore = vi.fn(() => new Promise((resolve, reject) => { fail = reject }))
+    render(<EmployeeScreen api={api} {...quiet} />)
+    await screen.findByRole('status', { name: chatCfg.texts.loading }, { timeout: 2000 })
+    await expectClean() // the loader, aria-busy on the list, the box read only
+    fail(Object.assign(new Error('down'), { status: 500 }))
+    await screen.findByRole('button', { name: chatCfg.texts.retry })
+    await expectClean()
   })
 
   it('the accessibility statement', async () => {

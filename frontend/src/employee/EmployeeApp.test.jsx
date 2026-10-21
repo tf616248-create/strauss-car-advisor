@@ -40,9 +40,9 @@ describe('EmployeeApp', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('כובי') // one h1: the chat's
   })
 
-  it('under the banner the chat keeps its full height; the page scrolls instead', () => {
+  it('under the banner the chat keeps its full height (the screen height); the page scrolls the banner out', () => {
     const css = readFileSync('src/styles.css', 'utf8')
-    expect(css).toMatch(/\.employee \{[^}]*height:\s*100vh/)
+    expect(css).toMatch(/\.employee \{[^}]*height:\s*var\(--app-h,\s*100dvh\)/)
     expect(css).not.toMatch(/\.shell--inside \.employee \{[^}]*height/)
   })
 

@@ -1,4 +1,11 @@
 {
   "welcome": "שלום, אני כובי",
-  "welcomeNamed": "שלום {name}, אני כובי"
+  "welcomeNamed": "שלום {name}, אני כובי",
+  "loadingDelayMs": 300,
+  "afterBannerMs": 2000,
+  "texts": {
+    "loading": "טוען שיחה…",
+    "loadFailed": "כובי לא הצליח לטעון את השיחה.",
+    "retry": "לנסות שוב"
+  }
 }

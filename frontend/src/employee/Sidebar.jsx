@@ -71,7 +71,12 @@ export function useSidebar(chatRef) {
       setFloating(false)
       // back to the button that opens it: in the header on a phone, on the strip on a computer
       // (not "the element that had the focus": a tap on a phone does not always focus a button)
-      setTimeout(() => document.querySelector(phone ? '.topbar__menu' : '.sidebar__toggle')?.focus(), 0)
+      // - unless the screen already moved it on (a new conversation: the message box)
+      setTimeout(() => {
+        const active = document.activeElement
+        if (active && active !== document.body && active.isConnected) return
+        document.querySelector(phone ? '.topbar__menu' : '.sidebar__toggle')?.focus()
+      }, 0)
     } else {
       setPref(false)
       saveOpen(false)

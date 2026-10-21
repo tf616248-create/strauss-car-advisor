@@ -95,14 +95,16 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .topbar__sub strong { color: var(--text); font-weight: 700; }
 
 /* ---- employee: the sidebar on the right, then the chat, the comparison panel on the left (RTL) ---- */
+/* a fixed layout, the screen's height (--app-h: the visible part, above a phone keyboard): the header on
+   top, the message box and the footer at the bottom, the sidebar the whole height. Only the messages scroll */
 .employee {
-  display: grid; height: 100vh;
+  display: grid; height: var(--app-h, 100dvh);
   grid-template-columns: auto minmax(0, 1fr) auto auto auto;
   grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas: "top top top top top" "side chat divider panel tab";
 }
 .chat { grid-area: chat; display: flex; flex-direction: column; gap: 16px; min-height: 0; padding: 20px 28px; position: relative; }
-.chat__messages { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.chat__messages { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 16px; }
 .msg { max-width: 80%; font-size: 1rem; line-height: 1.65; white-space: pre-wrap; }
 .msg__who { display: block; margin-bottom: 2px; color: var(--muted); font-size: 0.8rem; font-weight: 700; }
 .msg--assistant { align-self: flex-start; }
@@ -123,7 +125,7 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .chat__messages--empty { flex: 0; }
 
 /* welcome screen (no messages yet): the car parked on a short road, and four equal choices */
-.welcome { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 10px; text-align: center; padding: 8px 0; }
+.welcome { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 10px; text-align: center; padding: 8px 0; }
 /* safe center: when it does not fit (a phone), it starts from the top, so Kobi is not cut off */
 .welcome__car { position: relative; display: flex; justify-content: center; width: 200px; padding-bottom: 14px; margin-bottom: 10px; }
 .welcome__car::after { content: ""; position: absolute; inset: auto 0 0 0; height: 14px; border-radius: 7px; background: var(--line); }
@@ -367,10 +369,12 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
   .topbar__sub { flex-basis: 100%; margin-inline-start: 0; white-space: normal; font-size: 0.8rem; line-height: 1.4; order: 3; }
   .topbar__menu { margin-inline-start: auto; }
 
-  .employee { display: flex; flex-direction: column; height: auto; min-height: 100vh; }
+  /* a phone: the header and the chat together are the screen (the chat's height is the rest, --topbar-h);
+     the comparison panel comes below them */
+  .employee { display: flex; flex-direction: column; height: auto; min-height: 0; }
   /* no strip on a phone: the header button opens the sidebar over the chat */
   .side { display: contents; }
-  .chat { height: 72vh; padding: 16px; gap: 20px; }
+  .chat { height: calc(var(--app-h, 100dvh) - var(--topbar-h, 0px)); padding: 12px 16px 8px; gap: 12px; }
   .msg { max-width: 92%; }
   .msg--user { max-width: 85%; }
   .chat__form button { padding: 0 20px; }
@@ -792,3 +796,21 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 
 /* "פנייה" in the profile: a whole row, the same pill radios as "התאמה אישית" */
 .profile__address { grid-column: 1 / -1; }
+
+/* ---- loading a conversation (EmployeeScreen): a few grey bubbles and "טוען שיחה…"; reduced motion: the text only */
+.chat__loading { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; justify-content: flex-end; padding-bottom: 8px; }
+.loading__bubbles { display: flex; flex-direction: column; gap: 12px; }
+.loading__bubble { display: block; height: 44px; width: 62%; border-radius: 20px; background: var(--surface); align-self: flex-start; }
+.loading__bubble--user { width: 40%; align-self: flex-end; }
+.loading__bubble--short { width: 34%; }
+.loading__text { color: var(--muted); text-align: center; }
+.chat__loading[role="alert"] { justify-content: center; align-items: center; text-align: center; }
+.chat__retry { min-height: 44px; }
+@media (prefers-reduced-motion: no-preference) {
+  .loading__bubble { animation: loading-pulse 1.4s ease-in-out infinite; }
+  .loading__bubble:nth-child(2) { animation-delay: .2s; }
+  .loading__bubble:nth-child(3) { animation-delay: .4s; }
+}
+@keyframes loading-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+/* the sidebar's list and the cards: a scroll that reaches the end does not move the page */
+.sidebar__history .history__list, .cards { overscroll-behavior: contain; }

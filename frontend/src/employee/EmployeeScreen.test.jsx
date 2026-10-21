@@ -65,7 +65,9 @@ describe('EmployeeScreen', () => {
 
   it('keeps the conversation id for the next message', async () => {
     sessionStorage.setItem('threadId', TID)
-    const { api } = setup({ chatEvents: [['token', { text: 'בסדר' }], ['done', {}]] })
+    // (it loads first: writing waits for it - ChatLayout.test.jsx)
+    const { api } = setup({ chatEvents: [['token', { text: 'בסדר' }], ['done', {}]], restore: vi.fn().mockResolvedValue(state()) })
+    await screen.findByText('שאלה')
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('הודעה'), 'שלום')
     await user.click(screen.getByRole('button', { name: 'שליחה' }))

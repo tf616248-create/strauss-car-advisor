@@ -66,6 +66,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const cameraRef = useRef(null)
   const payslipUrl = useRef({ tid: null, url: null }) // the server's image (a promise), read once per conversation
   const isPhone = usePhone()
+  const reduceMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches)
   const chatRef = useRef(null)
   const side = useSidebar(chatRef)
   // the profile dialog has an address (/profile): a direct link opens it too, and Back closes it
@@ -86,17 +87,71 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const [stops, setStops] = useState([]) // tools really called in this answer, in order
   const [parked, setParked] = useState(false)
   const [currentId, setCurrentId] = useState(null)
-  const endRef = useRef(null)
+  const listRef = useRef(null)
+  const rootRef = useRef(null)
   const wasBusy = useRef(false)
   const busyRef = useRef(false) // set at once, so two reads of the state cannot both start the bot
   const turnStartCards = useRef(cards) // the cards before this answer began
 
   useEffect(() => { document.title = EMPLOYEE_TITLE }, [])
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  // (not when the profile opened over it from a direct link: the focus stays in the dialog)
-  useEffect(() => { if (autoFocus && window.location.pathname !== profileCfg.path) boxRef.current?.focus() }, [])
+  // Coming in from the intro: the focus in the message box - without scrolling (the banner is still
+  // shrinking, and a scroll now lands anywhere) - and once the banner has shrunk (the end of its height
+  // transition, .intro in styles.css; afterBannerMs only if that never comes), one scroll so the chat fills
+  // the screen, the banner scrolled out above it. Reduced motion: no transition, at once.
+  // (Not when the profile opened over it from a direct link: the focus stays in the dialog.)
+  useEffect(() => {
+    if (!autoFocus || window.location.pathname === profileCfg.path) return
+    boxRef.current?.focus({ preventScroll: true })
+    let done = false
+    const align = () => {
+      if (done) return
+      done = true
+      const top = rootRef.current?.getBoundingClientRect().top
+      if (top) window.scrollBy?.({ top, behavior: reduceMotion ? 'auto' : 'smooth' })
+    }
+    const banner = document.querySelector('.intro--banner')
+    const onEnd = (e) => { if (e.target === banner && e.propertyName === 'height') align() }
+    banner?.addEventListener('transitionend', onEnd)
+    const t = setTimeout(align, reduceMotion ? 0 : chatCfg.afterBannerMs)
+    return () => { clearTimeout(t); banner?.removeEventListener('transitionend', onEnd) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  useEffect(() => { endRef.current?.scrollIntoView?.({ block: 'end' }) }, [messages])
+  // the list starts (and stays) at its last message - scrolled itself: scrollIntoView would scroll the page too
+  useLayoutEffect(() => {
+    const list = listRef.current
+    if (list) list.scrollTop = list.scrollHeight
+  }, [messages])
+
+  // the screen's visible height (above a phone keyboard): the fixed layout's height (styles.css --app-h)
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const update = () => document.documentElement.style.setProperty('--app-h', `${Math.round(vv.height)}px`)
+    update()
+    vv.addEventListener('resize', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      document.documentElement.style.removeProperty('--app-h')
+    }
+  }, [])
+
+  // the header's height: on a phone the chat is the rest of the screen under it (styles.css --topbar-h)
+  const topbarRef = useRef(null)
+  useEffect(() => {
+    const top = topbarRef.current
+    if (!top || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => {
+      top.parentElement?.style.setProperty('--topbar-h', `${Math.round(top.getBoundingClientRect().height)}px`)
+    })
+    ro.observe(top)
+    return () => ro.disconnect()
+  }, [])
+
+  // the focus goes to the message box without scrolling the page; in a layout effect, so it comes before
+  // anything that would take it afterwards (the sidebar giving it back to its button)
+  const [focusBox, setFocusBox] = useState(0)
+  useLayoutEffect(() => { if (focusBox) boxRef.current?.focus({ preventScroll: true }) }, [focusBox])
 
   // a new comparison (or a rep answer) opens the panel by itself
   useEffect(() => { if (cards.length) setPanelOpen(true) }, [cards])
@@ -117,10 +172,14 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   // Called on page load, on "changed", when the employee returns to the tab, and after
   // the events stream reconnects. A rep answer not yet used by the bot starts a recalculation.
   async function refresh(tid) {
-    if (!tid || busyRef.current) return
+    if (!tid || busyRef.current || loadingRef.current) return
     let s
     try { s = await api.restore(tid) } catch { return }
-    if (busyRef.current) return
+    if (busyRef.current || loadingRef.current) return
+    applyState(tid, s)
+  }
+
+  function applyState(tid, s) {
     const restored = s.messages.map((m) => ({ ...m, id: nextId++ }))
     setMessages((ms) => {
       const errors = []
@@ -135,6 +194,47 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
       append({ role: 'system', text: REP_ANSWERED })
       run((onEvent) => api.streamRepAnswered(tid, onEvent))
     }
+  }
+
+  // Opening a conversation (the history, a reload, after login): its state from the server, with a loading
+  // state - shown only after loadingDelayMs, so a quick load does not flicker. Writing waits for it.
+  // A conversation that is gone (404) is a new one; any other failure offers to try again.
+  const [loading, setLoading] = useState(null) // null | { tid, shown, failed }
+  const loadSeq = useRef(0)
+  const loadingRef = useRef(false)
+  // focus: move the focus to the message box once loaded - when the employee opened it, not on the
+  // page's first load (the focus may be elsewhere by then: never taken from where the employee is)
+  async function loadThread(tid, { focus = false } = {}) {
+    const seq = ++loadSeq.current
+    loadingRef.current = true
+    setLoading({ tid, shown: false, failed: false })
+    const timer = setTimeout(() => {
+      if (loadSeq.current === seq) setLoading((l) => (l && !l.failed ? { ...l, shown: true } : l))
+    }, chatCfg.loadingDelayMs)
+    let s
+    try {
+      s = await api.restore(tid)
+    } catch (err) {
+      clearTimeout(timer)
+      if (loadSeq.current !== seq) return
+      loadingRef.current = false
+      if (err?.status === 404) { setLoading(null); newConversation(); return }
+      loadingRef.current = true // still not loaded: no other read, and writing waits
+      setLoading({ tid, shown: true, failed: true })
+      return
+    }
+    clearTimeout(timer)
+    if (loadSeq.current !== seq) return
+    loadingRef.current = false
+    setLoading(null)
+    applyState(tid, s)
+    if (focus) setFocusBox((n) => n + 1)
+  }
+
+  function cancelLoading() {
+    loadSeq.current++
+    loadingRef.current = false
+    setLoading(null)
   }
 
   // the weekly usage: read on load and after every answer (the server counts it)
@@ -157,7 +257,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     Promise.resolve(api.settings?.()).then((s) => { if (s) setSettings(s) }).catch(() => {})
     loadUsage()
     const tid = getCurrentThread()
-    if (tid) refresh(tid)
+    if (tid) loadThread(tid)
     loadHistory().then((list) => {
       if (!getCurrentThread() && !busyRef.current && list[0]) openThread(list[0].thread_id)
     })
@@ -261,7 +361,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     setCurrentThread(tid)
     setThreadId(tid)
     clearScreen()
-    refresh(tid)
+    loadThread(tid, { focus: true })
   }
 
   function append(msg) {
@@ -334,7 +434,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   async function send(e) {
     e.preventDefault()
     const text = input.trim()
-    if ((!text && !attachment) || busy) return
+    if ((!text && !attachment) || busy || loadingRef.current) return
     setInput('')
     if (attachment) {
       const att = attachment
@@ -353,9 +453,11 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
 
   // A fresh start. The previous conversation stays in "my conversations".
   function newConversation() {
+    cancelLoading()
     setCurrentThread(null)
     setThreadId(null)
     clearScreen()
+    setFocusBox((n) => n + 1)
   }
 
   // opened here (the sidebar, Kobi's link): a new history entry, so Back closes it
@@ -443,14 +545,14 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const behind = side.floating || undefined
 
   return (
-    <div className={`employee ${panelOpen ? '' : 'employee--closed'} ${side.expanded && !side.floating ? 'employee--side' : ''}`}
+    <div ref={rootRef} className={`employee ${panelOpen ? '' : 'employee--closed'} ${side.expanded && !side.floating ? 'employee--side' : ''}`}
       style={{ '--side-w': `${sidebarCfg.width}px`, '--rail-w': `${sidebarCfg.railWidth}px` }}>
       <div className="side">
         <Sidebar state={side} busy={busy} onNew={newConversation} onProfile={openProfile}
           onCustomize={(opener) => setCustomizer(opener ?? true)} usage={usage} history={history} threadId={threadId}
           onOpenThread={openThread} name={me?.name} onLogout={onLogout} />
       </div>
-      <header className="topbar" inert={behind}>
+      <header ref={topbarRef} className="topbar" inert={behind}>
         <img className="topbar__logo" src={logo} alt="שטראוס" />
         <span className="topbar__sep" aria-hidden="true" />
         <h1 className="topbar__title">
@@ -468,7 +570,25 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
 
       <main ref={chatRef} className={`chat ${dragging ? 'chat--drop' : ''}`} inert={behind} {...drag}>
         {dragging && <div className="chat__dropzone" aria-hidden="true">{PT.drop}</div>}
-        {messages.length === 0 && (
+        {loading?.shown && (loading.failed ? (
+          <div className="chat__loading" role="alert">
+            <p>{chatCfg.texts.loadFailed}</p>
+            <button type="button" className="chat__retry" onClick={() => loadThread(loading.tid, { focus: true })}>{chatCfg.texts.retry}</button>
+          </div>
+        ) : (
+          <div className="chat__loading" role="status" aria-label={chatCfg.texts.loading}>
+            {/* reduced motion: the text alone, no moving bubbles */}
+            {!reduceMotion && (
+              <div className="loading__bubbles" aria-hidden="true">
+                <span className="loading__bubble loading__bubble--user" />
+                <span className="loading__bubble" />
+                <span className="loading__bubble loading__bubble--short" />
+              </div>
+            )}
+            <p className="loading__text">{chatCfg.texts.loading}</p>
+          </div>
+        ))}
+        {messages.length === 0 && !loading && (
           <section className="welcome" aria-labelledby="welcome-title">
             <div className="welcome__car" aria-hidden="true"><CarBody /></div>
             <h2 id="welcome-title" className="welcome__title">{welcome}</h2>
@@ -485,7 +605,8 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         )}
         {/* not a live region (it would read the answer letter by letter): the status line below speaks.
             Focusable, so the keyboard can scroll it */}
-        <ol className={`chat__messages ${messages.length ? '' : 'chat__messages--empty'}`} aria-label="השיחה" tabIndex={0}>
+        <ol ref={listRef} className={`chat__messages ${messages.length ? '' : 'chat__messages--empty'}`} aria-label="השיחה"
+          tabIndex={0} aria-busy={loading ? 'true' : undefined}>
           {messages.map((m) => m.role === 'limit' ? (
             <li key={m.id} className="msg msg--limit"><LimitText text={m.text} email={m.email} /></li>
           ) : m.role === 'payslip' ? (
@@ -508,7 +629,6 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
                 : m.role === 'system' ? REP_ANSWERED : m.role === 'assistant' ? <Answer text={m.text} onProfile={openProfile} /> : m.text}
             </li>
           ))}
-          <li ref={endRef} aria-hidden="true" />
         </ol>
         <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true" aria-label={A11Y.live.name}>{announcement}</p>
         {/* a new key per answer: the car starts each trip from the start line */}
@@ -532,7 +652,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
               <input id="payslip-file" ref={fileRef} type="file" accept={payslipCfg.accept} className="visually-hidden"
                 tabIndex={-1} aria-hidden="true" onChange={onFileChosen} />
               <button type="button" className="attach__btn" aria-label={PT.attach} title={PT.attach}
-                disabled={busy} onClick={() => fileRef.current?.click()}>
+                disabled={busy || Boolean(loading)} onClick={() => fileRef.current?.click()}>
                 <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M20 11.5l-8.2 8.2a5 5 0 01-7.1-7.1l8.5-8.5a3.3 3.3 0 014.7 4.7l-8.5 8.5a1.7 1.7 0 01-2.4-2.4l7.8-7.8" />
                 </svg>
@@ -542,7 +662,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
                   <input id="payslip-camera" ref={cameraRef} type="file" accept="image/*" capture="environment"
                     className="visually-hidden" tabIndex={-1} aria-hidden="true" onChange={onFileChosen} />
                   <button type="button" className="attach__btn attach__btn--camera" aria-label={PT.camera}
-                    disabled={busy} onClick={() => cameraRef.current?.click()}>
+                    disabled={busy || Boolean(loading)} onClick={() => cameraRef.current?.click()}>
                     <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" />
                     </svg>
@@ -553,11 +673,13 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
             </div>
           )}
           <label htmlFor="msg" className="visually-hidden">הודעה</label>
+          {/* while a conversation loads: read only (it keeps the focus), and nothing can be sent */}
           <textarea id="msg" ref={boxRef} rows={1} value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) send(e) }} onPaste={onPaste}
             aria-describedby={attachError ? 'attach-error' : undefined}
+            readOnly={Boolean(loading)} aria-disabled={loading ? 'true' : undefined}
             placeholder="כתבו שאלה…" />
-          <button type="submit" disabled={busy}>שליחה</button>
+          <button type="submit" disabled={busy || Boolean(loading)}>שליחה</button>
         </form>
         <SiteFooter />
         {viewing && <PayslipViewer src={viewing.src} opener={viewing.opener} onClose={() => setViewing(null)} />}
