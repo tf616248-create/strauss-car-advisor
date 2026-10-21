@@ -37,7 +37,7 @@ def create_app(*, data, model, rep_queue, notifier, cfg: dict, rep_passcode: Opt
     payslip_reader: app/payslip.PayslipReader; None = no model that reads images, pasted text with `model`.
     employees: login id -> name (app/employees.py, app/db.py); None = in memory, from config/employees.json.
     profiles: each employee's profile (app/profile.py, app/db.py); None = in memory."""
-    profiles = profiles if profiles is not None else InMemoryProfiles()
+    profiles = profiles if profiles is not None else InMemoryProfiles(cfg["settings"]["defaults"])
     agent = build_agent(model, data, rep_queue, cfg, checkpointer, specs=specs, profiles=profiles)
     app = FastAPI(title="Strauss car advisor")
     app.state.agent = agent

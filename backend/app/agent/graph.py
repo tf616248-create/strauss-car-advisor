@@ -19,7 +19,7 @@ from langgraph.prebuilt import InjectedState, create_react_agent
 
 from app.agent.advisor import Advisor
 from app.agent.car_options import CarOptions
-from app.agent.prompt import build_prompt, profile_section
+from app.agent.prompt import build_prompt, profile_section, tone_section
 from app.data.specs_store import load_specs_config, snapshot_store
 from app.timing import timed
 
@@ -189,13 +189,19 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
 
 def build_agent(model, data, rep_queue, cfg: dict, checkpointer=None, specs=None, profiles=None):
     """profiles: the employees' profiles (app/profile.py). With them, the prompt of a logged-in
-    employee's run ends with which profile fields are there - their names, never their values."""
+    employee's run ends with which profile fields are there - their names, never their values - and the
+    style block of the tone they chose. Read at every model call: a new setting applies from the next message."""
     base = build_prompt(data, cfg)
     prompt = base
     if profiles is not None:
         def prompt(state, config: RunnableConfig):
             employee = _employee(config)
-            text = base if not employee else base + "\n\n" + profile_section(profiles.get(employee), cfg)
+            text = base
+            if employee:
+                text += "\n\n" + profile_section(profiles.get(employee), cfg)
+                tone = tone_section(profiles.settings(employee).get("tone"), cfg)
+                if tone:
+                    text += "\n\n" + tone
             return [SystemMessage(content=text)] + state["messages"]
 
     return create_react_agent(

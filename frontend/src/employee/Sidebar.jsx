@@ -90,7 +90,7 @@ export function useSidebar(chatRef) {
 }
 
 // the sidebar itself: new conversation, three items for later, my conversations, the name and logout
-export default function Sidebar({ state, busy, onNew, onProfile, history, threadId, onOpenThread, name, onLogout }) {
+export default function Sidebar({ state, busy, onNew, onProfile, onCustomize, history, threadId, onOpenThread, name, onLogout }) {
   const { phone, expanded, floating, focusTo } = state
   const topRef = useRef(null)
   const listRef = useRef(null)
@@ -139,9 +139,14 @@ export default function Sidebar({ state, busy, onNew, onProfile, history, thread
           <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></Icon>
           <span className="sidebar__label">{T.profile}</span>
         </button>
-        {/* not built yet: focusable (so the keyboard finds them), aria-disabled, "soon" */}
-        {[['customize', <path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4" />],
-          ['usage', <path d="M5 20V12M12 20V5M19 20v-9" />]].map(([key, shape]) => (
+        {/* "התאמה אישית": a small window (CustomizeDialog.jsx), opened by a click */}
+        <button type="button" className="sidebar__item" data-item="customize"
+          onClick={(e) => { const opener = e.currentTarget; onCustomize?.(opener); if (floating) state.close() }}>
+          <Icon><path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4" /></Icon>
+          <span className="sidebar__label">{T.customize}</span>
+        </button>
+        {/* not built yet: focusable (so the keyboard finds it), aria-disabled, "soon" */}
+        {[['usage', <path d="M5 20V12M12 20V5M19 20v-9" />]].map(([key, shape]) => (
           <button key={key} type="button" className="sidebar__item" data-item={key} aria-disabled="true"
             title={`${T[key]} · ${T.soon}`}>
             <Icon>{shape}</Icon>

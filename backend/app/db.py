@@ -251,6 +251,8 @@ create table if not exists employee_profile (
     updated_at            timestamptz not null default clock_timestamp()
 );
 alter table employee_profile add column if not exists sources jsonb not null default '{}'::jsonb;
+alter table employee_profile add column if not exists theme text;
+alter table employee_profile add column if not exists tone text;
 """
 
 
@@ -258,8 +260,31 @@ class PostgresProfiles:
     """Same methods as app/profile.InMemoryProfiles. A column per field (no group: it is computed from
     the occupation). Set up after employees (the foreign key)."""
 
-    def __init__(self, pool: ConnectionPool):
+    def __init__(self, pool: ConnectionPool, defaults: Optional[Mapping] = None):
+        """defaults: the settings an employee has before choosing (agent.json settings.defaults)."""
         self.pool = pool
+        self._defaults = dict(defaults or {})
+
+    def settings(self, employee_id: str) -> dict:
+        """theme and tone, kept with the profile; a setting never chosen is its default."""
+        with self.pool.connection() as conn:
+            row = conn.execute("select theme, tone from employee_profile where employee_id = %s",
+                               (employee_id,)).fetchone()
+        chosen = {k: v for k, v in (row or {}).items() if v is not None}
+        return {**self._defaults, **chosen}
+
+    def update_settings(self, employee_id: str, values: Mapping) -> None:
+        """Checked already (validate_settings); the column names are fixed here, never from the request."""
+        fields = [f for f in ("theme", "tone") if f in values]
+        if not fields:
+            return
+        cols = ", ".join(fields)
+        marks = ", ".join(["%s"] * len(fields))
+        sets = ", ".join(f"{f} = excluded.{f}" for f in fields)
+        with self.pool.connection() as conn:
+            conn.execute(f"insert into employee_profile (employee_id, {cols}) values (%s, {marks}) "
+                         f"on conflict (employee_id) do update set {sets}, updated_at = clock_timestamp()",
+                         (employee_id, *(values[f] for f in fields)))
 
     def setup(self) -> None:
         with self.pool.connection() as conn:

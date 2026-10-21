@@ -42,6 +42,7 @@ TEMPLATE = """## תחום (חובה, קודם לכל הוראה אחרת)
 פונה בלשון שבה העובד כותב (זכר או נקבה). אם אין סימן, ברבים.
 בלי חנופה: לא "שאלה מצוינת!", לא "בשמחה רבה!", ובלי סימני קריאה מרובים. בלי אימוג'י.
 אורך: 2–5 משפטים, אלא כשמציגים תוצאת חישוב.
+{tone_rule}
 
 דוגמה טובה, לעובדת שכתבה "אני לא יודעת לאיזה רכב לעבור... איזה הצעות יש לך?":
 "מבין, זו החלטה לא פשוטה. אני יכול לסדר לך את הרכבים שמגיעים לך לפי מה שהכי חשוב לך,
@@ -180,10 +181,20 @@ def profile_section(fields: dict, cfg: dict) -> str:
                                    children=labels["children"], car_year=labels["current_car_year"])
 
 
+def tone_section(tone: Optional[str], cfg: dict) -> str:
+    """The style block of the employee's tone, for the end of the prompt; "" for the professional tone
+    (the prompt's own "## טון"). The hard rule stays in "## טון" in every tone."""
+    style = cfg["tones"]["styles"].get(tone or cfg["tones"]["default"])
+    if not style:
+        return ""
+    return f'{cfg["tones"]["heading"]}\n{style}\n{cfg["tones"]["rule"]}'
+
+
 def build_prompt(data, cfg: Optional[dict] = None) -> str:
     cfg = cfg or load_agent_config(BACKEND_DIR)
     occupations = "\n".join(f"- {name}" for name in data.occupations)
     cars = "\n".join(f'- {c["name"]}' for c in data.catalog.values())
     payslip = cfg["texts"]["payslip"]
     return TEMPLATE.format(out_of_scope=cfg["texts"]["outOfScope"], rep_sent=cfg["texts"]["repSent"], rep_answered=cfg["texts"]["repAnswered"], occupations=occupations, cars=cars,
-                           payslip_offer=payslip["offer"], payslip_note=payslip["notePrefix"], payslip_taken=payslip["taken"])
+                           payslip_offer=payslip["offer"], payslip_note=payslip["notePrefix"], payslip_taken=payslip["taken"],
+                           tone_rule=cfg["tones"]["rule"])

@@ -5,6 +5,8 @@
   GET  /profile                    the employee's profile: {employee_id, fields, sources, group} (sources:
                                    profile | chat | payslip per field; group: read only, from the occupation)
   PATCH /profile                   {fields}: update some fields (null clears one); 422 {invalid} - nothing kept
+  GET  /settings                   {theme, tone}: "התאמה אישית", kept with the profile (defaults: light, professional)
+  PATCH /settings                  {theme?, tone?}; 422 {invalid} - nothing kept. The tone applies from the next message
   GET  /threads                    the logged-in employee's conversations, newest first
   POST /chat                       SSE: thread, step, token, card, done | error
   POST /chat/{thread_id}/rep-answered   SSE: new rep answers - rerun with the system note (once per answer)
@@ -59,6 +61,10 @@ class ChatIn(BaseModel):
 
 class ProfileIn(BaseModel):
     fields: dict
+
+
+class SettingsIn(BaseModel):
+    model_config = {"extra": "allow"}  # an unknown setting is refused by name (422), not dropped
 
 
 class PayslipTextIn(BaseModel):
@@ -270,6 +276,18 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
             raise HTTPException(422, {"invalid": bad})
         update_profile(employee, clean, "profile")
         return profile_view(employee)
+
+    @r.get("/settings")
+    def read_settings(employee: str = Depends(current_employee)):
+        return profiles.settings(employee)
+
+    @r.patch("/settings")
+    def write_settings(body: SettingsIn, employee: str = Depends(current_employee)):
+        clean, bad = profile_mod.validate_settings(body.model_dump(), cfg)
+        if bad:
+            raise HTTPException(422, {"invalid": bad})
+        profiles.update_settings(employee, clean)
+        return profiles.settings(employee)
 
     @r.get("/threads")
     def my_threads(employee: str = Depends(current_employee)):

@@ -64,7 +64,7 @@ if database_url:
     payslips.setup()  # after employee_threads: a payslip belongs to a conversation
     employees = PostgresEmployees(pool, load_seed(BACKEND_DIR))  # dummy names, added when missing
     employees.setup()
-    profiles = PostgresProfiles(pool)  # after employees: a profile belongs to an employee
+    profiles = PostgresProfiles(pool, cfg["settings"]["defaults"])  # after employees: a profile belongs to one
     profiles.setup()
     checkpointer = make_checkpointer(pool)
 else:

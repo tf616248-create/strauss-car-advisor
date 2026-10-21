@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import cfg from '../config/profile.json'
+import { useModalFocus, useOutsideClick } from '../lib/dialog'
 
 const T = cfg.texts
 const fill = (text, values) => text.replace(/\{(\w+)\}/g, (_, k) => values[k])
@@ -39,9 +40,8 @@ export default function ProfileDialog({ api, onClose }) {
   const [saving, setSaving] = useState(false)
   const boxRef = useRef(null)
   const closeRef = useRef(null)
-  const downOutside = useRef(false)
-  const onCloseRef = useRef(onClose)
-  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+  useModalFocus(boxRef, closeRef, onClose)
+  const outside = useOutsideClick(onClose)
 
   function take(v) {
     setView(v)
@@ -55,26 +55,6 @@ export default function ProfileDialog({ api, onClose }) {
       .catch(() => { if (live) setState('failed') })
     return () => { live = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // the focus: on ✕ at first, then kept inside; Esc closes
-  useEffect(() => {
-    closeRef.current?.focus()
-    const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current(); return }
-      if (e.key !== 'Tab') return
-      const items = [...boxRef.current.querySelectorAll('button, input, select, a[href]')].filter((el) => !el.disabled)
-      if (!items.length) return
-      const first = items[0]
-      const last = items[items.length - 1]
-      if (e.shiftKey && (document.activeElement === first || !boxRef.current.contains(document.activeElement))) {
-        e.preventDefault(); last.focus()
-      } else if (!e.shiftKey && (document.activeElement === last || !boxRef.current.contains(document.activeElement))) {
-        e.preventDefault(); first.focus()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
   }, [])
 
   async function save(e) {
@@ -133,11 +113,8 @@ export default function ProfileDialog({ api, onClose }) {
   const group = view?.group ? fill(T.group, { group: view.group }) : T.groupUnknown
 
   return createPortal(
-    // a click on the dark area outside closes it, on the click itself (so the browser's own focus change
-    // comes first, and the focus then goes back to the opener) and only if it started outside too
-    // (a text selection dragged out of a field does not close it)
-    <div className="modal" onMouseDown={(e) => { downOutside.current = e.target === e.currentTarget }}
-      onClick={(e) => { if (downOutside.current && e.target === e.currentTarget) onClose() }}>
+    // a click outside closes it (lib/dialog.js)
+    <div className="modal" {...outside}>
       <div ref={boxRef} className="profile" role="dialog" aria-modal="true" aria-labelledby="profile-title"
         aria-describedby="profile-intro">
         <div className="profile__head">

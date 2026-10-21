@@ -17,6 +17,8 @@ import A11Y from '../config/accessibility.json'
 import SiteFooter from '../components/SiteFooter'
 import Sidebar, { useSidebar } from './Sidebar'
 import ProfileDialog from './ProfileDialog'
+import CustomizeDialog from './CustomizeDialog'
+import settingsCfg from '../config/settings.json'
 import profileCfg from '../config/profile.json'
 import sidebarCfg from '../config/sidebar.json'
 import logo from '../assets/strauss-logo.svg'
@@ -65,6 +67,9 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   // the profile dialog has an address (/profile): a direct link opens it too, and Back closes it
   const [profileOpen, setProfileOpen] = useState(() => window.location.pathname === profileCfg.path)
   const profileOpener = useRef(null) // where the focus goes back; none = the message box
+  // "התאמה אישית" (kept on the server): light or dark on the page, the tone on the server's side
+  const [settings, setSettings] = useState(settingsCfg.defaults)
+  const [customizer, setCustomizer] = useState(null) // the button that opened the window, while it is open
 
   // the message box grows with its text, like other chats (CSS caps it at ~7 lines, then it scrolls)
   useLayoutEffect(() => {
@@ -140,6 +145,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   // after a reload: the conversation open in this tab; right after login: the newest one
   useEffect(() => {
     Promise.resolve(api.me?.()).then((m) => setMe(m ?? null)).catch(() => {})
+    Promise.resolve(api.settings?.()).then((s) => { if (s) setSettings(s) }).catch(() => {})
     const tid = getCurrentThread()
     if (tid) refresh(tid)
     loadHistory().then((list) => {
@@ -372,6 +378,17 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     profileWasOpen.current = profileOpen
   }, [profileOpen])
 
+  // light or dark: on <html>, where the color tokens are (styles.css). Light again when the employee
+  // screen goes (logout): the opening scene and the statement are light
+  useEffect(() => { document.documentElement.dataset.theme = settings.theme }, [settings.theme])
+  useEffect(() => () => { document.documentElement.dataset.theme = settingsCfg.defaults.theme }, [])
+
+  function closeCustomize() {
+    const opener = customizer
+    setCustomizer(null)
+    ;(opener?.isConnected ? opener : boxRef.current)?.focus()
+  }
+
   // the server rang ("changed", e.g. the rep answered): beep, mark the tab, read the state
   useEffect(() => {
     if (!threadId) return
@@ -413,7 +430,8 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     <div className={`employee ${panelOpen ? '' : 'employee--closed'} ${side.expanded && !side.floating ? 'employee--side' : ''}`}
       style={{ '--side-w': `${sidebarCfg.width}px`, '--rail-w': `${sidebarCfg.railWidth}px` }}>
       <div className="side">
-        <Sidebar state={side} busy={busy} onNew={newConversation} onProfile={openProfile} history={history} threadId={threadId}
+        <Sidebar state={side} busy={busy} onNew={newConversation} onProfile={openProfile}
+          onCustomize={(opener) => setCustomizer(opener ?? true)} history={history} threadId={threadId}
           onOpenThread={openThread} name={me?.name} onLogout={onLogout} />
       </div>
       <header className="topbar" inert={behind}>
@@ -526,6 +544,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         <SiteFooter />
         {viewing && <PayslipViewer src={viewing.src} opener={viewing.opener} onClose={() => setViewing(null)} />}
         {profileOpen && <ProfileDialog api={api} onClose={closeProfile} />}
+        {customizer && <CustomizeDialog api={api} settings={settings} onChange={setSettings} onClose={closeCustomize} />}
       </main>
 
       <div className="divider" inert={behind}>

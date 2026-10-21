@@ -27,6 +27,20 @@ CURRENT_KINDS = ("car", "waiver")
 SOURCES = ("profile", "chat", "payslip")
 
 
+def validate_settings(values: Mapping, cfg: dict) -> tuple[dict, dict]:
+    """The settings ("התאמה אישית"): theme (light | dark) and tone (agent.json tones). (clean, {field: why not})."""
+    options = {"theme": list(cfg["settings"]["themes"]), "tone": list(cfg["tones"]["styles"])}
+    clean, bad = {}, {}
+    for field, value in values.items():
+        if field not in options:
+            bad[field] = {"reason": "unknown_field"}
+        elif value in options[field]:
+            clean[field] = value
+        else:
+            bad[field] = {"options": options[field]}
+    return clean, bad
+
+
 def check_source(source: str) -> None:
     if source not in SOURCES:
         raise ValueError(f"unknown profile source {source!r}")
@@ -169,9 +183,20 @@ def trace_profile(event: str, fields: list[str]) -> dict:
 
 
 class InMemoryProfiles:
-    def __init__(self):
+    """defaults: the settings an employee has before choosing (agent.json settings.defaults)."""
+
+    def __init__(self, defaults: Optional[Mapping] = None):
         self._rows: dict[str, dict] = {}
         self._sources: dict[str, dict] = {}
+        self._settings: dict[str, dict] = {}
+        self._defaults = dict(defaults or {})
+
+    def settings(self, employee_id: str) -> dict:
+        return {**self._defaults, **self._settings.get(employee_id, {})}
+
+    def update_settings(self, employee_id: str, values: Mapping) -> None:
+        """Checked already (validate_settings); the others stay."""
+        self._settings.setdefault(employee_id, {}).update(values)
 
     def get(self, employee_id: str) -> dict:
         return tidy(self._rows.get(employee_id, {}))

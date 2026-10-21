@@ -35,7 +35,7 @@ def build_routers(data, cfg):
 
 def test_employee_routes_and_rep_routes_live_in_separate_modules(data, cfg):
     emp, rp = build_routers(data, cfg)
-    assert paths(emp) == {"/login", "/me", "/profile", "/threads", "/chat", "/chat/{thread_id}/rep-answered", "/chat/{thread_id}",
+    assert paths(emp) == {"/login", "/me", "/profile", "/settings", "/threads", "/chat", "/chat/{thread_id}/rep-answered", "/chat/{thread_id}",
                           "/chat/{thread_id}/payslip", "/chat/{thread_id}/payslip-text",
                           "/conversations/{thread_id}/events"}
     assert paths(rp) == {"/rep/requests", "/rep/requests/{request_id}/answer"}

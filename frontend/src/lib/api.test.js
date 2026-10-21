@@ -136,6 +136,22 @@ describe('employee login', () => {
     await expect(saveProfile({ base: 3 }, fetchImpl)).rejects.toMatchObject({ status: 500 })
   })
 
+  it('settings and saveSettings: GET and PATCH /settings, with the token', async () => {
+    const { settings, saveSettings } = await import('./api')
+    const { setToken } = await import('./session')
+    setToken('tok-5')
+    let fetchImpl = vi.fn().mockResolvedValue(ok({ theme: 'light', tone: 'professional' }))
+    expect(await settings(fetchImpl)).toEqual({ theme: 'light', tone: 'professional' })
+    expect(fetchImpl.mock.calls[0][0]).toMatch(/\/settings$/)
+    expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe('Bearer tok-5')
+    fetchImpl = vi.fn().mockResolvedValue(ok({ theme: 'dark', tone: 'professional' }))
+    expect(await saveSettings({ theme: 'dark' }, fetchImpl)).toEqual({ theme: 'dark', tone: 'professional' })
+    const [, init] = fetchImpl.mock.calls[0]
+    expect(init.method).toBe('PATCH')
+    expect(JSON.parse(init.body)).toEqual({ theme: 'dark' })
+    expect(init.headers.Authorization).toBe('Bearer tok-5')
+  })
+
   it('me gives the logged-in employee (the name for the sidebar), with the token', async () => {
     const { me } = await import('./api')
     const { setToken } = await import('./session')

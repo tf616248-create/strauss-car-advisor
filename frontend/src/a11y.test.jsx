@@ -13,6 +13,7 @@ import intro from './config/intro.json'
 import payslipCfg from './config/payslip.json'
 import sidebarCfg from './config/sidebar.json'
 import profileCfg from './config/profile.json'
+import settingsCfg from './config/settings.json'
 import Intro from './components/Intro'
 import EmployeeApp from './employee/EmployeeApp'
 import EmployeeScreen from './employee/EmployeeScreen'
@@ -23,6 +24,9 @@ import { axeViolations, viewport } from './test-utils/axe'
 
 const TID = '11111111-2222-3333-4444-555555555555'
 const WIDTHS = [375, 1280]
+// The first axe run is cold and, with every test file running at once, can pass 15s (vite.config.js).
+// A test cut off then leaves axe running, and the next ones fail with "axe is already running".
+vi.setConfig({ testTimeout: 45000 })
 
 // the page as index.html makes it (jsdom starts from a bare document): its language, direction and title
 const INDEX = readFileSync('index.html', 'utf8')
@@ -48,6 +52,8 @@ function chatApi(events = []) {
     profile: vi.fn().mockResolvedValue({
       employee_id: 'E01', fields: { occupation: 'מנהל/ת מוצר', base: 15000, current_kind: 'car' },
       sources: { occupation: 'profile', base: 'payslip', current_kind: 'chat' }, group: 'ג' }),
+    settings: vi.fn().mockResolvedValue({ theme: 'light', tone: 'professional' }),
+    saveSettings: vi.fn(async (values) => ({ theme: 'light', tone: 'professional', ...values })),
     saveProfile: vi.fn().mockResolvedValue({ invalid: { base: { range: [1, 500000] }, occupation: { suggestions: ['מנהל/ת מוצר', 'מנהל/ת פיתוח'] } } }),
   }
 }
@@ -103,7 +109,7 @@ describe.each(WIDTHS)('axe at %ipx', (width) => {
     await expectClean()
   })
 
-  it('the sidebar: profile, customize and usage disabled; on a phone open over the chat', async () => {
+  it('the sidebar: usage disabled ("soon"); on a phone open over the chat', async () => {
     viewport(width)
     sessionStorage.setItem('threadId', TID)
     const api = chatApi()
@@ -178,6 +184,22 @@ describe.each(WIDTHS)('axe at %ipx', (width) => {
     await expectClean()
   })
 
+  it.each(['light', 'dark'])('the customize window, in %s mode', async (mode) => {
+    viewport(width)
+    sessionStorage.setItem('threadId', TID)
+    const api = chatApi()
+    api.settings = vi.fn().mockResolvedValue({ theme: mode, tone: 'funny' })
+    render(<EmployeeScreen api={api} {...quiet} />)
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe(mode))
+    await expectClean() // the chat itself in this mode
+    const user = userEvent.setup()
+    if (width < 768) await user.click(screen.getByRole('button', { name: sidebarCfg.texts.toggle }))
+    await user.click(screen.getByRole('button', { name: sidebarCfg.texts.customize }))
+    await screen.findByRole('dialog', { name: settingsCfg.texts.title })
+    await expectClean()
+    delete document.documentElement.dataset.theme
+  })
+
   it('the accessibility statement', async () => {
     viewport(width)
     render(<AccessibilityStatement />)
@@ -217,7 +239,8 @@ function tokens(block) {
 describe('contrast (WCAG 1.4.3: 4.5:1 for text, 3:1 for large text and controls)', () => {
   const css = readFileSync('src/styles.css', 'utf8')
   const light = tokens(css.match(/:root \{([^}]*)\}/)[1])
-  const dark = { ...light, ...tokens(css.match(/prefers-color-scheme: dark\) \{\s*:root \{([^}]*)\}/)[1]) }
+  // dark mode is the employee's setting ("התאמה אישית"), not the computer's: :root[data-theme="dark"]
+  const dark = { ...light, ...tokens(css.match(/:root\[data-theme="dark"\] \{([^}]*)\}/)[1]) }
 
   // [text, background, minimum]
   const PAIRS = [
