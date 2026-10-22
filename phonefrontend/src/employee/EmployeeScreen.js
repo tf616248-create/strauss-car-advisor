@@ -2,7 +2,7 @@
 // (the same server events, the same state rules). Only the layout differs: the chat and the
 // comparison are two tabs instead of two side-by-side panels.
 import { useEffect, useRef, useState } from 'react'
-import { AppState, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native'
+import { AccessibilityInfo, AppState, Image, Linking, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native'
 import { SvgXml } from 'react-native-svg'
 import * as realApi from '../lib/api'
 import { notifier as realNotifier } from '../lib/notify'
@@ -25,6 +25,7 @@ import payslipCfg from '../config/payslip.json'
 import logo from '../assets/logo'
 import { FONTS, ThemeMode, useColors } from '../theme'
 import Customize from './Customize'
+import UsageBar from '../components/UsageBar'
 import settingsCfg from '../config/settings.json'
 import { Btn, T } from '../components/ui'
 
@@ -66,6 +67,7 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
   const [menuOpen, setMenuOpen] = useState(false) // the side menu (☰)
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [me, setMe] = useState(null) // { employee_id, name } (GET /me)
+  const [usage, setUsage] = useState(null) // this week's usage (GET /usage), for the side menu
   const [messages, setMessages] = useState([])
   const [cards, setCards] = useState([])
   const [step, setStep] = useState(null)
@@ -135,8 +137,14 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
     } catch { return [] }
   }
 
+  // the weekly usage: read on load and after every answer (the server counts it)
+  function loadUsage() {
+    Promise.resolve(api.usage?.()).then((u) => { if (u) setUsage(u) }).catch(() => {})
+  }
+
   // the conversation open before; right after login: the newest one
   useEffect(() => {
+    loadUsage()
     Promise.resolve(api.me?.()).then((m) => setMe(m ?? null)).catch(() => {})
     const tid = getCurrentThread()
     if (tid) refresh(tid)
@@ -174,7 +182,7 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
     return m.id
   }
 
-  function handler(assistantId) {
+  function handler(assistantId, said) {
     let turnCards = []
     return (event, data) => {
       if (event === 'thread') {
@@ -190,6 +198,11 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
       } else if (event === 'token') {
         setStep(null)
         setMessages((ms) => ms.map((m) => (m.id === assistantId ? { ...m, text: m.text + data.text } : m)))
+      } else if (event === 'limit') {
+        // the weekly limit is used up: no answer from Kobi, the server's fixed message with its address
+        said.limit = data.message
+        setMessages((ms) => ms.map((m) => (m.id === assistantId
+          ? { ...m, role: 'limit', text: data.message, email: data.email } : m)))
       } else if (event === 'error') {
         // keep what was already written; the error goes below it as its own message
         setMessages((ms) => {
@@ -206,11 +219,14 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
     setBusy(true)
     const assistantId = append({ role: 'assistant', text: '' })
     setCurrentId(assistantId)
-    await start(handler(assistantId))
+    const said = {}
+    await start(handler(assistantId, said))
+    if (said.limit) AccessibilityInfo.announceForAccessibility?.(said.limit)
     setStep(null)
     busyRef.current = false
     setBusy(false)
     loadHistory() // a new conversation, or a new title from the card
+    loadUsage()
     return assistantId
   }
 
@@ -410,6 +426,7 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
       {profileOpen && <ProfileScreen api={api} onClose={() => setProfileOpen(false)} />}
       {customizeOpen && <Customize api={api} settings={settings} onChange={onSettings} onClose={() => setCustomizeOpen(false)} />}
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} busy={busy} threadId={threadId} history={history} name={me?.name}
+        usage={<UsageBar usage={usage} />}
         onNewConversation={newConversation} onProfile={() => setProfileOpen(true)} onCustomize={() => setCustomizeOpen(true)}
         onOpenThread={openThread} onLogout={() => onLogout?.()} />
     </View>
@@ -430,6 +447,7 @@ function TabButton({ active, label, onPress, children }) {
 function Message({ m, onOpen, onProfile }) {
   const c = useColors()
   if (m.role === 'system') return <T size={14} weight={700} color={c.cyanText} style={{ textAlign: 'center' }}>{REP_ANSWERED}</T>
+  if (m.role === 'limit') return <LimitText text={m.text} email={m.email} />
   if (m.role === 'error') return <T weight={600} color={c.error} accessibilityRole="alert">{m.text}</T>
   // a payslip (here or on the website): the employee's bubble, with its thumbnail when there is one
   if (m.role === 'payslip') {
@@ -463,4 +481,22 @@ function Message({ m, onOpen, onProfile }) {
   }
   // a kind of line the app does not know yet: a neutral line, never as if Kobi wrote it
   return <T size={14} muted style={{ textAlign: 'center' }}>{m.text}</T>
+}
+
+// the weekly limit's message from the server, its address as a link to the mail app
+function LimitText({ text, email }) {
+  const c = useColors()
+  const at = email ? text.indexOf(email) : -1
+  return (
+    <View style={{ borderWidth: 1, borderColor: c.orange, borderRadius: 12, padding: 12 }}>
+      {at < 0 ? <T>{text}</T> : (
+        <T>
+          {text.slice(0, at)}
+          <T accessibilityRole="link" accessibilityLabel={email} onPress={() => Linking.openURL(`mailto:${email}`)}
+            weight={700} color={c.cyanText} style={{ textDecorationLine: 'underline' }}>{email}</T>
+          {text.slice(at + email.length)}
+        </T>
+      )}
+    </View>
+  )
 }
