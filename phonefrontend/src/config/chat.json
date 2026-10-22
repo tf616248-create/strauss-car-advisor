@@ -7,7 +7,9 @@
     "loading": "טוען שיחה…",
     "loadFailed": "כובי לא הצליח לטעון את השיחה.",
     "retry": "לנסות שוב",
-    "newBelow": "↓ תשובה חדשה"
+    "newBelow": "↓ תשובה חדשה",
+    "typing": "כובי מקליד…",
+    "answered": "כובי ענה:"
   },
   "byAddress": {
     "notice": {

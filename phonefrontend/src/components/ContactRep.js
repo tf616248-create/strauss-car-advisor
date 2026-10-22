@@ -20,7 +20,8 @@ export default function ContactRep({ email = process.env.EXPO_PUBLIC_SUPPORT_EMA
           style={{ position: 'absolute', bottom: 52, end: 0, width: 260, backgroundColor: c.surface2, borderWidth: 1, borderColor: c.line, borderRadius: 12, padding: 12, gap: 6, elevation: 4, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 8, zIndex: 10 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <T weight={800}>פנייה לנציג התחבורה</T>
-            <Pressable accessibilityRole="button" accessibilityLabel="סגירה" onPress={() => setOpen(false)} hitSlop={10}>
+            <Pressable accessibilityRole="button" accessibilityLabel="סגירה" onPress={() => setOpen(false)}
+            style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
               <T size={18} muted>✕</T>
             </Pressable>
           </View>

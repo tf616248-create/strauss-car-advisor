@@ -1,9 +1,12 @@
 // The little road under the chat. It is built while the answer runs: every tool the
 // model really calls adds a stop, and the finish lights only with a real result (a card).
 // View only - it never decides anything and never guesses the next step.
-// The car drives right to left; with "reduce motion" on it jumps instead of driving.
-import { useEffect, useRef, useState } from 'react'
-import { AccessibilityInfo, Animated, Easing, View } from 'react-native'
+// The car drives right to left, on its own while a step runs: slowly toward the next stop, slower and
+// slower, but at most SHARE (80%) of the way - it reaches a stop only when that step really ended (a
+// tool was called), so what it shows is never ahead of what happened. Then it catches up and drives on
+// (like the website's Road). With "reduce motion" on it stands at the stop of the current step.
+import { useEffect, useState } from 'react'
+import { AccessibilityInfo, View } from 'react-native'
 import Svg, { Circle, Ellipse, G, Path, Rect, SvgXml } from 'react-native-svg'
 import logo from '../assets/logo'
 import { useColors } from '../theme'
@@ -19,22 +22,35 @@ const NAMES = {
 const MAX_STOPS = 3
 const WAITING = 'כובי שלח שאלה לנציג התחבורה ⏳'
 // distance from the right edge, in % of the road
-const SLOTS = [12, 34, 56]
-const START = 2
-const FINISH = 84
+export const SLOTS = [12, 34, 56]
+export const START = 2
+export const FINISH = 84
 const PARK = 90
 const WAIT_AT = 62 // stopped at the light, before the finish
 const CAR_W = 72
+export const SHARE = 0.8 // how far toward the next stop the car may drive before its step really ends
+const CRUISE_S = 4 // the slow drive on: its time constant, in seconds
+const CATCH_UP = 15 // % a second: a step really ended, so the car speeds up to its stop
 
 export function stopName({ tool, label }) {
   return NAMES[tool] ?? (label ?? '').replace(/…$/, '')
 }
 
-function carAt(phase, count) {
-  if (phase === 'arrived') return PARK
-  if (phase === 'waiting') return WAIT_AT
-  if (count === 0) return START
-  return SLOTS[count - 1] + 6 // just past the stop it reached, never heading to a stop it can't know
+// where the car may be: "at" is the stop the answer really reached, "upTo" the furthest it may drive
+export function legOf(phase, count) {
+  if (phase === 'arrived') return { at: PARK, upTo: PARK }
+  if (phase === 'waiting') return { at: WAIT_AT, upTo: WAIT_AT }
+  const at = count === 0 ? START : SLOTS[count - 1]
+  const next = count < SLOTS.length ? SLOTS[count] : FINISH
+  return { at, upTo: at + SHARE * (next - at) }
+}
+
+// one frame of dt seconds: catch up to the stop really reached, then on toward upTo, never past it.
+// A car already past upTo (e.g. stopped at the light) stays where it is: it never drives back
+export function drive(pos, { at, upTo }, dt) {
+  if (pos < at) return Math.min(at, pos + CATCH_UP * dt)
+  if (pos >= upTo) return pos
+  return Math.min(upTo, pos + (upTo - pos) * (1 - Math.exp(-dt / CRUISE_S)))
 }
 
 // the white car with the Strauss logo is Kobi, the bot (also parked on the welcome screen).
@@ -69,19 +85,30 @@ export default function Road({ phase, stops = [], label }) {
   const note = phase === 'waiting' ? WAITING : phase === 'arrived' ? 'התשובה מוכנה' : (label || 'כובי חושב…')
   const [width, setWidth] = useState(0)
   const [reduce, setReduce] = useState(false)
-  const target = carAt(phase, shown.length)
-  const pos = useRef(new Animated.Value(START)).current
+  const { at: legAt, upTo } = legOf(phase, shown.length)
+  const [carPos, setCarPos] = useState(legAt)
 
   useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled?.().then(setReduce).catch(() => {})
+    AccessibilityInfo.isReduceMotionEnabled?.().then((on) => setReduce(Boolean(on))).catch(() => {})
   }, [])
+  // frame by frame (requestAnimationFrame): the leg changes when a step really ends
   useEffect(() => {
-    if (reduce) { pos.setValue(target); return }
-    Animated.timing(pos, { toValue: target, duration: 900, easing: Easing.inOut(Easing.quad), useNativeDriver: true }).start()
-  }, [target, reduce, pos])
+    if (reduce) return undefined
+    let frame
+    let last
+    const tick = (now) => {
+      const dt = last === undefined ? 0 : Math.min((now - last) / 1000, 0.25) // a paused app: no jump
+      last = now
+      if (dt > 0) setCarPos((p) => drive(p, { at: legAt, upTo }, dt))
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [reduce, legAt, upTo])
+  const pos = reduce ? legAt : carPos
 
   // the car's right edge at pos% of the road; it moves left (negative x) from the right side
-  const x = pos.interpolate({ inputRange: [0, 100], outputRange: [0, -Math.max(width - CAR_W, 0)] })
+  const x = -Math.max(width - CAR_W, 0) * (pos / 100)
   const at = (pct) => ({ position: 'absolute', right: `${pct}%` })
 
   return (
@@ -109,9 +136,9 @@ export default function Road({ phase, stops = [], label }) {
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.orange }} />
           </View>
         )}
-        <Animated.View style={{ position: 'absolute', right: 0, bottom: 6, transform: [{ translateX: x }] }}>
+        <View testID="road-car" position={pos} style={{ position: 'absolute', right: 0, bottom: 6, transform: [{ translateX: x }] }}>
           <CarBody width={CAR_W} />
-        </Animated.View>
+        </View>
       </View>
     </View>
   )

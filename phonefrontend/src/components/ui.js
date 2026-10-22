@@ -19,7 +19,8 @@ export function Btn({ title, onPress, disabled, quiet, style, label, children })
     <Pressable accessibilityRole="button" accessibilityLabel={label ?? title} accessibilityState={{ disabled: !!disabled }}
       onPress={disabled ? undefined : onPress}
       style={({ pressed }) => [{
-        minHeight: quiet ? 36 : 44, paddingHorizontal: quiet ? 14 : 22, borderRadius: 999,
+        // a touch target of at least 44, quiet or not
+        minHeight: 44, paddingHorizontal: quiet ? 14 : 22, borderRadius: 999,
         alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6,
         backgroundColor: quiet ? 'transparent' : c.cyan, borderWidth: quiet ? 1 : 0, borderColor: c.line,
         opacity: disabled ? 0.5 : pressed ? 0.8 : 1,

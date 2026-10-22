@@ -89,6 +89,14 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
   const wasBusy = useRef(false)
   const busyRef = useRef(false) // set at once, so two reads of the state cannot both start the bot
   const turnStartCards = useRef(cards) // the cards before this answer began
+  // the list sticks to the bottom while an answer streams in, unless the employee scrolled up:
+  // then it stays put, and "↓ תשובה חדשה" brings it down. A new question sticks it again.
+  const stickRef = useRef(true)
+  const [newBelow, setNewBelow] = useState(false)
+  // opening a conversation: { tid, shown, failed } - shown only after loadingDelayMs, so a quick load
+  // does not flicker; meanwhile writing waits (loadingRef)
+  const [loading, setLoading] = useState(null)
+  const loadingRef = useRef(false)
   // a payslip chosen but not sent yet: { uri, name, type, kind: 'image' | 'pdf' }
   const [attachment, setAttachment] = useState(null)
   const [attachError, setAttachError] = useState(null)
@@ -114,10 +122,27 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
   // The server (database) is the source of truth: read the conversation's current state.
   // Called on start, on "changed", when the app comes back to the front, and after the
   // events stream reconnects. A rep answer not yet used by the bot starts a recalculation.
-  async function refresh(tid) {
-    if (!tid || busyRef.current) return
+  async function refresh(tid, { load = false } = {}) {
+    if (!tid || busyRef.current || (loadingRef.current && !load)) return
     let s
-    try { s = await api.restore(tid) } catch { return }
+    let timer
+    if (load) {
+      loadingRef.current = true
+      setLoading({ tid, shown: false, failed: false })
+      timer = setTimeout(() => setLoading((l) => (l && l.tid === tid ? { ...l, shown: true } : l)), chatCfg.loadingDelayMs)
+    }
+    try {
+      s = await api.restore(tid)
+    } catch (err) {
+      clearTimeout(timer)
+      if (!load) return
+      loadingRef.current = false
+      if (err?.status === 404) { setLoading(null); newConversation(); return } // deleted: a new conversation
+      setLoading({ tid, shown: true, failed: true })
+      return
+    }
+    clearTimeout(timer)
+    if (load) { loadingRef.current = false; setLoading(null) }
     if (busyRef.current) return
     // the payslip kept on the server: its image on the latest payslip line (Image loads it, with the token)
     const restored = s.messages.map((m) => ({ ...m, id: nextId++ }))
@@ -154,7 +179,7 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
     loadUsage()
     Promise.resolve(api.me?.()).then((m) => setMe(m ?? null)).catch(() => {})
     const tid = getCurrentThread()
-    if (tid) refresh(tid)
+    if (tid) refresh(tid, { load: true })
     loadHistory().then((list) => {
       if (!getCurrentThread() && !busyRef.current && list[0]) openThread(list[0].thread_id)
     })
@@ -180,7 +205,8 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
     setThreadId(tid)
     clearScreen()
     setTab('chat')
-    refresh(tid)
+    stickRef.current = true
+    refresh(tid, { load: true })
   }
 
   function append(msg) {
@@ -204,6 +230,7 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
         setCards(turnCards)
       } else if (event === 'token') {
         setStep(null)
+        said.text += data.text
         setMessages((ms) => ms.map((m) => (m.id === assistantId ? { ...m, text: m.text + data.text } : m)))
       } else if (event === 'limit') {
         // the weekly limit is used up: no answer from Kobi, the server's fixed message with its address
@@ -211,6 +238,7 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
         setMessages((ms) => ms.map((m) => (m.id === assistantId
           ? { ...m, role: 'limit', text: data.message, email: data.email } : m)))
       } else if (event === 'error') {
+        said.error = data.message
         // keep what was already written; the error goes below it as its own message
         setMessages((ms) => {
           const current = ms.find((m) => m.id === assistantId)
@@ -226,9 +254,13 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
     setBusy(true)
     const assistantId = append({ role: 'assistant', text: '' })
     setCurrentId(assistantId)
-    const said = {}
+    // a screen reader hears "כובי מקליד…", then the whole answer once it is done - never letter by letter
+    AccessibilityInfo.announceForAccessibility?.(chatCfg.texts.typing)
+    const said = { text: '' }
     await start(handler(assistantId, said))
-    if (said.limit) AccessibilityInfo.announceForAccessibility?.(said.limit)
+    const spoken = plainText(said.text)
+    const heard = [spoken && `${chatCfg.texts.answered} ${spoken}`, said.limit, said.error].filter(Boolean).join(' ')
+    if (heard) AccessibilityInfo.announceForAccessibility?.(heard)
     setStep(null)
     busyRef.current = false
     setBusy(false)
@@ -273,7 +305,7 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
 
   async function send() {
     const text = input.trim()
-    if ((!text && !attachment) || busy) return
+    if ((!text && !attachment) || busy || loadingRef.current) return
     setInput('')
     if (attachment) {
       const att = attachment
@@ -284,8 +316,10 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
   }
 
   async function ask(text) {
-    if (busyRef.current) return
+    if (busyRef.current || loadingRef.current) return
     notifier.setUnread(0)
+    stickRef.current = true
+    setNewBelow(false)
     setTab('chat')
     append({ role: 'user', text })
     await run((onEvent) => api.streamChat({ message: text, threadId }, onEvent))
@@ -297,6 +331,23 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
     setThreadId(null)
     clearScreen()
     setTab('chat')
+    stickRef.current = true
+  }
+
+  // the list: at the bottom (40 from it) it follows the answer; scrolled up, it stays where it is
+  function onListScroll(e) {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent
+    stickRef.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40
+    if (stickRef.current) setNewBelow(false)
+  }
+  function onListGrew() {
+    if (stickRef.current) scrollRef.current?.scrollToEnd?.({ animated: true })
+    else if (messages.length) setNewBelow(true)
+  }
+  function toBottom() {
+    stickRef.current = true
+    setNewBelow(false)
+    scrollRef.current?.scrollToEnd?.({ animated: true })
   }
 
   // the server rang ("changed", e.g. the rep answered): vibrate, read the state
@@ -369,9 +420,24 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
         </ScrollView>
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 110 : 0}>
-          <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled"
-            onContentSizeChange={() => scrollRef.current?.scrollToEnd?.({ animated: true })}>
-            {messages.length === 0 && (
+          <ScrollView ref={scrollRef} testID="chat-list" accessibilityLabel="השיחה" style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12 }}
+            keyboardShouldPersistTaps="handled" onScroll={onListScroll} scrollEventThrottle={100} onContentSizeChange={onListGrew}>
+            {loading?.shown && (loading.failed ? (
+              <View style={{ alignItems: 'center', gap: 8, paddingTop: 24 }}>
+                <T weight={600} color={c.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">{chatCfg.texts.loadFailed}</T>
+                <Btn quiet title={chatCfg.texts.retry} onPress={() => refresh(loading.tid, { load: true })} style={{ minHeight: 44 }} />
+              </View>
+            ) : (
+              <View accessibilityLiveRegion="polite" style={{ gap: 10, paddingTop: 12 }}>
+                <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ gap: 10 }}>
+                  <View style={{ alignSelf: 'flex-start', width: '55%', height: 36, borderRadius: 16, backgroundColor: c.surface }} />
+                  <View style={{ alignSelf: 'stretch', height: 56, borderRadius: 16, backgroundColor: c.surface }} />
+                  <View style={{ alignSelf: 'stretch', width: '70%', height: 36, borderRadius: 16, backgroundColor: c.surface }} />
+                </View>
+                <T muted style={{ textAlign: 'center' }}>{chatCfg.texts.loading}</T>
+              </View>
+            ))}
+            {messages.length === 0 && !loading && (
               <View style={{ alignItems: 'center', gap: 8, paddingTop: 12 }}>
                 <CarBody />
                 <T weight={800} size={24} style={{ textAlign: 'center' }} accessibilityRole="header">{welcome}</T>
@@ -391,6 +457,9 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
             )}
             {messages.map((m) => <Message key={m.id} m={m} onOpen={setViewing} onProfile={() => setProfileOpen(true)} />)}
           </ScrollView>
+          {newBelow && (
+            <Btn title={chatCfg.texts.newBelow} onPress={toBottom} style={{ alignSelf: 'center', marginTop: -52, marginBottom: 8, minHeight: 44 }} />
+          )}
           {/* a new key per answer: the car starts each trip from the start line */}
           {roadPhase && <Road key={currentId ?? 'idle'} phase={roadPhase} stops={stops} label={step} />}
           {attachment && (
@@ -418,14 +487,14 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
             <ContactRep />
             {threadId && (
               <Pressable accessibilityRole="button" accessibilityLabel={PT.attach} accessibilityState={{ expanded: choosing, disabled: busy }}
-                onPress={busy ? undefined : () => setChoosing((o) => !o)}
+                onPress={busy || loading ? undefined : () => setChoosing((o) => !o)}
                 style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center', opacity: busy ? 0.5 : 1 }}>
                 <T size={20}>📎</T>
               </Pressable>
             )}
-            <TextInput accessibilityLabel="הודעה" value={input} onChangeText={setInput} placeholder={say('placeholder')} placeholderTextColor={c.muted}
+            <TextInput accessibilityLabel="הודעה" editable={!loading} accessibilityState={{ disabled: Boolean(loading) }} value={input} onChangeText={setInput} placeholder={say('placeholder')} placeholderTextColor={c.muted}
               multiline style={{ flex: 1, minHeight: 44, maxHeight: 160, borderWidth: 1, borderColor: c.line, borderRadius: 22, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, fontFamily: FONTS[400], fontSize: 16, color: c.text, backgroundColor: c.surface2, textAlign: 'right' }} />
-            <Btn title="שליחה" onPress={send} disabled={busy} />
+            <Btn title="שליחה" onPress={send} disabled={busy || Boolean(loading)} />
           </View>
         </KeyboardAvoidingView>
       )}
@@ -507,4 +576,15 @@ function LimitText({ text, email }) {
       )}
     </View>
   )
+}
+
+// what a screen reader hears: the answer without the Markdown (bold, headings, bullets, links)
+export function plainText(md) {
+  return md
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^\s*#+\s*/gm, '')
+    .replace(/^\s*(?:[-*+]|\d+\.)\s+/gm, '')
+    .replace(/[*_]{1,3}/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
 }

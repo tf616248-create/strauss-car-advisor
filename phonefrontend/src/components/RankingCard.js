@@ -70,7 +70,8 @@ export function FullSpecs({ specs, open: alwaysOpen = false }) {
   return (
     <View style={{ gap: 6 }}>
       {!alwaysOpen && (
-        <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen((o) => !o)} hitSlop={8}>
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen((o) => !o)}
+          style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}>
           <T weight={700} size={14} color={c.cyanText}>כל המפרט</T>
         </Pressable>
       )}

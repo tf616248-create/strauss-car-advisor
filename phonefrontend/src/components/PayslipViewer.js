@@ -12,7 +12,7 @@ export default function PayslipViewer({ source, onClose }) {
   return (
     <Modal visible animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <View accessibilityViewIsModal accessibilityLabel={PT.viewer} style={{ flex: 1, backgroundColor: '#000', direction: 'rtl' }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={PT.close} onPress={onClose} hitSlop={8}
+        <Pressable accessibilityRole="button" accessibilityLabel={PT.close} onPress={onClose}
           style={{ position: 'absolute', top: 24, right: 16, zIndex: 1, width: 56, height: 56, borderRadius: 28, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }}>
           <T size={26} weight={800}>✕</T>
         </Pressable>
