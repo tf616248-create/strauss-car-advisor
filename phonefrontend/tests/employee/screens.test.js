@@ -101,24 +101,7 @@ test('my conversations: the list, and opening one reads it from the server', asy
 })
 
 // A line the server sends that is not a chat message: never shown as something Kobi wrote
-test('a payslip line from the website is the employee\'s bubble, not a message from Kobi', async () => {
-  const texts = require('@/config/texts.json')
-  setToken('t')
-  const api = fakeApi({
-    threads: jest.fn(async () => [{ thread_id: 'a', title: 'שיחה', updated_at: '2026-10-20T10:00:00Z' }]),
-    restore: jest.fn(async () => ({
-      messages: [{ role: 'user', text: 'שאלה' }, { role: 'payslip', text: '📄 תלוש שכר הועלה' }],
-      cards: [], rep: { pending: 0, new_answers: 0 }, payslip: { source: 'image', fields: {}, image: '/chat/a/payslip' },
-    })),
-  })
-  await render(<EmployeeScreen api={api} {...quiet} />)
-  const line = await screen.findByText(texts.payslipLine)
-  expect(screen.getByLabelText(texts.payslipLabel)).toBeTruthy()
-  expect(screen.queryByText('📄 תלוש שכר הועלה')).toBeNull() // the app's own text, without an image
-  expect(screen.queryByText('כובי · בוט')).toBeNull()
-  expect(line).toBeTruthy()
-})
-
+// (a payslip line: tests/employee/payslip.test.js)
 test('a kind of line the app does not know yet is a neutral line, not a message from Kobi', async () => {
   setToken('t')
   const api = fakeApi({

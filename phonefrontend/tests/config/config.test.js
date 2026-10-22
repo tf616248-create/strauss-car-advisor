@@ -1,7 +1,8 @@
-// The app's texts (src/config/texts.json)
-const texts = require('@/config/texts.json')
+// The app's settings files (src/config): the texts the server also says are the same as backend/config/agent.json
+const payslip = require('@/config/payslip.json')
+const agent = require('../../../backend/config/agent.json')
 
-test('the payslip line is short, and has a label for screen readers', () => {
-  expect(texts.payslipLine).toBe('📄 תלוש שכר')
-  expect(texts.payslipLabel).toBeTruthy()
+test('payslip: the same texts and size limit as the server', () => {
+  expect(payslip.maxBytes).toBe(agent.payslip.maxBytes)
+  for (const key of ['shown', 'tooLarge', 'badType']) expect(payslip.texts[key]).toBe(agent.texts.payslip[key])
 })

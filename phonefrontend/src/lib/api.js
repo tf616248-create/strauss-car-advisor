@@ -18,12 +18,19 @@ function withToken(headers = {}) {
   return token ? { ...headers, Authorization: `Bearer ${token}` } : headers
 }
 
+// a payslip the server refused (too large, wrong type, unreadable): its own text, shown by the message box
+const REFUSED = [413, 415, 422]
+
 // the global fetch on Android and iOS is expo/fetch, which streams the body (getReader)
-async function stream(url, init, onEvent, fetchImpl) {
+async function stream(url, init, onEvent, fetchImpl, { refused = [] } = {}) {
   try {
     const res = await fetchImpl(url, { ...init, headers: withToken(init.headers) })
     if (res.status === 401) { unauthorized(); return } // back to the login screen, no error message
     if (res.status === 429) { onEvent('error', { message: BUSY }); return }
+    if (refused.includes(res.status)) {
+      const body = await res.json().catch(() => ({}))
+      if (typeof body.detail === 'string') { onEvent('rejected', { message: body.detail }); return }
+    }
     if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
@@ -49,6 +56,24 @@ export function streamChat({ message, threadId }, onEvent, fetchImpl = fetch) {
 export function streamRepAnswered(threadId, onEvent, fetchImpl = fetch) {
   return stream(`${API_URL}/chat/${threadId}/rep-answered`, { method: 'POST' }, onEvent, fetchImpl)
 }
+
+// the file on the phone, as a request body: expo-file-system's File is a Blob that expo/fetch sends as it is
+function fileBody(uri) {
+  const { File } = require('expo-file-system')
+  return new File(uri)
+}
+
+// a payslip (JPG/PNG/PDF): the file itself is the body. Events: step, payslip, token, card, done,
+// or "rejected" with the server's text when it refuses the file
+export function streamPayslip(threadId, att, onEvent, fetchImpl = fetch, makeBody = fileBody) {
+  return stream(`${API_URL}/chat/${threadId}/payslip`, {
+    method: 'POST', headers: { 'Content-Type': att.type || 'application/octet-stream' }, body: makeBody(att.uri),
+  }, onEvent, fetchImpl, { refused: REFUSED })
+}
+
+// the payslip kept with the conversation (a JPEG): an image source with the token in its headers,
+// so <Image> loads it itself (the website needs a blob for <img>; React Native does not)
+export const payslipSource = (threadId) => ({ uri: `${API_URL}/chat/${threadId}/payslip`, headers: withToken() })
 
 async function json(url, init, fetchImpl = fetch) {
   const res = await fetchImpl(url, init)

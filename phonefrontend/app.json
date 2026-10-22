@@ -21,7 +21,16 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-video",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "כובי צריך גישה לתמונות כדי לצרף תלוש שכר.",
+          "cameraPermission": "כובי צריך את המצלמה כדי לצלם תלוש שכר.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "backgroundColor": "#FFFFFF"
   }

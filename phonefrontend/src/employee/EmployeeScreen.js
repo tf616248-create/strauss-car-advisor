@@ -2,7 +2,7 @@
 // (the same server events, the same state rules). Only the layout differs: the chat and the
 // comparison are two tabs instead of two side-by-side panels.
 import { useEffect, useRef, useState } from 'react'
-import { AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native'
+import { AppState, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native'
 import { SvgXml } from 'react-native-svg'
 import * as realApi from '../lib/api'
 import { notifier as realNotifier } from '../lib/notify'
@@ -16,10 +16,14 @@ import Road, { CarBody } from '../components/Road'
 import ContactRep from '../components/ContactRep'
 import Answer from '../components/Answer'
 import EmptyPanel from '../components/EmptyPanel'
+import PayslipViewer from '../components/PayslipViewer'
+import { pickPayslip as realPickPayslip } from '../lib/payslip'
+import payslipCfg from '../config/payslip.json'
 import logo from '../assets/logo'
 import { FONTS, useColors } from '../theme'
 import { Btn, T } from '../components/ui'
-import TEXTS from '../config/texts.json'
+
+const PT = payslipCfg.texts
 
 const REP_ANSWERED = 'הנציג ענה, והחלופה מתעדכנת'
 const PARKED_MS = 2500
@@ -34,7 +38,8 @@ const CHOICES = [
 ]
 const WELCOME = 'שלום, אני כובי'
 
-export default function EmployeeScreen({ api = realApi, subscribe = subscribeChanges, notifier = realNotifier, onLogout }) {
+export default function EmployeeScreen({ api = realApi, subscribe = subscribeChanges, notifier = realNotifier, onLogout,
+  pickPayslip = realPickPayslip }) {
   const c = useColors()
   // the open conversation, kept while the app is open; the list is on the server
   const [threadId, setThreadId] = useState(() => getCurrentThread())
@@ -54,6 +59,11 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const wasBusy = useRef(false)
   const busyRef = useRef(false) // set at once, so two reads of the state cannot both start the bot
   const turnStartCards = useRef(cards) // the cards before this answer began
+  // a payslip chosen but not sent yet: { uri, name, type, kind: 'image' | 'pdf' }
+  const [attachment, setAttachment] = useState(null)
+  const [attachError, setAttachError] = useState(null)
+  const [choosing, setChoosing] = useState(false) // 📎 open: camera, gallery, file
+  const [viewing, setViewing] = useState(null) // the payslip shown large: an image source
 
   // a new comparison (or a rep answer) marks the comparison tab, unless it is open
   useEffect(() => { if (cards.length && tab !== 'cards') setUnseenCard(true) }, [cards]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -78,10 +88,14 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     let s
     try { s = await api.restore(tid) } catch { return }
     if (busyRef.current) return
+    // the payslip kept on the server: its image on the latest payslip line (Image loads it, with the token)
+    const restored = s.messages.map((m) => ({ ...m, id: nextId++ }))
+    const last = restored.findLast((m) => m.role === 'payslip')
+    if (last && s.payslip?.image) last.thumb = api.payslipSource(tid)
     setMessages((ms) => {
       const errors = []
       for (let i = ms.length - 1; i >= 0 && ms[i].role === 'error'; i--) errors.unshift(ms[i])
-      return [...s.messages.map((m) => ({ ...m, id: nextId++ })), ...errors]
+      return [...restored, ...errors]
     })
     if (s.cards.length) setCards((cs) => (cs.length ? cs : [s.cards[s.cards.length - 1]]))
     if (s.rep?.new_answers > 0) {
@@ -109,6 +123,9 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   }, [api]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function clearScreen() {
+    setAttachment(null)
+    setAttachError(null)
+    setChoosing(false)
     setMessages([])
     setCards([])
     setStops([])
@@ -172,13 +189,53 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     busyRef.current = false
     setBusy(false)
     loadHistory() // a new conversation, or a new title from the card
+    return assistantId
+  }
+
+  // 📎 -> camera, gallery or a file: checked here first, then shown before sending
+  async function choose(source) {
+    setChoosing(false)
+    if (!threadId) { setAttachError(PT.needsConversation); return }
+    const picked = await pickPayslip(source)
+    if (!picked) return
+    if (picked.error) { setAttachError(picked.error); return }
+    setAttachError(null)
+    setAttachment(picked)
+  }
+
+  // returns false when the server refused the file (its text goes next to the message box)
+  async function sendPayslip(att) {
+    setAttachError(null)
+    // an image: its own picture at once; a PDF: the first page the server kept, after it is read
+    const bubbleId = append({ role: 'payslip', text: PT.shown, thumb: att.kind === 'image' ? { uri: att.uri } : null,
+      pdfName: att.kind === 'pdf' ? att.name : null })
+    let refused = null
+    const assistantId = await run((onEvent) => api.streamPayslip(threadId, att, (event, data) => {
+      if (event === 'rejected') refused = data.message
+      else onEvent(event, data)
+    }))
+    if (refused) {
+      setMessages((ms) => ms.filter((m) => m.id !== bubbleId && m.id !== assistantId))
+      setAttachError(refused)
+      return false
+    }
+    if (att.kind === 'pdf') {
+      const thumb = api.payslipSource(threadId)
+      setMessages((ms) => ms.map((m) => (m.id === bubbleId ? { ...m, thumb } : m)))
+    }
+    return true
   }
 
   async function send() {
     const text = input.trim()
-    if (!text || busy) return
+    if ((!text && !attachment) || busy) return
     setInput('')
-    await ask(text)
+    if (attachment) {
+      const att = attachment
+      setAttachment(null) // the bubble keeps its local picture
+      if (!(await sendPayslip(att))) { setAttachment(att); setInput(text); return }
+    }
+    if (text) await ask(text)
   }
 
   async function ask(text) {
@@ -306,18 +363,47 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
                 <T size={13} muted style={{ textAlign: 'center' }}>לא בטוחים מה זה "שווי שימוש" או "השתתפות עצמית"? פשוט שאלו אותי.</T>
               </View>
             )}
-            {messages.map((m) => <Message key={m.id} m={m} />)}
+            {messages.map((m) => <Message key={m.id} m={m} onOpen={setViewing} />)}
           </ScrollView>
           {/* a new key per answer: the car starts each trip from the start line */}
           {roadPhase && <Road key={currentId ?? 'idle'} phase={roadPhase} stops={stops} label={step} />}
+          {attachment && (
+            // above the message box: on a phone it never covers the box or the keyboard
+            <View testID="payslip-preview" accessibilityLabel={PT.attach}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingTop: 8 }}>
+              {attachment.kind === 'image'
+                ? <Image source={{ uri: attachment.uri }} accessibilityLabel={PT.image} resizeMode="contain" style={{ height: 120, width: 90, borderRadius: 8, backgroundColor: c.surface }} />
+                : <View accessibilityLabel={PT.pdf} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><T size={28}>📄</T><T>{attachment.name}</T></View>}
+              <Pressable accessibilityRole="button" accessibilityLabel={PT.remove} onPress={() => { setAttachment(null); setAttachError(null) }}
+                style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' }}>
+                <T size={18} weight={800}>✕</T>
+              </Pressable>
+            </View>
+          )}
+          {attachError && <T weight={600} color={c.error} accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ paddingHorizontal: 12, paddingTop: 6 }}>{attachError}</T>}
+          {choosing && (
+            <View accessibilityLabel={PT.choose} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12, paddingTop: 8 }}>
+              {[['camera', PT.camera, '📷'], ['gallery', PT.gallery, '🖼'], ['file', PT.file, '📄']].map(([source, label, icon]) => (
+                <Btn key={source} quiet label={label} title={`${icon} ${label}`} onPress={() => choose(source)} style={{ minHeight: 44 }} />
+              ))}
+            </View>
+          )}
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 12, borderTopWidth: 1, borderColor: c.line, backgroundColor: c.bg }}>
             <ContactRep />
+            {threadId && (
+              <Pressable accessibilityRole="button" accessibilityLabel={PT.attach} accessibilityState={{ expanded: choosing, disabled: busy }}
+                onPress={busy ? undefined : () => setChoosing((o) => !o)}
+                style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center', opacity: busy ? 0.5 : 1 }}>
+                <T size={20}>📎</T>
+              </Pressable>
+            )}
             <TextInput accessibilityLabel="הודעה" value={input} onChangeText={setInput} placeholder="כתבו שאלה…" placeholderTextColor={c.muted}
               multiline style={{ flex: 1, minHeight: 44, maxHeight: 160, borderWidth: 1, borderColor: c.line, borderRadius: 22, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, fontFamily: FONTS[400], fontSize: 16, color: c.text, backgroundColor: c.surface2, textAlign: 'right' }} />
             <Btn title="שליחה" onPress={send} disabled={busy} />
           </View>
         </KeyboardAvoidingView>
       )}
+      {viewing && <PayslipViewer source={viewing} onClose={() => setViewing(null)} />}
     </View>
   )
 }
@@ -333,17 +419,28 @@ function TabButton({ active, label, onPress, children }) {
   )
 }
 
-function Message({ m }) {
+function Message({ m, onOpen }) {
   const c = useColors()
   if (m.role === 'system') return <T size={14} weight={700} color={c.cyanText} style={{ textAlign: 'center' }}>{REP_ANSWERED}</T>
   if (m.role === 'error') return <T weight={600} color={c.error} accessibilityRole="alert">{m.text}</T>
-  // a payslip uploaded on the website: the employee's bubble, the app's own short text, no image
-  if (m.role === 'user' || m.role === 'payslip') {
-    const payslip = m.role === 'payslip'
+  // a payslip (here or on the website): the employee's bubble, with its thumbnail when there is one
+  if (m.role === 'payslip') {
     return (
-      <View accessibilityLabel={payslip ? TEXTS.payslipLabel : undefined}
-        style={{ alignSelf: 'flex-start', maxWidth: '85%', backgroundColor: c.surface, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8 }}>
-        <T>{payslip ? TEXTS.payslipLine : m.text}</T>
+      <View style={{ alignSelf: 'flex-start', maxWidth: '85%', backgroundColor: c.surface, borderRadius: 16, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        {m.thumb ? (
+          <Pressable accessibilityRole="imagebutton" accessibilityLabel={PT.open} onPress={() => onOpen?.(m.thumb)}
+            style={{ width: 48, height: 48, borderRadius: 6, overflow: 'hidden', backgroundColor: c.bg }}>
+            <Image testID="payslip-thumb" source={m.thumb} resizeMode="cover" style={{ width: 48, height: 48 }} />
+          </Pressable>
+        ) : m.pdfName ? <T>{`📄 ${m.pdfName}`}</T> : null}
+        <T>{m.text}</T>
+      </View>
+    )
+  }
+  if (m.role === 'user') {
+    return (
+      <View style={{ alignSelf: 'flex-start', maxWidth: '85%', backgroundColor: c.surface, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8 }}>
+        <T>{m.text}</T>
       </View>
     )
   }
