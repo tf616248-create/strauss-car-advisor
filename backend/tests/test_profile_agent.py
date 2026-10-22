@@ -1,5 +1,5 @@
 """The profile through the agent and the API, with a scripted fake model (no API calls): the
-occupation_to_group tool, the profile in every conversation, "עדכנתי בפרופיל", the payslip, the
+the profile in every conversation, "עדכנתי בפרופיל", the payslip, the
 endpoints, and what reaches LangSmith (field names, never values)."""
 import json
 
@@ -53,28 +53,6 @@ def ask(agent, text, employee="E01", thread="t"):
 
 
 # --- the tool --------------------------------------------------------------------------------
-
-def test_occupation_to_group_is_a_tool():
-    assert "occupation_to_group" in TOOL_NAMES
-
-
-def test_occupation_to_group_finds_the_group(data, cfg):
-    agent = agent_with(data, cfg, [call("occupation_to_group", {"occupation": "מפתחת תוכנה"}),
-                                   AIMessage(content="קבוצה ב")], InMemoryProfiles())
-    res = results(ask(agent, "אני מפתחת תוכנה"), "occupation_to_group")[0]
-    assert res["status"] == "ok" and res["occupation"] == "מפתח/ת תוכנה" and res["group"] == "ב"
-    assert res["source"] == cfg["texts"]["sources"]["occupation"]
-
-
-def test_occupation_to_group_not_found_asks(data, cfg):
-    agent = agent_with(data, cfg, [call("occupation_to_group", {"occupation": "שף"}),
-                                   AIMessage(content="מה העיסוק?")], InMemoryProfiles())
-    res = results(ask(agent, "אני שף"), "occupation_to_group")[0]
-    assert res["status"] == "not_found"
-    assert 2 <= len(res["suggestions"]) <= 3
-    assert "group" not in res
-    assert "אל תנחש" in res["instruction"]
-
 
 # --- the profile in the conversation ----------------------------------------------------------
 

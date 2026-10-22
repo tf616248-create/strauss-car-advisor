@@ -98,26 +98,16 @@ class Advisor:
         profile_mod.trace_profile("profile_updated", sorted(values))
         updated.extend(f for f in values if f not in updated)
 
-    def _with_profile(self, res: dict, updated: list) -> dict:
-        """The tool's result, and what Kobi says when the profile changed ("עדכנתי בפרופיל")."""
+    def _with_profile(self, res: dict, updated: list, info: Optional[dict] = None) -> dict:
+        """The tool's result, and what Kobi says when the profile changed ("עדכנתי בפרופיל"); info: the occupation
+        the model passed, recognized (and kept) or not_found with close ones."""
+        if info:
+            res.update(info)
         if updated:
             t = self.cfg["texts"]["profile"]
             res["profile_updated"] = list(updated)
             res["message_profile"] = t["updated"].format(fields=", ".join(t["labels"][f] for f in updated))
         return res
-
-    # ------------------------------------------------- tool: occupation_to_group
-
-    def occupation_to_group(self, occupation: str, employee_id: Optional[str] = None) -> dict:
-        found = self.matcher.find(occupation)
-        if found["status"] != "ok":
-            return {"status": "not_found", "suggestions": found["suggestions"],
-                    "instruction": "העיסוק לא נמצא בטבלת העיסוקים. שאל את העובד מה העיסוק שלו, והצע לו את "
-                                   "suggestions. אל תנחש עיסוק או קבוצה."}
-        updated = []
-        if found["occupation"] != self._profile(employee_id).get("occupation"):
-            self._save_profile(employee_id, {"occupation": found["occupation"]}, updated)
-        return self._with_profile({**found, "source": self.src["occupation"]}, updated)
 
     # ------------------------------------------------------------------ cars
 
@@ -257,17 +247,22 @@ class Advisor:
         return ""
 
     def _check_employee(self, args: dict, history, thread_id: str, for_calculate: bool,
-                        employee_id: Optional[str] = None, updated: Optional[list] = None):
+                        employee_id: Optional[str] = None, updated: Optional[list] = None,
+                        info: Optional[dict] = None):
         """Apply rep answers, the profile and the payslip, then validate. Returns (problem | None, args, sources).
         updated: gets the profile fields this call changed (a new value the employee wrote)."""
         updated = updated if updated is not None else []
+        info = info if info is not None else {}
         answers = self.queue.answers(thread_id)
         pending = self.queue.pending_fields(thread_id)
         args = {k: v for k, v in args.items() if v not in (None, "")}
-        if "occupation" in args and args["occupation"] not in self.data.occupations:
+        if "occupation" in args:  # written in the chat: recognized (then kept in the profile), or not_found
             found = self.matcher.find(args["occupation"])  # as the employee wrote it: "מנהלת אזור המכירות"
             if found["status"] == "ok":
                 args["occupation"] = found["occupation"]
+                info["occupation"] = {"status": "recognized", "occupation": found["occupation"]}
+            else:
+                info["occupation"] = {"status": "not_found", "suggestions": found["suggestions"]}
         # Filled in code, never by the model: the profile (this employee's, in every conversation),
         # then an uploaded payslip (app/payslip.py). What the model passes wins - the employee may have
         # corrected it; and a payslip uploaded through the API has already updated the profile.
@@ -290,7 +285,8 @@ class Advisor:
             elif field in payslip:
                 args[field] = payslip[field]
                 sources[field] = self.src["payslip"]
-        # the group comes from the occupation (the sheet), in code - unless the employee stated one
+        # the group comes from the occupation (the sheet), in code - never from the model. "group" in args is only
+        # what the employee stated (employee_stated_group): checked against it below (contradiction, rep)
         if "group" not in args and args.get("occupation") in self.data.occupations:
             args["group"] = self.data.occupations[args["occupation"]]["group"]
             sources["group"] = self.src["occupation"]
@@ -308,6 +304,9 @@ class Advisor:
             res = {"status": "invalid", "fields": bad,
                    "instruction": "הערכים לא תקינים. שאל את העובד שוב על השדות האלה."
                                   + self._where_to_find(bad, history)}
+            if "occupation" in bad:
+                res["instruction"] += (" העיסוק לא נמצא בטבלת העיסוקים: שאל את העובד מה העיסוק שלו, והצע לו את "
+                                       "occupation.suggestions. אל תנחש עיסוק או קבוצה.")
             if options:
                 res["options"] = options
             return res, args, sources
@@ -418,12 +417,13 @@ class Advisor:
 
     def check_eligibility(self, args: dict, history: Iterable = (), thread_id: str = "default",
                           employee_id: Optional[str] = None) -> dict:
-        updated = []
-        return self._with_profile(self._check_eligibility(args, history, thread_id, employee_id, updated), updated)
+        updated, info = [], {}
+        return self._with_profile(self._check_eligibility(args, history, thread_id, employee_id, updated, info),
+                                  updated, info)
 
-    def _check_eligibility(self, args, history, thread_id, employee_id, updated) -> dict:
+    def _check_eligibility(self, args, history, thread_id, employee_id, updated, info) -> dict:
         args = {k: args.get(k) for k in self.ELIGIBILITY_FIELDS}
-        problem, args, _ = self._check_employee(args, history, thread_id, False, employee_id, updated)
+        problem, args, _ = self._check_employee(args, history, thread_id, False, employee_id, updated, info)
         if problem:
             return problem
         problem, choice, _, _, pending = self._resolve_choice(args, "alternative", thread_id)
@@ -441,12 +441,12 @@ class Advisor:
     def calculate(self, args: dict, history: Iterable = (), thread_id: str = "default",
                   employee_id: Optional[str] = None) -> dict:
         """employee_id: whose profile fills in what the model did not pass (None: no profile)."""
-        updated = []
-        return self._with_profile(self._calculate(args, history, thread_id, employee_id, updated), updated)
+        updated, info = [], {}
+        return self._with_profile(self._calculate(args, history, thread_id, employee_id, updated, info), updated, info)
 
-    def _calculate(self, args, history, thread_id, employee_id, updated) -> dict:
+    def _calculate(self, args, history, thread_id, employee_id, updated, info) -> dict:
         args = {k: args.get(k) for k in self.CALCULATE_FIELDS}
-        problem, args, emp_sources = self._check_employee(args, history, thread_id, True, employee_id, updated)
+        problem, args, emp_sources = self._check_employee(args, history, thread_id, True, employee_id, updated, info)
         if problem:
             return problem
         problem, today_choice, today_car, today_src, _ = self._resolve_choice(args, "current", thread_id)

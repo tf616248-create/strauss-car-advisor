@@ -1,4 +1,4 @@
-"""The agent: LangGraph's prebuilt ReAct agent with 7 tools.
+"""The agent: LangGraph's prebuilt ReAct agent with 6 tools.
 
 The model decides what to ask and which tool to call. The guards are inside the
 tools (app/agent/advisor.py). The model never sees the conversation id, the employee id or the
@@ -25,8 +25,7 @@ from app.timing import timed
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 
-TOOL_NAMES = {"lookup_vehicle", "check_eligibility", "calculate", "ask_rep", "car_specs", "rank_options",
-              "occupation_to_group"}
+TOOL_NAMES = {"lookup_vehicle", "check_eligibility", "calculate", "ask_rep", "car_specs", "rank_options"}
 
 Kind = Literal["car", "family_car", "waiver"]
 Drive = Literal["electric", "plug_in", "hybrid", "petrol", "diesel"]
@@ -71,14 +70,14 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
         state: Annotated[dict, InjectedState],
         config: RunnableConfig,
         occupation: Annotated[Optional[str], "עיסוק, שם מדויק מהרשימה"] = None,
-        group: Annotated[Optional[str], "קבוצת הזכאות שהעובד ציין: א/ב/ג/ד"] = None,
+        employee_stated_group: Annotated[Optional[str], "רק אם העובד עצמו טוען לקבוצה (א/ב/ג/ד). הקבוצה עצמה נלקחת מהעיסוק, בקוד"] = None,
         alternative_kind: Annotated[Optional[Kind], "car / family_car / waiver"] = None,
         alternative_car: Annotated[Optional[str], "שם הרכב בחלופה"] = None,
         alternative_car_year: Annotated[Optional[int], "שנת רישום, לרכב שלא בקטלוג"] = None,
         children: Annotated[Optional[int], "ילדים עד גיל 23, רק למסלול המשפחתי"] = None,
     ) -> str:
         """האם העובד זכאי לחלופה, ולמה."""
-        args = dict(occupation=occupation, group=group, alternative_kind=alternative_kind,
+        args = dict(occupation=occupation, group=employee_stated_group, alternative_kind=alternative_kind,
                     alternative_car=alternative_car, alternative_car_year=alternative_car_year,
                     children=children)
         with timed("tool check_eligibility"):
@@ -90,7 +89,7 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
         state: Annotated[dict, InjectedState],
         config: RunnableConfig,
         occupation: Annotated[Optional[str], "עיסוק, שם מדויק מהרשימה"] = None,
-        group: Annotated[Optional[str], "קבוצת הזכאות שהעובד ציין: א/ב/ג/ד"] = None,
+        employee_stated_group: Annotated[Optional[str], "רק אם העובד עצמו טוען לקבוצה (א/ב/ג/ד). הקבוצה עצמה נלקחת מהעיסוק, בקוד"] = None,
         base: Annotated[Optional[float], "שכר בסיס חודשי ברוטו"] = None,
         commission: Annotated[Optional[float], "עמלות חודשיות (0 אם אין)"] = None,
         bonus: Annotated[Optional[float], "בונוס חודשי (0 אם אין)"] = None,
@@ -108,6 +107,7 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
     ) -> str:
         """נטו היום מול נטו בחלופה, עם הפרש מוכן לכל רכיב וכרטיס השוואה. כל המספרים מחושבים בקוד."""
         args = {k: v for k, v in locals().items() if k in Advisor.CALCULATE_FIELDS}
+        args["group"] = employee_stated_group  # inside the code it is "group": the contradiction check
         with timed("tool calculate"):
             return _dump(advisor.calculate(args, history=state["messages"], thread_id=_thread(config),
                                            employee_id=_employee(config)))
@@ -138,7 +138,7 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
         state: Annotated[dict, InjectedState],
         config: RunnableConfig,
         occupation: Annotated[Optional[str], "עיסוק, שם מדויק מהרשימה"] = None,
-        group: Annotated[Optional[str], "קבוצת הזכאות שהעובד ציין: א/ב/ג/ד"] = None,
+        employee_stated_group: Annotated[Optional[str], "רק אם העובד עצמו טוען לקבוצה (א/ב/ג/ד). הקבוצה עצמה נלקחת מהעיסוק, בקוד"] = None,
         base: Annotated[Optional[float], "שכר בסיס חודשי ברוטו"] = None,
         commission: Annotated[Optional[float], "עמלות חודשיות (0 אם אין)"] = None,
         bonus: Annotated[Optional[float], "בונוס חודשי (0 אם אין)"] = None,
@@ -166,6 +166,7 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
         """מסדר את הרכבים מהקטלוג שהעובד זכאי להם, לפי מה שחשוב לו, ומחשב נטו לכל אחד. מחזיר את 3 הראשונים."""
         local = locals()
         args = {k: local[k] for k in Advisor.CALCULATE_FIELDS if k in local and not k.startswith("alternative")}
+        args["group"] = employee_stated_group
         filters = {k: local[k] for k in FILTERS}
         with timed("tool rank_options"):
             result, card = options.rank_options(args, filters, sort_by, history=state["messages"],
@@ -173,16 +174,7 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
         # the model reads the short result; the card (full specs) goes to the screen as the artifact
         return _dump(result), card
 
-    @tool
-    def occupation_to_group(
-        occupation: Annotated[str, "העיסוק כמו שהעובד כתב אותו"],
-        config: RunnableConfig,
-    ) -> str:
-        """קבוצת הזכאות לפי העיסוק, מגיליון העיסוקים של שטראוס. סלחני לניסוח. עיסוק שלא נמצא: not_found והצעות קרובות."""
-        with timed("tool occupation_to_group"):
-            return _dump(advisor.occupation_to_group(occupation, employee_id=_employee(config)))
-
-    tools = [lookup_vehicle, check_eligibility, calculate, ask_rep, car_specs, rank_options, occupation_to_group]
+    tools = [lookup_vehicle, check_eligibility, calculate, ask_rep, car_specs, rank_options]
     assert {t.name for t in tools} == TOOL_NAMES
     return tools
 
@@ -199,7 +191,7 @@ def build_agent(model, data, rep_queue, cfg: dict, checkpointer=None, specs=None
             employee = _employee(config)
             text = base
             if employee:
-                text += "\n\n" + profile_section(profiles.get(employee), cfg)
+                text += "\n\n" + profile_section(profiles.get(employee), cfg, data.occupations)
                 has_name = bool(employees is not None and (employees.name(employee) or "").strip())
                 text += "\n\n" + address_section(profiles.settings(employee).get("address"), has_name, cfg)
                 tone = tone_section(profiles.settings(employee).get("tone"), cfg)

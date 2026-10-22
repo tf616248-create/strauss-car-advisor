@@ -158,8 +158,9 @@
     "why": "No occupation and no group: asks, and passes none to a tool",
     "question": "אני מרוויח 15,000 ברוטו, בלי עמלות ובלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי COROLLA CROSS ואני משלם 300 השתתפות. כמה ישנה לי בנטו אם אעבור ל-EV3?",
     "expect": {
-      "args_absent": {"calculate": ["group", "occupation"], "check_eligibility": ["group", "occupation"],
-                      "rank_options": ["group", "occupation"]},
+      "args_absent": {"calculate": ["employee_stated_group", "occupation"],
+                      "check_eligibility": ["employee_stated_group", "occupation"],
+                      "rank_options": ["employee_stated_group", "occupation"]},
       "text_any": [["קבוצ", "עיסוק", "תפקיד"]],
       "numbers_from_tools": true,
       "not_refused": true
@@ -280,15 +281,14 @@
   {
     "id": "profile-unknown-occupation",
     "kind": "profile",
-    "why": "An occupation that is not in the sheet: occupation_to_group gives not_found, Kobi asks and guesses no group",
+    "why": "An occupation that is not in the sheet: the tool gives occupation.status not_found with close ones, Kobi asks and guesses no group",
     "profile": {"base": 14200, "commission": 1000, "bonus": 0, "pension_pct": 6, "keren_pct": 2.5,
                 "credit_points": 2.25, "current_kind": "car", "current_car": "TUCSON", "current_participation": 400},
     "question": "אני שף ראשי. מה יקרה לנטו שלי אם אעבור ל-EV3?",
     "expect": {
-      "tools": ["occupation_to_group"],
       "not_ok": ["calculate"],
       "text_any": [["עיסוק", "תפקיד"]],
-      "args_absent": {"calculate": ["group"], "check_eligibility": ["group"]},
+      "args_absent": {"calculate": ["employee_stated_group"], "check_eligibility": ["employee_stated_group"]},
       "numbers_from_tools": true,
       "not_refused": true
     }

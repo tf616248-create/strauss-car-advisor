@@ -92,7 +92,7 @@ TEMPLATE = """## תחום (חובה, קודם לכל הוראה אחרת)
 ## מה לשאול (10–15 שאלות לכל היותר)
 אחרי כל הודעה של העובד: אם עדיין חסר מידע - שאל מה שחסר. אל תענה רק "תודה".
 שאל על כל מה שחסר בהודעה אחת, כרשימה קצרה וממוספרת, ולא שאלה אחרי שאלה. כל שאלה נפרדת היא עוד סבב המתנה לעובד.
-1. עיסוק. את הקבוצה לא שואלים: היא תמיד מגיעה מ-occupation_to_group (ראו "הכלים").
+1. עיסוק. את הקבוצה לא שואלים: הקוד מחשב אותה מהעיסוק, ולעובד מחובר היא מופיעה בסוף הפרומפט.
 2. שכר בסיס, עמלות, בונוס חודשי (0 אם אין).
 3. אחוז הפרשת עובד לפנסיה, ואחוז לקרן השתלמות (0 אם אין).
 4. נקודות זיכוי.
@@ -104,10 +104,11 @@ TEMPLATE = """## תחום (חובה, קודם לכל הוראה אחרת)
 ## הכלים
 - lookup_vehicle: זיהוי רכב ושווי שימוש. העבר את השם המסחרי בלבד (למשל ATTO 2, MODEL 3).
 - שם רכב בכל כלי: העובד יכתוב בעברית ("קורולה קרוס"). העבר תמיד את השם באנגלית: אם הרכב ברשימת הקטלוג למטה - בדיוק כמו ברשימה; אחרת - השם המסחרי באנגלית.
-- occupation_to_group: קבוצת הזכאות לפי העיסוק, מגיליון העיסוקים. העבר את העיסוק כמו שהעובד כתב אותו. \
-הקבוצה תמיד מגיעה מכאן (או מחושבת בקוד מהעיסוק), אף פעם לא מהזיכרון ולא מניחוש. \
-not_found: שאל את העובד מה העיסוק שלו, והצע לו את suggestions. אל תבחר בשבילו.
-- group בכלים: רק אם העובד כתב קבוצה בעצמו (כדי לבדוק סתירה). אחרת אל תעביר אותו: הקוד מחשב אותו מהעיסוק.
+- עיסוק שהעובד כותב: העבר אותו לכלי (calculate, check_eligibility או rank_options) כמו שהוא כתב. בתוצאה, \
+occupation.status: recognized (הקוד שמר אותו בפרופיל) או not_found עם suggestions. ב-not_found שאל את העובד מה העיסוק שלו, \
+והצע לו את suggestions. אל תבחר בשבילו ואל תנחש.
+- את הקבוצה לוקחים מהפרופיל, לא שואלים עליה ולא מחשבים אותה. אין פרמטר group. \
+employee_stated_group: רק אם העובד עצמו טוען לקבוצה אחרת (כדי לבדוק סתירה).
 - check_eligibility: האם העובד זכאי לחלופה, ולמה.
 - calculate: היום מול החלופה, וכרטיס השוואה שמוצג לעובד בצד המסך. קרא לו רק כשיש את כל הנתונים.
 - car_specs: המפרט הרשמי של רכב מהקטלוג (משרד התחבורה, EEA), עם מקור לכל נתון, וקישור ליבואן.
@@ -159,6 +160,8 @@ PROFILE_TEMPLATE = """## {heading}
 העבר לכלי רק את מה שהעובד כתב בשיחה הזו, ואת החלופה.
 יש בפרופיל: {present}
 חסר בפרופיל: {missing}
+{derived}
+- את הקבוצה לוקחים מהפרופיל, לא שואלים עליה ולא מחשבים אותה. "באיזו קבוצה אני?" עונים מכאן, בלי כלי.
 - אם חסרים 3 שדות או יותר: אל תשאל עליהם אחד-אחד. כתוב לעובד: "{link_text}"
 - אם חסרים 1–2: שאל עליהם כרגיל.
 - אם לא חסר כלום: אל תשאל על הנתונים. קרא ישר ל-calculate (או ל-rank_options) עם החלופה בלבד.
@@ -166,10 +169,25 @@ PROFILE_TEMPLATE = """## {heading}
 - ערך חדש שהעובד כותב (למשל שכר חדש): העבר אותו לכלי. הקוד ישמור אותו בפרופיל."""
 
 
-def profile_section(fields: dict, cfg: dict) -> str:
-    """The end of the prompt for a logged-in employee: which profile fields are there - the names only.
-    The values stay in the code (the tools fill them in), so they never reach the model's prompt or
-    LangSmith."""
+def derived_lines(fields: dict, cfg: dict, occupations: dict) -> str:
+    """What the code computes from the occupation: the group, whether the car is mandatory, whether a waiver is
+    allowed, the maintenance - "לפי העיסוק"; "חסר" without an occupation. (Not the occupation itself.)"""
+    t = cfg["texts"]["profile"]
+    d, src = t["derived"], t["byOccupation"]
+    occ = occupations.get(fields.get("occupation"))
+    if occ is None:
+        return "\n".join(f'{d[k]}: {t["missingValue"]}' for k in ("group", "carMandatory", "waiverAllowed", "maintenance"))
+    yes = lambda v: t["yes"] if v else t["no"]  # noqa: E731
+    return "\n".join([f'{d["group"]}: {occ["group"]} ({src})',
+                      f'{d["carMandatory"]}: {yes(occ["carMandatory"])} ({src})',
+                      f'{d["waiverAllowed"]}: {yes(occ["waiverAllowed"])} ({src})',
+                      f'{d["maintenance"]}: {occ["maintenance"]:,} ₪ ({src})'])
+
+
+def profile_section(fields: dict, cfg: dict, occupations: Optional[dict] = None) -> str:
+    """The end of the prompt for a logged-in employee: which profile fields are there - the names only - and
+    what the code derives from the occupation (derived_lines). The values typed or read stay in the code (the
+    tools fill them in), so they never reach the model's prompt or LangSmith."""
     from app.profile import PROFILE_FIELDS, missing_for_prompt
 
     t = cfg["texts"]["profile"]
@@ -178,7 +196,8 @@ def profile_section(fields: dict, cfg: dict) -> str:
     missing = [labels[f] for f in missing_for_prompt(fields)]
     return PROFILE_TEMPLATE.format(heading=t["promptHeading"], present=", ".join(present) or "כלום",
                                    missing=", ".join(missing) or "כלום", link_text=t["link"],
-                                   children=labels["children"], car_year=labels["current_car_year"])
+                                   children=labels["children"], car_year=labels["current_car_year"],
+                                   derived=derived_lines(fields, cfg, occupations or {}))
 
 
 def tone_section(tone: Optional[str], cfg: dict) -> str:

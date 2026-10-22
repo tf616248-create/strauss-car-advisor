@@ -52,8 +52,7 @@
       "check_eligibility": "כובי בודק זכאות…",
       "calculate": "כובי מחשב נטו…",
       "ask_rep": "כובי שלח שאלה לנציג התחבורה ⏳",
-      "payslip": "כובי קורא את התלוש…",
-      "occupation_to_group": "כובי בודק את העיסוק…"
+      "payslip": "כובי קורא את התלוש…"
     },
     "sources": {
       "employee": "עובד",
@@ -82,6 +81,16 @@
       "link": "חסרים לי כמה נתונים, ובמקום לשאול אחד-אחד: הכי מהיר למלא אותם בפרופיל, /profile. אפשר גם להעלות תלוש שכר (📎), ואני אקח ממנו את הנתונים.",
       "noteUpdated": "הערכים נשמרו גם בפרופיל של העובד: כתוב לו בתשובה גם \"עדכנתי בפרופיל\".",
       "promptHeading": "פרופיל העובד",
+      "byOccupation": "לפי העיסוק",
+      "missingValue": "חסר",
+      "yes": "כן",
+      "no": "לא",
+      "derived": {
+        "group": "קבוצת זכאות",
+        "carMandatory": "רכב חובה",
+        "waiverAllowed": "מותר לוותר על הרכב",
+        "maintenance": "אחזקת רכב בוויתור"
+      },
       "labels": {
         "occupation": "עיסוק",
         "base": "שכר בסיס",
@@ -134,7 +143,7 @@
     "visionModels": ["gemini", "gemma-3", "gemma-4", "llama-4"]
   },
   "profile": {
-    "note": "The employee's profile (app/profile.py): the details calculate needs from the employee, kept per employee (table employee_profile), filled in by the code in every conversation. No group: it comes from the occupation (occupation_to_group). linkWhenMissing: from this many missing details, the profile link instead of one question at a time.",
+    "note": "The employee's profile (app/profile.py): the details calculate needs from the employee, kept per employee (table employee_profile), filled in by the code in every conversation. No group: it is computed from the occupation, in code (the prompt's profile shows it, \"לפי העיסוק\"). linkWhenMissing: from this many missing details, the profile link instead of one question at a time.",
     "fields": ["occupation", "base", "commission", "bonus", "pension_pct", "keren_pct", "credit_points", "children",
                "current_kind", "current_car", "current_car_year", "current_participation"],
     "linkWhenMissing": 3,
