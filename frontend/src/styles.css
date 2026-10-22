@@ -814,3 +814,6 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 @keyframes loading-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 /* the sidebar's list and the cards: a scroll that reaches the end does not move the page */
 .sidebar__history .history__list, .cards { overscroll-behavior: contain; }
+
+/* the comparison card's importer links: the same look as in the ranking card (.importer) */
+.card__importers { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }

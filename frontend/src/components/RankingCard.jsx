@@ -51,9 +51,18 @@ export function SourceLine({ sources }) {
   )
 }
 
-export function ImporterLink({ url }) {
+// The importer's page (a model page, or the brand's page when there is none): in a new window, and a
+// screen reader is told so. car: its name for a screen reader, where a card shows more than one car.
+// No url (a car outside the catalog): no link at all, never a broken one.
+export function ImporterLink({ url, car }) {
   if (!url) return null
-  return <a className="importer" href={url} target="_blank" rel="noopener noreferrer">למפרט המלא אצל היבואן ←</a>
+  return (
+    <a className="importer" href={url} target="_blank" rel="noopener noreferrer">
+      למפרט המלא אצל היבואן ←
+      {car && <>{' '}<span className="visually-hidden">{car}</span></>}
+      {' '}<span className="visually-hidden">(נפתח בחלון חדש)</span>
+    </a>
+  )
 }
 
 export function FullSpecs({ specs, open = false }) {

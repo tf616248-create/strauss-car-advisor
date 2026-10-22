@@ -26,7 +26,7 @@ describe('SpecsCard (car_specs)', () => {
     const [mot, eea] = dolphin.card.sources
     expect(screen.getByText(`מקור: משרד התחבורה, עודכן ${day(mot.fetched_at)} · EEA, עודכן ${day(eea.fetched_at)}`))
       .toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'למפרט המלא אצל היבואן ←' }))
+    expect(screen.getByRole('link', { name: 'למפרט המלא אצל היבואן ← (נפתח בחלון חדש)' }))
       .toHaveAttribute('href', dolphin.card.importer_url)
   })
 
@@ -35,7 +35,7 @@ describe('SpecsCard (car_specs)', () => {
     expect(screen.getByText('אין נתון רשמי')).toBeInTheDocument()
     expect(screen.queryByRole('list', { name: 'מפרט עיקרי' })).toBeNull()
     expect(screen.queryByText(/^מקור:/)).toBeNull()
-    expect(screen.getByRole('link', { name: 'למפרט המלא אצל היבואן ←' }))
+    expect(screen.getByRole('link', { name: 'למפרט המלא אצל היבואן ← (נפתח בחלון חדש)' }))
       .toHaveAttribute('href', santaFe.card.importer_url)
   })
 })

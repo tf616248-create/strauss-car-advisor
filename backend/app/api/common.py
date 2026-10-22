@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import json
+import re
+from functools import lru_cache
+from pathlib import Path
 from typing import Optional
 
 from fastapi.responses import StreamingResponse
@@ -33,6 +36,30 @@ def text_of(content) -> str:
     return "".join(p.get("text", "") for p in content if isinstance(p, dict) and p.get("type", "text") == "text")
 
 
+_SOURCES = Path(__file__).resolve().parents[2] / "config" / "car-sources.json"
+_YEAR = re.compile(r"\s*\(\d{4}\)$")
+
+
+@lru_cache(maxsize=1)
+def _importer_links() -> dict[str, str]:
+    """Catalog car name -> the importer's page (config/car-sources.json; a brand page when generic)."""
+    cars = json.loads(_SOURCES.read_text(encoding="utf-8"))["cars"]
+    return {c["name"].upper(): c["importer_url"] for c in cars.values() if c.get("importer_url")}
+
+
+def _with_importer(card: dict) -> dict:
+    """The comparison card for the screen, with the importer link of each catalog car in it. Added here,
+    not in calculate's result, so the model's payload stays as it is. No catalog car, no link."""
+    card = dict(card)
+    for side in ("today", "alternative"):
+        s = card.get(side)
+        if isinstance(s, dict) and s.get("kind") in ("car", "family_car"):
+            url = _importer_links().get(_YEAR.sub("", s.get("label", "")).upper())
+            if url:
+                card[side] = {**s, "importer_url": url}
+    return card
+
+
 def cards_of(messages) -> list[dict]:
     """The cards for the screen: the comparison card (in calculate's result), the ranking card
     (rank_options' artifact - the model never reads it, only its short result) and the specs card
@@ -42,7 +69,7 @@ def cards_of(messages) -> list[dict]:
         if m.type == "tool" and m.name == "calculate":
             res = json.loads(m.content)
             if "card" in res:
-                out.append({"status": res["status"], "kind": "comparison", "card": res["card"]})
+                out.append({"status": res["status"], "kind": "comparison", "card": _with_importer(res["card"])})
         elif m.type == "tool" and m.name == "rank_options" and getattr(m, "artifact", None):
             out.append({"status": "ok", "kind": "ranking", "card": m.artifact})
         elif m.type == "tool" and m.name == "car_specs" and getattr(m, "artifact", None):

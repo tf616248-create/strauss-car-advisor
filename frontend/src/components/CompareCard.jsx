@@ -1,6 +1,7 @@
 // Comparison card, built from the `calculate` tool result. Every number here comes
 // from the server; the card only formats (rounding was already done for display).
 import { useEffect, useRef, useState } from 'react'
+import { ImporterLink } from './RankingCard'
 
 const YOUR_DATA = [
   ['occupation', 'עיסוק'], ['group', 'קבוצה'], ['base', 'שכר בסיס', 'money'],
@@ -117,6 +118,14 @@ export default function CompareCard({ result }) {
           </tbody>
         </table>
       </div>
+      {/* the importer's page of each catalog car in the card (the server adds it; none outside the catalog) */}
+      {[today, alt].some((s) => s?.importer_url) && (
+        <p className="card__importers">
+          {[today, alt].filter((s) => s?.importer_url).map((s) => (
+            <ImporterLink key={s.label} url={s.importer_url} car={s.label} />
+          ))}
+        </p>
+      )}
 
       {typeof net === 'number' ? (
         <div role="group" aria-label="הפרש בנטו, לחודש" className={`bigdiff bigdiff--${direction}`}>

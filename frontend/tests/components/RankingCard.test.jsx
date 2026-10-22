@@ -56,7 +56,7 @@ describe('RankingCard', () => {
   it('a button to the full specs at the importer', () => {
     render(<RankingCard result={ranking} />)
     const [first] = screen.getAllByRole('article')
-    const link = within(first).getByRole('link', { name: 'למפרט המלא אצל היבואן ←' })
+    const link = within(first).getByRole('link', { name: 'למפרט המלא אצל היבואן ← (נפתח בחלון חדש)' })
     expect(link).toHaveAttribute('href', ranking.card.options[0].importer_url)
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', expect.stringContaining('noreferrer'))
