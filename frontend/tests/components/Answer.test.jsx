@@ -35,9 +35,27 @@ describe('Answer (the bot\'s Markdown)', () => {
     expect(links).toHaveLength(2)
     expect(links.map((a) => a.getAttribute('href'))).toEqual(['/profile', '/profile'])
     expect(container.querySelector('a[href^="http"]')).toBeNull() // any other link stays text
-    expect(container.textContent).toContain('כאן')
     await userEvent.setup().click(links[0])
     expect(onProfile).toHaveBeenCalledWith(links[0])
+  })
+
+  it('the profile link reads "כאן", never the path itself', () => {
+    const { container } = render(
+      <Answer text={'מלאו בפרופיל, /profile. או [/profile](/profile). או [כאן](/profile).'} onProfile={() => {}} />)
+    const links = screen.getAllByRole('link')
+    expect(links.map((a) => a.textContent)).toEqual(['כאן', 'כאן', 'כאן'])
+    expect(links.every((a) => a.getAttribute('href') === '/profile')).toBe(true)
+    expect(container.textContent).not.toContain('/profile')
+  })
+
+  it('its accessible name includes the word shown: "כאן – פתיחת הפרופיל"', () => {
+    render(<Answer text={'הכי מהיר בפרופיל, [כאן](/profile).'} onProfile={() => {}} />)
+    expect(screen.getByRole('link', { name: 'כאן – פתיחת הפרופיל' })).toHaveAttribute('href', '/profile')
+  })
+
+  it('another Hebrew text for the link keeps its own words in the name', () => {
+    render(<Answer text={'[בפרופיל](/profile)'} onProfile={() => {}} />)
+    expect(screen.getByRole('link', { name: 'בפרופיל – פתיחת הפרופיל' })).toHaveTextContent('בפרופיל')
   })
 
   it('without onProfile, /profile is plain text', () => {

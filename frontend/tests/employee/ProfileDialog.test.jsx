@@ -127,7 +127,8 @@ describe('opening and closing', () => {
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('הודעה'), 'EV3?')
     await user.click(screen.getByRole('button', { name: 'שליחה' }))
-    const link = await screen.findByRole('link', { name: cfg.path })
+    const link = await screen.findByRole('link', { name: T.linkLabel.replace('{text}', T.linkText) }) // "כאן – פתיחת הפרופיל"
+    expect(link).toHaveTextContent(T.linkText)
     await user.click(link)
     await screen.findByRole('dialog', { name: T.title })
     expect(window.location.pathname).toBe(cfg.path)

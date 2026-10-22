@@ -207,3 +207,22 @@ def test_profile_traces_carry_field_names_only(data, cfg, monkeypatch):
 
 def test_the_trace_function_returns_names_only():
     assert profile_mod.trace_profile("profile_updated", ["base"]) == {"event": "profile_updated", "fields": ["base"]}
+
+
+# --- the link to the profile: Hebrew text ("כאן"), never the bare path -----------------
+
+
+def test_the_profile_link_sentence_links_a_hebrew_word_not_the_path(cfg):
+    import re
+
+    text, path = cfg["texts"]["profile"]["link"], cfg["profile"]["link"]
+    assert f"[כאן]({path})" in text
+    assert not re.search(rf"(?<!\(){re.escape(path)}", text)  # the path only inside the link's ( )
+
+
+def test_the_prompt_says_internal_links_get_hebrew_text(data, cfg):
+    from app.agent.prompt import build_prompt
+
+    prompt = build_prompt(data, cfg)
+    assert "[כאן](/profile)" in prompt
+    assert "אף פעם לא כנתיב" in prompt
