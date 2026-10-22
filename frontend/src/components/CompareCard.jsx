@@ -118,12 +118,10 @@ export default function CompareCard({ result }) {
           </tbody>
         </table>
       </div>
-      {/* the importer's page of each catalog car in the card (the server adds it; none outside the catalog) */}
-      {[today, alt].some((s) => s?.importer_url) && (
+      {/* the importer's page of the new car only - today's car is already known (the server adds it; none outside the catalog) */}
+      {alt?.importer_url && (
         <p className="card__importers">
-          {[today, alt].filter((s) => s?.importer_url).map((s) => (
-            <ImporterLink key={s.label} url={s.importer_url} car={s.label} />
-          ))}
+          <ImporterLink url={alt.importer_url} car={alt.label} />
         </p>
       )}
 

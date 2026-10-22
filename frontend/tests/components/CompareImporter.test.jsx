@@ -1,4 +1,4 @@
-// The comparison card: the importer link of each catalog car, like the ranking card's.
+// The comparison card: the importer link of the new car only (not today's), like the ranking card's.
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import noa from '../fixtures/card-noa.json'
@@ -17,9 +17,15 @@ describe('the importer link in the comparison card', () => {
     expect(screen.getAllByRole('link')).toHaveLength(1) // today's car has none
   })
 
-  it('both cars in the catalog: two links, each named for its car', () => {
+  it('both cars in the catalog: one link only, to the new car - never to today\'s', () => {
     render(<CompareCard result={withLinks('https://t.example/', 'https://a.example/')} />)
-    expect(screen.getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(['https://t.example/', 'https://a.example/'])
+    expect(screen.getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(['https://a.example/'])
+    expect(screen.getByRole('link')).toHaveAccessibleName(expect.stringContaining(noa.card.alternative.label))
+  })
+
+  it('only today\'s car has a page: no link at all', () => {
+    const { container } = render(<CompareCard result={withLinks('https://t.example/', undefined)} />)
+    expect(container.querySelector('a, .card__importers')).toBeNull()
   })
 
   it('no catalog car: no link, and no empty or broken one', () => {
