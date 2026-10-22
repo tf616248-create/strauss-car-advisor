@@ -79,7 +79,7 @@
 - **ניסוח למי שלא מבין כלום בנושא:** פונים ברבים, ובלי מספרים בטקסטים של המסך. בהדר: "**רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלכם** · לפי כללי שטראוס ורשות המסים". בטלפון: שורה קטנה משלה מתחת להדר.
 - **פאנל הכרטיס כשהוא ריק** (`components/EmptyPanel.jsx`): "למה רכב משנה את המשכורת?" (שווי שימוש במילים פשוטות), "איך זה עובד?" ב-3 צעדים. בהשוואה הראשונה מתחלף בכרטיס האמיתי. בלי טבלת דמה (הוסרה, לא נראתה טוב).
 - **נגישות (האתר בלבד, WCAG 2.1 AA / ת"י 5568).** הטקסטים ב-`frontend/src/config/accessibility.json`:
-  - **בדיקה אוטומטית** (`src/a11y.test.jsx`, עם `axe-core` ישירות. `vitest-axe` הוא עטיפה דקה של אותו מנוע, והגרסה האחרונה שלו מ-2022): כל מסך, ברוחב 375 וב-1280, על כל המסמך.
+  - **בדיקה אוטומטית** (`frontend/tests/a11y.test.jsx`, עם `axe-core` ישירות. `vitest-axe` הוא עטיפה דקה של אותו מנוע, והגרסה האחרונה שלו מ-2022): כל מסך, ברוחב 375 וב-1280, על כל המסמך.
     - **המסכים:** הפתיחה (בזמן הסרטון, הכרטיס, שגיאה, טוקן, reduced-motion), הצ'אט, סרגל הצד (סגור ופתוח, ובטלפון מעל הצ'אט), חלונית הפרופיל (עם מקורות, ועם שגיאות), חלון ההתאמה האישית והצ'אט במצב בהיר ובמצב כהה, כרטיסי השוואה, דירוג ומפרט, הפאנל פתוח וסגור, התלוש, ההצהרה, ומסך הנציג.
     - **כל ממצא מכל רמה מכשיל את הבדיקה.**
     - **ניגודיות:** jsdom לא מצייר, אז היא מחושבת מהטוקנים ב-`styles.css`, במצב בהיר ובמצב כהה (`:root[data-theme="dark"]`).
@@ -364,14 +364,16 @@ frontend/                 React (Vite). npm test = vitest
   src/components/AccessibilityStatement.jsx  הצהרת הנגישות (/accessibility)
   src/components/SiteFooter.jsx  הקישור "הצהרת נגישות" בתחתית כל מסך
   src/config/accessibility.json  טקסטי הנגישות: הקישור, ה-live region, ההצהרה
-  src/a11y.test.jsx       axe על כל מסך (375 ו-1280) וניגודיות הטוקנים. test-utils/axe.js: העזר
+  tests/                  כל הבדיקות (vitest), באותן תיקיות כמו בקוד: tests/components/, tests/employee/, tests/lib/ ...
+                          הן מייבאות את הקוד כ-'@/...' (alias ל-src/, רק ב-vitest). tests/setup.js: ההכנה לכל קובץ
+  tests/a11y.test.jsx     axe על כל מסך (375 ו-1280) וניגודיות הטוקנים. tests/utils/axe.js: העזר
   public/media/           סרטון הפתיחה והפוסטרים (נבנים ב-scripts/build-hero-media.mjs)
   src/lib/payslip.js      בדיקת קובץ התלוש לפני השליחה, וזיהוי טלפון (למצלמה)
   src/config/payslip.json הטקסטים וההגדרות של העלאת התלוש
   src/employee/           מסך העובד (/). Sidebar.jsx: סרגל הצד (config/sidebar.json), כולל פס השימוש (config/usage.json). ProfileDialog.jsx: הפרופיל (/profile, config/profile.json). CustomizeDialog.jsx: מראה וטון (config/settings.json)
   src/lib/dialog.js       חלון מודאלי: הפוקוס (Tab, Esc) והלחיצה בחוץ
   src/rep/                מסך הנציג (/rep)
-  src/test-fixtures/      כרטיסים אמיתיים שנוצרו מהשרת (נועה, רחל ממתינה)
+  tests/fixtures/         כרטיסים אמיתיים שנוצרו מהשרת (נועה, רחל ממתינה)
 phonefrontend/            React Native (Expo SDK 58), מסך העובד בלבד. npm test = jest. פרטים ב-phonefrontend/README.md
 ```
 
