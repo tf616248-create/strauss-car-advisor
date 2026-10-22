@@ -374,7 +374,7 @@ frontend/                 React (Vite). npm test = vitest
   src/lib/dialog.js       חלון מודאלי: הפוקוס (Tab, Esc) והלחיצה בחוץ
   src/rep/                מסך הנציג (/rep)
   tests/fixtures/         כרטיסים אמיתיים שנוצרו מהשרת (נועה, רחל ממתינה)
-phonefrontend/            React Native (Expo SDK 58), מסך העובד בלבד. npm test = jest. פרטים ב-phonefrontend/README.md
+phonefrontend/            React Native (Expo SDK 58), מסך העובד בלבד. npm test = jest, הבדיקות ב-phonefrontend/tests/ (כמו בקוד). פרטים ב-phonefrontend/README.md
 ```
 
 - **גרסת טלפון** (`phonefrontend/`): נוספת לאתר, לא מחליפה אותו. האתר ב-`frontend/` לא משתנה בגללה. מסך הנציג רק באתר. השרת לא משתנה. אותו API, אותם אירועים ואותם כללי מצב כמו באתר. השיחה וההשוואה הן שתי לשוניות. הכניסה נשמרת בזיכרון בלבד. תשובת נציג מפעילה רטט. הכיוון נקבע ב-`direction: 'rtl'` על השורש. כתובת השרת ב-`EXPO_PUBLIC_API_URL`. שינוי בלוגיקה של האתר (`lib/`, `EmployeeScreen`) צריך להיעשות גם כאן.

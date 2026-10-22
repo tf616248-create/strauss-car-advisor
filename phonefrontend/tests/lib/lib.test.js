@@ -1,7 +1,7 @@
 // The connection to the server: the same API as the website (frontend/src/lib), on a phone.
-import { apiBase, streamChat, login, threads, restore } from '../src/lib/api'
-import { clearSession, getToken, setToken, setUnauthorizedHandler, getCurrentThread, setCurrentThread } from '../src/lib/session'
-import { subscribeChanges } from '../src/lib/realtime'
+import { apiBase, streamChat, login, threads, restore } from '@/lib/api'
+import { clearSession, getToken, setToken, setUnauthorizedHandler, getCurrentThread, setCurrentThread } from '@/lib/session'
+import { subscribeChanges } from '@/lib/realtime'
 
 function streamBody(chunks) {
   const enc = new TextEncoder()

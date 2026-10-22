@@ -1,4 +1,4 @@
-import { createSSEParser } from '../src/lib/sse'
+import { createSSEParser } from '@/lib/sse'
 
 describe('createSSEParser', () => {
   it('parses whole events', () => {

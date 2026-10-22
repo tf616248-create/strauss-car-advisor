@@ -1,9 +1,9 @@
 // Login and the employee screen, with a fake server (api) and no real-time connection.
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native'
-import Login from '../src/components/Login'
-import EmployeeScreen from '../src/employee/EmployeeScreen'
-import { clearSession, getToken, setToken } from '../src/lib/session'
-import noa from '../src/test-fixtures/card-noa.json'
+import Login from '@/components/Login'
+import EmployeeScreen from '@/employee/EmployeeScreen'
+import { clearSession, getToken, setToken } from '@/lib/session'
+import noa from '../fixtures/card-noa.json'
 
 beforeEach(() => clearSession())
 
@@ -102,7 +102,7 @@ test('my conversations: the list, and opening one reads it from the server', asy
 
 // A line the server sends that is not a chat message: never shown as something Kobi wrote
 test('a payslip line from the website is the employee\'s bubble, not a message from Kobi', async () => {
-  const texts = require('../src/config/texts.json')
+  const texts = require('@/config/texts.json')
   setToken('t')
   const api = fakeApi({
     threads: jest.fn(async () => [{ thread_id: 'a', title: 'שיחה', updated_at: '2026-10-20T10:00:00Z' }]),

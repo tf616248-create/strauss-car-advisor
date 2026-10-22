@@ -22,7 +22,9 @@ npx expo start            # סורקים את הקוד ב-Expo Go בטלפון
 npm test
 ```
 
-Jest עם `jest-expo` ו-Testing Library, עם שרת מזויף. הכרטיסים נבדקים על כרטיסים אמיתיים מהשרת (`src/test-fixtures/`, עותק של אלה שבאתר).
+Jest עם `jest-expo` ו-Testing Library, עם שרת מזויף. כל הבדיקות ב-`tests/`, באותן תיקיות כמו בקוד (`tests/components/`, `tests/employee/`, `tests/lib/`...), והן מייבאות את הקוד כ-`@/...` (`moduleNameMapper` ב-`package.json`). `tests/setup.js` רץ לפני כל קובץ. הכרטיסים נבדקים על כרטיסים אמיתיים מהשרת (`tests/fixtures/`, עותק של אלה שב-`frontend/tests/fixtures/`).
+
+**זמן:** בהרצה הראשונה, כשהמטמון של Jest ריק, בדיקה אחת ב-`tests/employee/screens.test.js` עוברת את 5 השניות ונכשלת. בהרצה שנייה כל ה-23 עוברות. כך היה גם לפני ההעברה ל-`tests/`.
 
 ## מה שונה מהאתר
 

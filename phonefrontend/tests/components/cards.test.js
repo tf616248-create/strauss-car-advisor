@@ -1,13 +1,13 @@
 // The cards: built on the server, the phone only formats them (real cards from the server, test-fixtures).
 import { render, screen, fireEvent } from '@testing-library/react-native'
-import CompareCard from '../src/components/CompareCard'
-import RankingCard from '../src/components/RankingCard'
-import SpecsCard from '../src/components/SpecsCard'
-import noa from '../src/test-fixtures/card-noa.json'
-import rachel from '../src/test-fixtures/card-rachel-waiting.json'
-import ranking from '../src/test-fixtures/card-ranking.json'
-import specs from '../src/test-fixtures/card-specs.json'
-import specsNone from '../src/test-fixtures/card-specs-none.json'
+import CompareCard from '@/components/CompareCard'
+import RankingCard from '@/components/RankingCard'
+import SpecsCard from '@/components/SpecsCard'
+import noa from '../fixtures/card-noa.json'
+import rachel from '../fixtures/card-rachel-waiting.json'
+import ranking from '../fixtures/card-ranking.json'
+import specs from '../fixtures/card-specs.json'
+import specsNone from '../fixtures/card-specs-none.json'
 
 const has = (re) => expect(screen.queryAllByText(re).length).toBeGreaterThan(0)
 
