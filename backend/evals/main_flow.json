@@ -22,18 +22,19 @@
     }
   },
   {
-    "id": "demo-pdf-rep",
+    "id": "demo-pdf-not-in-catalog",
     "kind": "demo",
-    "why": "The PDF's rep step: a car outside the catalog (ATTO 2) - the company details go to the rep, the bot says so, and invents no net",
+    "why": "The PDF's ATTO 2 step, by the catalog rules (22/10): ATTO 2 is not in the catalog - the bot says so politely, offers catalog cars, calculates nothing and sends nothing to the rep",
     "judge_on": "conversation",
     "turns": [
       "היום אני מקבלת אחזקת רכב. אני שוקלת לעבור ל-BYD ATTO 2 החשמלי. כמה זה ישנה לי בנטו?",
       "אני מפתחת תוכנה, קבוצה ב. שכר בסיס 21,000, בלי עמלות ובלי בונוס, פנסיה 6.5%, קרן השתלמות 2.5%, 2.75 נקודות זיכוי. ה-ATTO 2 שנת רישום 2025."
     ],
     "expect": {
-      "first_turn": {"no_tools": ["calculate"]},
-      "tools": ["ask_rep"],
-      "text_any": [["נציג"]],
+      "first_turn": {"no_tools": ["ask_rep"]},
+      "no_tools": ["ask_rep"],
+      "not_ok": ["calculate"],
+      "text_any": [["לא נמצא", "רשימת רכבי החברה"]],
       "numbers_from_tools": true,
       "not_refused": true
     }
@@ -191,13 +192,13 @@
     }
   },
   {
-    "id": "rep-car-not-found",
+    "id": "rep-current-car-not-found",
     "kind": "rep_after_two",
-    "why": "A car that is not found twice: the bot sends it to the rep itself",
+    "why": "Today's car is not found twice (catalog, then the Tax Authority file): the bot sends it to the rep itself. Today's car still may go to the rep; a car to move to never does",
     "judge_on": "conversation",
     "turns": [
-      "אני מנהלת מוצר, קבוצה ג. שכר בסיס 18,500, בלי עמלות ובלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.75 נקודות זיכוי. היום יש לי COROLLA CROSS ואני משלמת 300 השתתפות. מה יקרה לנטו אם אעבור ל-ZORVEX 5 החשמלי?",
-      "זה בדיוק השם: ZORVEX 5, שנת רישום 2026."
+      "אני מנהלת מוצר, קבוצה ג. שכר בסיס 18,500, בלי עמלות ובלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.75 נקודות זיכוי. היום יש לי ZORVEX 5 החשמלי ואני משלמת 300 השתתפות. מה יקרה לנטו אם אעבור ל-EV3?",
+      "זה בדיוק השם: ZORVEX 5, שנת רישום 2024."
     ],
     "expect": {
       "tools": ["lookup_vehicle", "ask_rep"],
@@ -289,6 +290,62 @@
       "not_ok": ["calculate"],
       "text_any": [["עיסוק", "תפקיד"]],
       "args_absent": {"calculate": ["employee_stated_group"], "check_eligibility": ["employee_stated_group"]},
+      "numbers_from_tools": true,
+      "not_refused": true
+    }
+  },
+  {
+    "id": "catalog-c-electric",
+    "kind": "catalog",
+    "why": "Group ג picks an electric car from the catalog: the participation is the catalog's, no question about it, no rep",
+    "question": "אני מנהל אזור מכירות, קבוצה ג. שכר בסיס 14,200, עמלות 1,000, בלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי TUCSON ואני משלם 400 השתתפות. מה יקרה לנטו אם אעבור ל-ATTO 3 החשמלי?",
+    "expect": {
+      "tools": ["calculate"],
+      "no_tools": ["ask_rep"],
+      "net_from_calculate": {"occupation": "מנהל/ת אזור מכירות", "group": "ג", "base": 14200, "commission": 1000,
+                             "bonus": 0, "pension_pct": 6, "keren_pct": 2.5, "credit_points": 2.25,
+                             "current_kind": "car", "current_car": "TUCSON", "current_participation": 400,
+                             "alternative_kind": "car", "alternative_car": "ATTO 3"},
+      "text_any": [["קטלוג"]],
+      "numbers_from_tools": true,
+      "not_refused": true
+    }
+  },
+  {
+    "id": "catalog-porsche",
+    "kind": "catalog",
+    "why": "A Porsche Taycan is not in the catalog: a polite answer, electric cars from the catalog, no net, no rep",
+    "question": "אני מנהל אזור מכירות, קבוצה ג. שכר בסיס 14,200, עמלות 1,000, בלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי TUCSON ואני משלם 400 השתתפות. מה יקרה לנטו אם אעבור לפורשה טייקאן?",
+    "expect": {
+      "no_tools": ["ask_rep"],
+      "not_ok": ["calculate"],
+      "text_any": [["לא נמצא", "רשימת רכבי החברה"], ["BYD DOLPHIN", "MG4", "KONA EV", "ATTO 3", "EV3"]],
+      "numbers_from_tools": true,
+      "not_refused": true
+    }
+  },
+  {
+    "id": "catalog-personal-arrangement",
+    "kind": "catalog",
+    "why": "A personal participation arrangement: the question goes to the rep, today is shown meanwhile, no number invented",
+    "question": "אני מנהל אזור מכירות, קבוצה ג. שכר בסיס 14,200, עמלות 1,000, בלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי TUCSON ואני משלם 400 השתתפות. אני רוצה לעבור ל-EV3, ויש לי הסדר השתתפות אישי שסיכמתי עם החברה. כמה זה ישנה לי בנטו?",
+    "expect": {
+      "tools": ["ask_rep"],
+      "tool_args": {"ask_rep": {"fields": ["participation"]}},
+      "text_any": [["נציג"]],
+      "numbers_from_tools": true,
+      "not_refused": true
+    }
+  },
+  {
+    "id": "catalog-typo",
+    "kind": "catalog",
+    "why": "A typo of a catalog car (ATOO 3): asks whether ATTO 3 was meant, calculates nothing yet",
+    "question": "אני מנהל אזור מכירות, קבוצה ג. שכר בסיס 14,200, עמלות 1,000, בלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי TUCSON ואני משלם 400 השתתפות. מה יקרה לנטו אם אעבור ל-ATOO 3?",
+    "expect": {
+      "no_tools": ["ask_rep"],
+      "not_ok": ["calculate"],
+      "text_any": [["ATTO 3"]],
       "numbers_from_tools": true,
       "not_refused": true
     }

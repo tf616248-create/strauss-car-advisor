@@ -21,7 +21,7 @@ from tests.conftest import BACKEND_DIR
 from tests.agent.test_agent_graph import ScriptedModel
 from tests.api.test_api import PASS, chat, rachel_script
 
-ANSWER = {"values": {"carGroup": "ב", "companyCost": 3500, "participation": 250}}
+ANSWER = {"values": {"participation": 250}}
 H = {"X-Rep-Passcode": PASS}
 
 

@@ -237,10 +237,11 @@ def test_unknown_conversation_is_404(data, cfg):
 
 
 def rachel_script(data):
-    args = dict(employee_args(data, "E-003"), alternative_car="ATTO 2", alternative_car_year=2025)
+    """Rachel (E-003) asks about MG4 and has a personal participation arrangement: the rep's case."""
+    args = employee_args(data, "E-003")
     return args, [
-        call("ask_rep", {"fields": ["carGroup", "companyCost", "participation"], "question": "BYD Atto 2?",
-                         "car": "ATTO 2", "registration_year": 2025}, 0),
+        call("ask_rep", {"fields": ["participation"], "question": "לעובדת הסדר השתתפות אישי ל-MG4. מה הסכום?",
+                         "car": "MG4", "about": "alternative"}, 0),
         call("calculate", args, 1),
         AIMessage(content="שלחתי שאלה לנציג התחבורה, והחלופה תתעדכן"),
     ]
@@ -261,16 +262,16 @@ def test_rep_closed_when_no_passcode_configured(data, cfg):
 def test_rep_sees_question_with_employee_card_and_answers(data, cfg):
     _, script = rachel_script(data)
     client, queue, notifier = make(data, cfg, script=script)
-    tid = chat(client, "אם אקח Atto 2?")[0][1]["thread_id"]
+    tid = chat(client, "יש לי הסדר השתתפות אישי ל-MG4")[0][1]["thread_id"]
     h = {"X-Rep-Passcode": PASS}
 
     [req] = client.get("/rep/requests", headers=h).json()
     assert req["thread_id"] == tid
-    assert req["fields"] == ["carGroup", "companyCost", "participation"]
+    assert req["fields"] == ["participation"]
     assert req["card"]["today"]["values"]["net"]["value"] == data.reference["E-003"]["netToday"]
 
     r = client.post(f"/rep/requests/{req['id']}/answer", headers=h,
-                    json={"values": {"carGroup": "ב", "companyCost": 3500, "participation": 250}})
+                    json={"values": {"participation": 250}})
     assert r.status_code == 200
     assert queue.pending(tid) == []
     assert notifier.published == [tid]
@@ -282,11 +283,11 @@ def test_restore_says_whether_the_rep_answered(data, cfg):
     args, script = rachel_script(data)
     script += [call("calculate", args, 2), AIMessage(content="הנטו יורד")]
     client, queue, _ = make(data, cfg, script=script)
-    tid = chat(client, "אם אקח Atto 2?")[0][1]["thread_id"]
+    tid = chat(client, "יש לי הסדר השתתפות אישי ל-MG4")[0][1]["thread_id"]
     assert client.get(f"/chat/{tid}").json()["rep"] == {"pending": 1, "new_answers": 0}
     rid = queue.pending(tid)[0]["id"]
     client.post(f"/rep/requests/{rid}/answer", headers={"X-Rep-Passcode": PASS},
-                json={"values": {"carGroup": "ב", "companyCost": 3500, "participation": 250}})
+                json={"values": {"participation": 250}})
     assert client.get(f"/chat/{tid}").json()["rep"] == {"pending": 0, "new_answers": 1}
 
     client.post(f"/chat/{tid}/rep-answered")  # the bot recalculates: the answer is handed over
@@ -298,10 +299,10 @@ def test_rep_answered_twice_runs_the_bot_once(data, cfg):
     args, script = rachel_script(data)
     script += [call("calculate", args, 2), AIMessage(content="הנטו יורד")]
     client, queue, _ = make(data, cfg, script=script)
-    tid = chat(client, "אם אקח Atto 2?")[0][1]["thread_id"]
+    tid = chat(client, "יש לי הסדר השתתפות אישי ל-MG4")[0][1]["thread_id"]
     rid = queue.pending(tid)[0]["id"]
     client.post(f"/rep/requests/{rid}/answer", headers={"X-Rep-Passcode": PASS},
-                json={"values": {"carGroup": "ב", "companyCost": 3500, "participation": 250}})
+                json={"values": {"participation": 250}})
     assert "token" in kinds(events(client.post(f"/chat/{tid}/rep-answered")))
     assert kinds(events(client.post(f"/chat/{tid}/rep-answered"))) == ["done"]
 
@@ -316,10 +317,10 @@ def test_rep_answered_reruns_the_agent_with_the_system_note(data, cfg):
     args, script = rachel_script(data)
     script += [call("calculate", args, 2), AIMessage(content="הנטו יורד")]
     client, queue, _ = make(data, cfg, script=script)
-    tid = chat(client, "אם אקח Atto 2?")[0][1]["thread_id"]
+    tid = chat(client, "יש לי הסדר השתתפות אישי ל-MG4")[0][1]["thread_id"]
     rid = queue.pending(tid)[0]["id"]
     client.post(f"/rep/requests/{rid}/answer", headers={"X-Rep-Passcode": PASS},
-                json={"values": {"carGroup": "ב", "companyCost": 3500, "participation": 250}})
+                json={"values": {"participation": 250}})
 
     r = client.post(f"/chat/{tid}/rep-answered")
     evs = events(r)

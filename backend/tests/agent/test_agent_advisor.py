@@ -266,8 +266,8 @@ def test_lookup_outside_catalog_uses_tax_authority(advisor, data, cfg):
     assert res["car"]["inCatalog"] is False
     assert res["car"]["source"] == cfg["texts"]["sources"]["taxAuthority"]
     expected = data.vehicles.search_name("ATTO 2", registration_year=2025)
-    assert res["car"]["valueOfUse"] == expected[0]["valueOfUse"]
-    assert set(res["companyFields"]) == {"carGroup", "companyCost", "participation"}
+    assert res["car"]["valueOfUse"] == expected[0]["valueOfUse"]  # today's car: as before
+    assert "companyFields" not in res  # as an alternative it is not in the catalog (test_catalog_rules.py)
 
 
 def test_lookup_ambiguous_returns_candidates(advisor):
@@ -290,77 +290,77 @@ def test_lookup_failures_reset_after_success(advisor):
     assert res["status"] == "not_found"
 
 
-# --- Rachel (E-003) and BYD Atto 2: the central rep case ----------------------
+# --- Rachel (E-003): ATTO 2 is not in the catalog; her personal arrangement for MG4 is the rep's case --------
 
 
 def rachel_atto2(data):
     return dict(employee_args(data, "E-003"), alternative_car="ATTO 2", alternative_car_year=2025)
 
 
-def test_atto2_company_info_goes_straight_to_rep(advisor, data):
+def test_atto2_is_not_in_the_catalog_and_not_for_the_rep(advisor, data, queue):
+    """The Tax Authority file has it: still no value of use, no net, and no question to the rep."""
     res = advisor.calculate(rachel_atto2(data))
-    assert res["status"] == "needs_rep"
-    assert set(res["fields"]) == {"carGroup", "companyCost", "participation"}
+    assert res["status"] == "not_in_catalog"
     assert not has_number(res)
+    assert advisor.ask_rep(["carGroup", "companyCost", "participation"], "BYD Atto 2?", car="ATTO 2",
+                           registration_year=2025, thread_id="t")["status"] == "not_in_catalog"
+    assert queue.pending("t") == []
+
+
+def personal_arrangement(advisor, car="MG4", thread="t"):
+    return advisor.ask_rep(["participation"], f"לעובדת הסדר השתתפות אישי ל-{car}. מה הסכום?", car=car,
+                           about="alternative", thread_id=thread)
 
 
 def test_ask_rep_message_and_no_duplicates(advisor, queue, cfg):
-    first = advisor.ask_rep(["carGroup", "companyCost", "participation"], "BYD Atto 2?", car="ATTO 2",
-                            registration_year=2025, thread_id="t")
+    first = personal_arrangement(advisor)
     assert first["status"] == "sent"
     assert first["message_to_employee"] == cfg["texts"]["repSent"]
     assert "פנה לנציג" not in json.dumps(first, ensure_ascii=False)
-    advisor.ask_rep(["carGroup", "companyCost", "participation"], "שוב", car="ATTO 2",
-                    registration_year=2025, thread_id="t")
+    personal_arrangement(advisor)
     assert len(queue.pending("t")) == 1
 
 
-def test_atto2_waiting_then_answered(advisor, data, queue, cfg):
-    args = rachel_atto2(data)
-    advisor.ask_rep(["carGroup", "companyCost", "participation"], "BYD Atto 2?", car="ATTO 2",
-                    registration_year=2025, thread_id="t")
+def test_personal_arrangement_waiting_then_answered(advisor, data, queue, cfg):
+    args = employee_args(data, "E-003")  # MG4
+    personal_arrangement(advisor)
 
     waiting = advisor.calculate(args, thread_id="t")
     assert waiting["status"] == "waiting_rep"
     alt = waiting["card"]["alternative"]
     pending = cfg["texts"]["pending"]
-    for key in ("participation", "car_cost", "net"):
+    for key in ("participation", "net"):
         assert val(alt, key) == pending
-    assert isinstance(val(alt, "value_of_use"), int)  # known from the Tax Authority
+    assert val(alt, "value_of_use") == data.find_car("MG4")["valueOfUse"]  # known from the catalog
     assert abs(val(waiting["card"]["today"], "net") - data.reference["E-003"]["netToday"]) <= TOL
 
-    answer = {"carGroup": "ב", "companyCost": 3500, "participation": 250}
-    queue.answer(queue.pending("t")[0]["id"], answer)
+    queue.answer(queue.pending("t")[0]["id"], {"participation": 250})
     done = advisor.calculate(args, thread_id="t")
     assert done["status"] == "ok"
     alt = done["card"]["alternative"]
     s = cfg["texts"]["sources"]
     assert src(alt, "participation") == s["rep"]
-    assert src(alt, "value_of_use") == s["taxAuthority"]
+    assert src(alt, "value_of_use") == s["catalog"]
 
     # same numbers as the engine with the same inputs
-    rec = data.vehicles.search_name("ATTO 2", registration_year=2025)[0]
-    car = {"id": None, "name": rec["name"], "group": "ב", "registrationYear": 2025,
-           "valueOfUse": rec["valueOfUse"], "drive": rec["driveName"], "companyCost": 3500,
-           "defaultParticipation": 250}
     emp = employee_input(data.employees["E-003"])
-    scen = build_scenario(emp, replace(Choice.car("ATTO 2"), car_record=car), data).scenario
+    scen = build_scenario(emp, Choice.car("MG4", participation=250), data).scenario
     assert val(alt, "net") == round(compute_net(emp, scen, data.rules).net)
 
 
-def test_atto2_rep_group_too_high_is_not_eligible(advisor, data, queue):
-    advisor.ask_rep(["carGroup", "companyCost", "participation"], "?", car="ATTO 2",
-                    registration_year=2025, thread_id="t")
-    queue.answer(queue.pending("t")[0]["id"], {"carGroup": "ד", "companyCost": 5000, "participation": 500})
-    res = advisor.calculate(rachel_atto2(data), thread_id="t")
+def test_a_rep_answer_does_not_make_a_car_above_the_group_eligible(advisor, data, queue):
+    personal_arrangement(advisor, car="MODEL 3")  # group ד; Rachel is in group ב
+    queue.answer(queue.pending("t")[0]["id"], {"participation": 250})
+    res = advisor.calculate(dict(employee_args(data, "E-003"), alternative_car="MODEL 3"), thread_id="t")
     assert res["status"] == "not_eligible" and res["reason_code"] == "group_too_high"
 
 
-def test_rep_answers_are_per_conversation(advisor, data, queue):
-    advisor.ask_rep(["carGroup", "companyCost", "participation"], "?", car="ATTO 2",
-                    registration_year=2025, thread_id="t1")
-    queue.answer(queue.pending("t1")[0]["id"], {"carGroup": "ב", "companyCost": 3500, "participation": 250})
-    assert advisor.calculate(rachel_atto2(data), thread_id="t2")["status"] == "needs_rep"
+def test_rep_answers_are_per_conversation(advisor, data, queue, cfg):
+    personal_arrangement(advisor, thread="t1")
+    queue.answer(queue.pending("t1")[0]["id"], {"participation": 250})
+    other = advisor.calculate(employee_args(data, "E-003"), thread_id="t2")
+    assert other["status"] == "ok"
+    assert src(other["card"]["alternative"], "participation") == cfg["texts"]["sources"]["catalog"]
 
 
 def test_ask_rep_refuses_employee_salary_fields(advisor):

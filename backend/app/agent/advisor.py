@@ -2,8 +2,12 @@
 
 Every method returns a dict with a `status`:
   ok | missing | invalid | contradiction | not_eligible | ambiguous | not_found
-  | needs_rep | waiting_rep | sent | not_for_rep
-Only `ok` (and the known half of `waiting_rep`) carries calculated numbers.
+  | needs_rep | waiting_rep | sent | not_for_rep | not_in_catalog | did_you_mean
+Only `ok` (and the known half of `waiting_rep` and `needs_rep`: today) carries calculated numbers.
+
+A car to move to comes only from the catalog (not_in_catalog, did_you_mean); its participation is the catalog's,
+and the rep's only when the catalog has none or the employee has a personal arrangement. Today's car: the
+catalog, then the Tax Authority file; its participation is the employee's, never the catalog's.
 
 When to ask the rep is decided here; the thresholds live in config/agent.json.
 Attempts are counted from the conversation history (earlier tool results), so the
@@ -11,6 +15,7 @@ tools stay stateless.
 """
 from __future__ import annotations
 
+import difflib
 import json
 import logging
 import math
@@ -41,6 +46,11 @@ log = logging.getLogger(__name__)
 
 def load_agent_config(base_dir: Path) -> dict:
     return json.loads((Path(base_dir) / "config" / "agent.json").read_text(encoding="utf-8"))
+
+
+def _norm(name: str) -> str:
+    """A car name without spaces or signs: "atto3" and "KONA-EV" read like "ATTO 3" and "KONA EV"."""
+    return re.sub(r"[^0-9A-Z]", "", name.upper())
 
 
 def _shekel(x: float) -> int:
@@ -158,26 +168,124 @@ class Advisor:
     def _car_key(self, kind: str, car: dict) -> str:
         return car["id"] if kind == "catalog" else car["key"]
 
+    # A car the employee wants to move to: only from the catalog. Today's car goes through _resolve_car (the
+    # catalog, then the Tax Authority file), as before.
+
+    def _resolve_alternative(self, name: str):
+        """('catalog', car) | ('did_you_mean', [catalog names]) | ('not_in_catalog', {"electric": bool}).
+
+        In the catalog = the catalog's name, and when the Tax Authority file has a car with exactly the name asked
+        for, the same manufacturer and model codes: "BYD SEAL U" holds "SEAL" but is another car, and "TANG" has
+        ATTO 3's codes under another name. A name found nowhere and close to a catalog car: did_you_mean."""
+        car = self.data.find_car(name)
+        if car:
+            return "catalog", car
+        q = f" {name.strip().upper()} "
+        contained = sorted((c for c in self.data.catalog.values() if f" {c['name'].upper()} " in q),
+                           key=lambda c: len(c["name"]), reverse=True)  # "TOYOTA COROLLA CROSS": not COROLLA
+        if contained:
+            c = contained[0]
+            exact = [h for h in self.data.vehicles.search_name(name) if _norm(h["name"]) == _norm(name)]
+            if not exact or any((h["manufacturerCode"], h["modelCode"]) == (c["manufacturerCode"], c["modelCode"])
+                                for h in exact):
+                return "catalog", c
+        hits = self.data.vehicles.search_name(name)
+        rest = name.split(None, 1)[1] if len(name.split()) > 1 else ""
+        if not hits and re.search(r"[A-Za-z]{3}", rest):  # "PORSCHE TAYCAN": the file has "TAYCAN 4S" (not "3")
+            hits = self.data.vehicles.search_name(rest)
+        if not hits:
+            close = self._close_names(name)
+            if close:
+                return "did_you_mean", close
+        electric = self.data.excel_values["electricDrive"]
+        return "not_in_catalog", {"electric": bool(hits) and all(h["driveName"] == electric for h in hits)}
+
+    def _close_names(self, name: str) -> list[str]:
+        """Catalog cars a name not found anywhere may mean: the same letters ("atto3", "KONA-EV"), or a typo."""
+        q = _norm(name)
+        names = {_norm(c["name"]): c["name"] for c in self.data.catalog.values()}
+        same = [n for k, n in names.items() if k == q or (len(k) >= 3 and k in q)]
+        if same:
+            return same
+        return [names[k] for k in difflib.get_close_matches(q, list(names), n=3, cutoff=0.8)]
+
+    def _group_of(self, args: dict, employee_id: Optional[str]) -> Optional[str]:
+        """The employee's group from the occupation (passed, or in the profile); None when unknown."""
+        occupation = args.get("occupation") or self._profile(employee_id).get("occupation")
+        if not occupation:
+            return None
+        found = self.matcher.find(occupation)
+        return self.data.occupations[found["occupation"]]["group"] if found["status"] == "ok" else None
+
+    def _options(self, group: Optional[str], electric_first: bool) -> list[dict]:
+        """The catalog cars the employee may take instead (their group or lower, not the family track)."""
+        if group is None:
+            return []
+        rules, electric = self.data.rules, self.data.excel_values["electricDrive"]
+        order = rules["groupOrder"]
+        cars = [c for c in self.data.catalog.values()
+                if c["id"] not in rules["familyTrack"]["cars"] and c["group"] in order
+                and order.index(c["group"]) <= order.index(group)]
+        if electric_first:
+            cars.sort(key=lambda c: c["drive"] != electric)  # stable: the catalog's order otherwise
+        return [{"name": c["name"], "drive": c["drive"], "group": c["group"]} for c in cars]
+
+    def _alternative_problem(self, kind: str, found, name: str, group: Optional[str]) -> Optional[dict]:
+        if kind == "did_you_mean":
+            return {"status": "did_you_mean", "car": name, "suggestions": found,
+                    "instruction": "השם לא כתוב כמו ברשימת רכבי החברה. שאל את העובד אם התכוון לרכב מ-suggestions, "
+                                   "ואל תחשב לפני שהוא עונה."}
+        if kind == "not_in_catalog":
+            res = {"status": "not_in_catalog", "car": name,
+                   "message_to_employee": self.cfg["texts"]["notInCatalog"]["message"],
+                   "options": self._options(group, found["electric"]), "electric_first": found["electric"],
+                   "instruction": "הרכב לא ברשימת רכבי החברה. כתוב לעובד את message_to_employee, והצע לו את "
+                                  "הרכבים שב-options (אם electric_first, החשמליים ראשונים), ושאל אם לחשב אחד מהם. "
+                                  "אל תחשב שווי שימוש או נטו לרכב הזה, ואל תשלח לנציג."}
+            if group is None:
+                res["instruction"] += (" אין עדיין עיסוק, ולכן אין רשימה: שאל את העובד מה העיסוק שלו (occupation), "
+                                       "ואז קרא שוב.")
+            return res
+        return None
+
+    def _check_alternative(self, args: dict, employee_id: Optional[str]) -> Optional[dict]:
+        """Before anything else: an alternative outside the catalog has nothing to calculate."""
+        if args.get("alternative_kind") not in ("car", "family_car") or not args.get("alternative_car"):
+            return None
+        kind, found = self._resolve_alternative(args["alternative_car"])
+        if kind == "catalog":
+            return None
+        return self._alternative_problem(kind, found, args["alternative_car"], self._group_of(args, employee_id))
+
     # ---------------------------------------------------------- tool: lookup
 
     def lookup_vehicle(self, name: str, registration_year: Optional[int] = None,
-                       model_code: Optional[str] = None, history: Iterable = ()) -> dict:
-        kind, found = self._resolve_car(name, registration_year, model_code)
+                       model_code: Optional[str] = None, history: Iterable = (), alternative: bool = False,
+                       employee_id: Optional[str] = None) -> dict:
+        """alternative: a car the employee wants to move to - only from the catalog."""
+        if alternative:
+            kind, found = self._resolve_alternative(name)
+            if kind != "catalog":
+                return self._alternative_problem(kind, found, name, self._group_of({}, employee_id))
+        else:
+            kind, found = self._resolve_car(name, registration_year, model_code)
         if kind == "catalog":
-            return {"status": "ok", "car": {
-                "name": found["name"], "registrationYear": found["registrationYear"],
-                "valueOfUse": found["valueOfUse"], "drive": found["drive"], "group": found["group"],
-                "companyCost": found["companyCost"], "defaultParticipation": found["defaultParticipation"],
-                "inCatalog": True, "source": self.src["catalog"]}}
+            car = {"name": found["name"], "registrationYear": found["registrationYear"],
+                   "valueOfUse": found["valueOfUse"], "drive": found["drive"], "group": found["group"],
+                   "companyCost": found["companyCost"], "defaultParticipation": found["defaultParticipation"],
+                   "inCatalog": True, "source": self.src["catalog"]}
+            if alternative and found["defaultParticipation"] is not None:
+                car["participation"] = found["defaultParticipation"]
+                car["participation_note"] = self.cfg["texts"]["catalogParticipation"]
+            return {"status": "ok", "car": car}
         if kind == "tax":
             return {
                 "status": "ok",
                 "car": {"name": found["name"], "registrationYear": found["registrationYear"],
                         "modelCode": found["modelCode"], "valueOfUse": found["valueOfUse"],
                         "drive": found["drive"], "inCatalog": False, "source": self.src["taxAuthority"]},
-                "companyFields": list(COMPANY_FIELDS),
-                "instruction": "הרכב לא בקטלוג. אם זו החלופה: הקבוצה, העלות וההשתתפות הן מידע של החברה. "
-                               "אל תשאל את העובד - קרא ל-ask_rep עם השדות האלה.",
+                "instruction": "הרכב לא בקטלוג. אם זה הרכב של היום: שווי השימוש מרשות המסים, והמשך כרגיל. "
+                               "אם זה רכב שהעובד רוצה לעבור אליו: קרא שוב עם alternative=true.",
             }
 
         # failed: count consecutive failures since the last successful lookup
@@ -349,7 +457,12 @@ class Advisor:
         if kind == "waiver":
             return None, Choice.waiver(), None, {}, []
         name, year = args[f"{prefix}_car"], args.get(f"{prefix}_car_year")
-        found_kind, car = self._resolve_car(name, year)
+        if prefix == "alternative":  # only from the catalog (_check_alternative ran first)
+            found_kind, car = self._resolve_alternative(name)
+            if found_kind != "catalog":
+                return self._alternative_problem(found_kind, car, name, args.get("group")), None, None, {}, []
+        else:
+            found_kind, car = self._resolve_car(name, year)
         if found_kind in ("ambiguous", "not_found"):
             res = {"status": found_kind, "which": prefix, "car": name,
                    "instruction": "הרכב לא זוהה בוודאות. קרא ל-lookup_vehicle ושאל את העובד שנה או גרסה."}
@@ -369,27 +482,23 @@ class Advisor:
             if found_kind == "tax":
                 car_sources["car_cost"] = None
         else:
+            # The catalog's participation. The rep's, only when the catalog has none, or the employee has a
+            # personal arrangement (then a question about it is pending or answered for this car).
             answers = self.queue.answers(thread_id)
             pending = self.queue.pending_fields(thread_id)
             car = dict(car)
-            needed = list(COMPANY_FIELDS) if found_kind == "tax" else (
-                ["participation"] if car.get("defaultParticipation") is None else [])
             car_sources["participation"] = self.src["catalog"]
-            target = {"carGroup": "group", "companyCost": "companyCost", "participation": "defaultParticipation"}
-            for field in needed:
-                if (field, key) in answers:
-                    car[target[field]] = answers[(field, key)]
-                    car_sources["car_cost" if field == "companyCost" else field] = self.src["rep"]
-                elif (field, key) in pending:
-                    pending_keys.append(field)
-                else:
-                    return ({"status": "needs_rep", "fields": [f for f in needed if (f, key) not in answers],
-                             "car": car["name"], "registration_year": car["registrationYear"],
-                             "instruction": "זה מידע של החברה שהעובד לא יכול לדעת. קרא ל-ask_rep עם השדות "
-                                            "והרכב האלה. אל תשאל את העובד."},
-                            None, car, car_sources, [])
-            if found_kind == "tax":
+            if ("participation", key) in answers:
+                car["defaultParticipation"] = answers[("participation", key)]
                 car_sources["participation"] = self.src["rep"]
+            elif ("participation", key) in pending:
+                pending_keys.append("participation")
+            elif car.get("defaultParticipation") is None:
+                return ({"status": "needs_rep", "fields": ["participation"],
+                         "car": car["name"], "registration_year": car["registrationYear"],
+                         "instruction": "לרכב הזה אין סכום השתתפות בקטלוג. קרא ל-ask_rep עם השדה והרכב האלה, "
+                                        "about=alternative. אל תשאל את העובד. בינתיים הצג את מצב היום מהכרטיס."},
+                        None, car, car_sources, [])
             participation = car["defaultParticipation"]
 
         choice_kind = "car" if kind == "car" else "family_car"
@@ -423,14 +532,15 @@ class Advisor:
 
     def _check_eligibility(self, args, history, thread_id, employee_id, updated, info) -> dict:
         args = {k: args.get(k) for k in self.ELIGIBILITY_FIELDS}
+        problem = self._check_alternative(args, employee_id)
+        if problem:
+            return problem
         problem, args, _ = self._check_employee(args, history, thread_id, False, employee_id, updated, info)
         if problem:
             return problem
-        problem, choice, _, _, pending = self._resolve_choice(args, "alternative", thread_id)
+        problem, choice, _, _, _ = self._resolve_choice(args, "alternative", thread_id)
         if problem:
             return problem
-        if "carGroup" in pending:
-            return self._waiting(["carGroup"])
         emp = self._employee_input(args)
         res = build_scenario(emp, choice, self.data)
         return {"status": "ok", "eligible": res.eligible, "reason_code": res.reason_code,
@@ -446,22 +556,28 @@ class Advisor:
 
     def _calculate(self, args, history, thread_id, employee_id, updated, info) -> dict:
         args = {k: args.get(k) for k in self.CALCULATE_FIELDS}
+        problem = self._check_alternative(args, employee_id)  # outside the catalog: say so before any question
+        if problem:
+            return problem
         problem, args, emp_sources = self._check_employee(args, history, thread_id, True, employee_id, updated, info)
         if problem:
             return problem
         problem, today_choice, today_car, today_src, _ = self._resolve_choice(args, "current", thread_id)
         if problem:
             return problem
-        problem, alt_choice, alt_car, alt_src, pending = self._resolve_choice(args, "alternative", thread_id)
-        if problem:
-            return problem
-
         emp = self._employee_input(args)
         today_res = build_scenario(emp, today_choice, self.data, is_current=True)
         today = self._side(emp, today_res, today_car, today_src, "today", args["current_kind"])
 
+        problem, alt_choice, alt_car, alt_src, pending = self._resolve_choice(args, "alternative", thread_id)
+        if problem:
+            if problem["status"] == "needs_rep":  # meanwhile: today, and the alternative waiting for the rep
+                alt_side = self._pending_side(args["alternative_kind"], alt_car, alt_src)
+                problem["card"] = self._card(args, emp_sources, today, alt_side, None)
+            return problem
+
         if pending:
-            alt_side = self._pending_side(alt_choice, alt_car, alt_src)
+            alt_side = self._pending_side(alt_choice.kind, alt_car, alt_src)
             return {"status": "waiting_rep", "fields": pending,
                     "card": self._card(args, emp_sources, today, alt_side, None),
                     "instruction": "חלק מהנתונים ממתינים לנציג. הצג את מה שידוע, ואמור שהחלופה תתעדכן."}
@@ -472,7 +588,10 @@ class Advisor:
                     "reason": self._reason(alt_res.reason_code, alt_res.details, emp)}
         alt = self._side(emp, alt_res, alt_car, alt_src, alt_res.reason_code, args["alternative_kind"])
         diff = {k: alt["values"][k]["value"] - today["values"][k]["value"] for k in DIFF_KEYS}
-        return {"status": "ok", "card": self._card(args, emp_sources, today, alt, diff)}
+        res = {"status": "ok", "card": self._card(args, emp_sources, today, alt, diff)}
+        if alt_car is not None and alt_src.get("participation") == self.src["catalog"]:
+            res["participation_note"] = self.cfg["texts"]["catalogParticipation"]
+        return res
 
     def _side(self, emp, res, car, car_sources: dict, reason_code: str, kind: str) -> dict:
         rules = self.data.rules
@@ -502,15 +621,17 @@ class Advisor:
             "values": values,
         }
 
-    def _pending_side(self, choice, car, car_sources: dict) -> dict:
+    def _pending_side(self, kind: str, car, car_sources: dict) -> dict:
         p = self.pending_text
         values = {k: {"value": p, "source": self.src["rep"]} for k in
                   ("participation", "car_cost", "family_share", "tax", "social", "net")}
         values["value_of_use"] = {"value": _shekel(car["valueOfUse"]), "source": car_sources["value_of_use"]}
+        if car.get("companyCost") is not None:  # a catalog car: its cost is known
+            values["car_cost"] = {"value": _shekel(car["companyCost"]), "source": car_sources["car_cost"]}
         electric = car["drive"] == self.data.excel_values["electricDrive"]
         values["electric_refund_net"] = {
             "value": self.data.rules["electric"]["netBonus"] if electric else 0, "source": self.src["rules"]}
-        return {"kind": choice.kind, "label": f'{car["name"]} ({car["registrationYear"]})',
+        return {"kind": kind, "label": f'{car["name"]} ({car["registrationYear"]})',
                 "reason": p, "values": values}
 
     def _card(self, args, emp_sources, today, alt, diff) -> dict:
@@ -530,12 +651,22 @@ class Advisor:
     # --------------------------------------------------------- tool: ask_rep
 
     def ask_rep(self, fields: list[str], question: str, car: Optional[str] = None,
-                registration_year: Optional[int] = None, thread_id: str = "default") -> dict:
+                registration_year: Optional[int] = None, thread_id: str = "default",
+                about: Optional[str] = None) -> dict:
+        """about: "current" (today's car) or "alternative" (a car to move to). A question about an alternative
+        outside the catalog is refused; today's car (e.g. not found in the Tax Authority file) goes as before."""
         salary = [f for f in fields if f in EMPLOYEE_FIELDS and f != "group"]
         if salary:  # an anonymous employee's data: the rep cannot know it
             return {"status": "not_for_rep", "fields": salary,
                     "instruction": "הנציג לא יודע את נתוני השכר של העובד. שאל את העובד, "
                                    "ואמור לו שהנתונים מופיעים בתלוש השכר שלו."}
+        # the company's details of a car (group, cost, participation) are asked only about an alternative
+        about_alternative = about == "alternative" or bool(set(fields) & set(COMPANY_FIELDS))
+        if car and about_alternative and self._resolve_alternative(car)[0] != "catalog":
+            return {"status": "not_in_catalog", "car": car,
+                    "message_to_employee": self.cfg["texts"]["notInCatalog"]["message"],
+                    "instruction": "לא שולחים לנציג שאלה על רכב חלופה שלא ברשימת רכבי החברה. "
+                                   "קרא ל-calculate או ל-check_eligibility עם הרכב, כדי לקבל את הרכבים שהעובד זכאי להם."}
         car_key = None
         if car:
             kind, found = self._resolve_car(car, registration_year)

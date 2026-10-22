@@ -35,8 +35,8 @@ def test_cases_cover_the_five_groups():
     cases = json.loads(MAIN_FLOW_FILE.read_text(encoding="utf-8"))
     kinds = [c["kind"] for c in cases]
     assert {k: kinds.count(k) for k in set(kinds)} == {
-        "demo": 4, "matrix": 5, "missing": 3, "rep_after_two": 2, "injection": 3, "profile": 3}
-    assert len({c["id"] for c in cases}) == len(cases) == 20
+        "demo": 4, "matrix": 5, "missing": 3, "rep_after_two": 2, "injection": 3, "profile": 3, "catalog": 4}
+    assert len({c["id"] for c in cases}) == len(cases) == 24
     assert all(c["expect"] for c in cases)
     # every net question names its expected calculation; the number comes from the engine, not from the file
     for c in cases:
@@ -51,7 +51,7 @@ def test_every_expected_calculation_runs(data):
     from tests.conftest import BACKEND_DIR
     engine = Advisor(data, InMemoryRepQueue(), load_agent_config(BACKEND_DIR))
     cases = [c for c in json.loads(MAIN_FLOW_FILE.read_text(encoding="utf-8")) if "net_from_calculate" in c["expect"]]
-    assert len(cases) == 9
+    assert len(cases) == 10
     for c in cases:
         res = engine.calculate(c["expect"]["net_from_calculate"])
         assert res["status"] == "ok" and res["card"]["diff"]["net"] != 0, c["id"]
@@ -183,3 +183,59 @@ def test_not_ok_fails_when_the_tool_gave_a_result():
     ok, why = judge(msgs, {"not_ok": ["calculate"]})
     assert not ok and "calculate" in why
     assert judge(turn("שאלה", "מה העיסוק?", [("calculate", {}, {"status": "missing"})]), {"not_ok": ["calculate"]})[0]
+
+
+# --- the catalog cases (participation, a car to move to outside the catalog) ------------------------
+
+def catalog_cases():
+    return {c["id"]: c for c in json.loads(MAIN_FLOW_FILE.read_text(encoding="utf-8")) if c["kind"] == "catalog"}
+
+
+def test_the_catalog_cases_match_what_the_tools_return(data):
+    """Each case's car gives, without a model, the status its expectation is about."""
+    from app.agent.advisor import Advisor, load_agent_config
+    from app.agent.rep_queue import InMemoryRepQueue
+    from tests.conftest import BACKEND_DIR
+    from tests.test_profile import FULL
+    engine = Advisor(data, InMemoryRepQueue(), load_agent_config(BACKEND_DIR))
+    cases = catalog_cases()
+    assert set(cases) == {"catalog-c-electric", "catalog-porsche", "catalog-personal-arrangement", "catalog-typo"}
+    electric = engine.calculate(cases["catalog-c-electric"]["expect"]["net_from_calculate"])
+    assert electric["status"] == "ok" and "participation_note" in electric
+    for car, status in (("PORSCHE TAYCAN", "not_in_catalog"), ("ATOO 3", "did_you_mean"), ("ATTO 2", "not_in_catalog")):
+        assert engine.calculate(dict(FULL, alternative_kind="car", alternative_car=car))["status"] == status, car
+    for case in cases.values():
+        assert "ask_rep" in case["expect"].get("no_tools", []) or case["id"] == "catalog-personal-arrangement"
+
+
+NOT_IN_CATALOG = {"status": "not_in_catalog", "message_to_employee": "הרכב הזה לא נמצא כרגע ברשימת רכבי החברה",
+                  "options": [{"name": "EV3"}, {"name": "MG4"}]}
+
+
+def test_the_porsche_case_passes_a_polite_answer_and_fails_a_rep_or_a_net():
+    expect = catalog_cases()["catalog-porsche"]["expect"]
+    good = turn("פורשה טייקאן?", "הרכב הזה לא נמצא כרגע ברשימת רכבי החברה. יש את EV3 ו-MG4. לחשב אחד מהם?",
+                [("calculate", {"alternative_car": "PORSCHE TAYCAN"}, NOT_IN_CATALOG)])
+    assert judge(good, expect) == (True, "")
+    rep = turn("פורשה טייקאן?", "הרכב הזה לא נמצא כרגע ברשימת רכבי החברה. שלחתי לנציג, EV3 בינתיים.",
+               [("calculate", {}, NOT_IN_CATALOG), ("ask_rep", {"fields": ["car"]}, {"status": "sent"})])
+    assert judge(rep, expect) == (False, "called ask_rep")
+    net = turn("פורשה טייקאן?", "לא נמצא ברשימת רכבי החברה, אבל לפי EV3 הנטו עולה ב-1,153.",
+               [("calculate", {}, calc_ok(1153))])
+    assert judge(net, expect) == (False, "calculate gave a result (status ok)")
+
+
+def test_the_typo_case_asks_and_does_not_calculate():
+    expect = catalog_cases()["catalog-typo"]["expect"]
+    asks = turn("ATOO 3?", "התכוונת ל-ATTO 3?",
+                [("calculate", {"alternative_car": "ATOO 3"}, {"status": "did_you_mean", "suggestions": ["ATTO 3"]})])
+    assert judge(asks, expect) == (True, "")
+    assert not judge(turn("ATOO 3?", "הנה החישוב ל-ATTO 3: 1,153.", [("calculate", {}, calc_ok(1153))]), expect)[0]
+
+
+def test_the_personal_arrangement_case_needs_the_rep_with_the_participation():
+    expect = catalog_cases()["catalog-personal-arrangement"]["expect"]
+    sent = turn("הסדר אישי ל-EV3", "שלחתי שאלה לנציג התחבורה על סכום ההשתתפות, והחלופה תתעדכן.",
+                [("ask_rep", {"fields": ["participation"], "car": "EV3"}, {"status": "sent"})])
+    assert judge(sent, expect) == (True, "")
+    assert not judge(turn("הסדר אישי ל-EV3", "הנציג יעזור."), expect)[0]

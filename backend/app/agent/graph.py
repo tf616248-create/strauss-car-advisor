@@ -58,12 +58,16 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
     def lookup_vehicle(
         name: Annotated[str, "שם מסחרי של הרכב בלבד, למשל ATTO 2 או MODEL 3"],
         state: Annotated[dict, InjectedState],
+        config: RunnableConfig,
         registration_year: Annotated[Optional[int], "שנת רישום, אם ידועה"] = None,
         model_code: Annotated[Optional[str], "קוד דגם מתוך candidates, אם נשאלה גרסה"] = None,
+        alternative: Annotated[bool, "true אם זה רכב שהעובד רוצה לעבור אליו (לא הרכב של היום)"] = False,
     ) -> str:
-        """זיהוי רכב ושווי השימוש שלו: קודם בקטלוג של שטראוס, ואחר כך בקובץ רשות המסים."""
+        """זיהוי רכב. הרכב של היום: קודם בקטלוג של שטראוס, ואחר כך בקובץ רשות המסים.
+        רכב לעבור אליו (alternative=true): רק מהקטלוג, עם ההשתתפות שבקטלוג."""
         with timed("tool lookup_vehicle"):
-            return _dump(advisor.lookup_vehicle(name, registration_year, model_code, history=state["messages"]))
+            return _dump(advisor.lookup_vehicle(name, registration_year, model_code, history=state["messages"],
+                                                alternative=alternative, employee_id=_employee(config)))
 
     @tool
     def check_eligibility(
@@ -119,10 +123,13 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
         config: RunnableConfig,
         car: Annotated[Optional[str], "שם הרכב, אם השאלה על רכב"] = None,
         registration_year: Annotated[Optional[int], "שנת רישום של הרכב"] = None,
+        about: Annotated[Optional[Literal["current", "alternative"]],
+                         "על איזה רכב השאלה: current (הרכב של היום) או alternative (רכב לעבור אליו)"] = None,
     ) -> str:
         """שולח שאלה לנציג התחבורה. הנציג לא מדבר עם העובד - רק עונה על השאלה."""
         with timed("tool ask_rep"):
-            return _dump(advisor.ask_rep(fields, question, car, registration_year, thread_id=_thread(config)))
+            return _dump(advisor.ask_rep(fields, question, car, registration_year, thread_id=_thread(config),
+                                         about=about))
 
     @tool(response_format="content_and_artifact")
     def car_specs(car: Annotated[str, "שם הרכב בקטלוג, באנגלית כמו ברשימה (למשל BYD DOLPHIN)"]

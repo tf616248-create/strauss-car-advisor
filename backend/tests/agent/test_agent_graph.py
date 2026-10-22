@@ -100,8 +100,7 @@ def test_attempts_are_counted_from_conversation_history(data):
 
 def test_ask_rep_uses_the_conversation_id(data):
     script = [
-        call("ask_rep", {"fields": ["participation"], "question": "?", "car": "ATTO 2",
-                         "registration_year": 2025}),
+        call("ask_rep", {"fields": ["participation"], "question": "?", "car": "MG4", "about": "alternative"}),
         AIMessage(content="סיום"),
     ]
     _, queue = run(data, script, thread="conv-42")
