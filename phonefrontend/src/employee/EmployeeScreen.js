@@ -18,6 +18,8 @@ import Answer from '../components/Answer'
 import EmptyPanel from '../components/EmptyPanel'
 import PayslipViewer from '../components/PayslipViewer'
 import ProfileScreen from './ProfileScreen'
+import Sidebar from './Sidebar'
+import sidebarCfg from '../config/sidebar.json'
 import { pickPayslip as realPickPayslip } from '../lib/payslip'
 import payslipCfg from '../config/payslip.json'
 import logo from '../assets/logo'
@@ -45,7 +47,9 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   // the open conversation, kept while the app is open; the list is on the server
   const [threadId, setThreadId] = useState(() => getCurrentThread())
   const [history, setHistory] = useState([])
-  const [historyOpen, setHistoryOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false) // the side menu (☰)
+  const [customizeOpen, setCustomizeOpen] = useState(false)
+  const [me, setMe] = useState(null) // { employee_id, name } (GET /me)
   const [messages, setMessages] = useState([])
   const [cards, setCards] = useState([])
   const [step, setStep] = useState(null)
@@ -117,6 +121,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
 
   // the conversation open before; right after login: the newest one
   useEffect(() => {
+    Promise.resolve(api.me?.()).then((m) => setMe(m ?? null)).catch(() => {})
     const tid = getCurrentThread()
     if (tid) refresh(tid)
     loadHistory().then((list) => {
@@ -133,7 +138,6 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     setStops([])
     setStep(null)
     setParked(false)
-    setHistoryOpen(false)
     setUnseenCard(false)
     notifier.setUnread(0)
   }
@@ -293,7 +297,10 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
             <T weight={800} size={22} style={{ lineHeight: 26 }}>כובי</T>
             <T muted size={12} style={{ lineHeight: 16 }}>יועץ הרכב של שטראוס</T>
           </View>
-          <Btn quiet title="יציאה" onPress={() => onLogout?.()} />
+          <Pressable accessibilityRole="button" accessibilityLabel={sidebarCfg.texts.toggle} accessibilityState={{ expanded: menuOpen }}
+            onPress={() => setMenuOpen(true)} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+            <T size={24} weight={700}>☰</T>
+          </Pressable>
         </View>
         <T size={12} muted><T size={12} weight={700}>רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלכם</T> · לפי כללי שטראוס ורשות המסים</T>
       </View>
@@ -323,28 +330,6 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         </ScrollView>
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 110 : 0}>
-          <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 8 }}>
-            <Btn quiet title="השיחות שלי" onPress={() => setHistoryOpen((o) => !o)} disabled={busy} />
-            {(threadId || messages.length > 0) && <Btn quiet title="+ שיחה חדשה" label="שיחה חדשה" onPress={newConversation} disabled={busy} />}
-          </View>
-          {historyOpen && (
-            <View accessibilityLabel="השיחות שלי" style={{ marginHorizontal: 16, marginBottom: 8, borderWidth: 1, borderColor: c.line, borderRadius: 12, backgroundColor: c.surface2, maxHeight: 280 }}>
-              {history.length === 0
-                ? <T muted style={{ padding: 12 }}>עוד אין שיחות קודמות.</T>
-                : (
-                  <ScrollView>
-                    {history.map((t) => (
-                      <Pressable key={t.thread_id} accessibilityRole="button" accessibilityState={{ selected: t.thread_id === threadId }}
-                        onPress={() => openThread(t.thread_id)}
-                        style={{ padding: 12, borderBottomWidth: 1, borderColor: c.line, backgroundColor: t.thread_id === threadId ? c.surface : 'transparent' }}>
-                        <T weight={700}>{t.title || 'שיחה חדשה'}</T>
-                        <T size={12} muted>{fmtWhen(t.updated_at)}</T>
-                      </Pressable>
-                    ))}
-                  </ScrollView>
-                )}
-            </View>
-          )}
           <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled"
             onContentSizeChange={() => scrollRef.current?.scrollToEnd?.({ animated: true })}>
             {messages.length === 0 && (
@@ -407,6 +392,9 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
       )}
       {viewing && <PayslipViewer source={viewing} onClose={() => setViewing(null)} />}
       {profileOpen && <ProfileScreen api={api} onClose={() => setProfileOpen(false)} />}
+      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} busy={busy} threadId={threadId} history={history} name={me?.name}
+        onNewConversation={newConversation} onProfile={() => setProfileOpen(true)} onCustomize={() => setCustomizeOpen(true)}
+        onOpenThread={openThread} onLogout={() => onLogout?.()} />
     </View>
   )
 }

@@ -96,7 +96,7 @@ test('my conversations: the list, and opening one reads it from the server', asy
   const api = fakeApi({ threads: jest.fn(async () => [{ thread_id: 'a', title: 'ATTO 3', updated_at: '2026-10-20T10:00:00Z' }]) })
   await render(<EmployeeScreen api={api} {...quiet} />)
   await waitFor(() => expect(api.restore).toHaveBeenCalledWith('a')) // the newest opens by itself
-  await fireEvent.press(screen.getByText('השיחות שלי'))
+  await fireEvent.press(screen.getByRole('button', { name: 'סרגל הצד' })) // my conversations: in the side menu
   expect(await screen.findByText('ATTO 3')).toBeTruthy()
 })
 
