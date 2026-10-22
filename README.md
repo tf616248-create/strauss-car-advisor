@@ -31,29 +31,70 @@
 
 - **מה זה לא אומר:** בדיקה אוטומטית מוצאת רק חלק מבעיות הנגישות, כמו ש-Lighthouse עצמו כותב. היא לא מבטיחה שהאתר נגיש. קורא מסך אמיתי לא נבדק בכל המכשירים. בכרטיסי ההשוואה הקריאה בקורא מסך ארוכה, ולסרטון הפתיחה (בלי דיבור) אין כתוביות. אפליקציית הטלפון (`phonefrontend/`) לא נבדקה.
 
-## הפעלה מקומית (למפתחים)
+## הפעלה מקומית מאפס (למפתחים)
 
-דרוש Python 3.12.
+**מה צריך:** git, Python 3.12, Node 22 (נבדק עם 22.19), ומפתח למודל אחד לפחות (Gemini, Groq או OpenRouter). הבדיקות לא צריכות מפתח.
+
+הפקודות כתובות ל-Git Bash ב-Windows. ב-Linux וב-Mac מחליפים `.venv/Scripts/python` ב-`.venv/bin/python`.
+
+### 1. השרת (backend)
 
 ```bash
-cd backend
+git clone <כתובת הריפו> strauss-car-advisor
+cd strauss-car-advisor/backend
 python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.txt   # ב-Linux/Mac: .venv/bin/python
+.venv/Scripts/python -m pip install -r requirements.txt
+cp .env.example .env
 ```
 
-### בדיקות
+ממלאים ב-`backend/.env` את הערכים האלה. הרשימה המלאה, עם הסבר לכל משתנה, ב-`.env.example`:
+
+| משתנה | למה | דוגמה |
+|---|---|---|
+| `GOOGLE_API_KEY` | מודל ראשי. בלי אף מפתח של מודל השרת לא עולה | מפתח מ-aistudio.google.com |
+| `EMPLOYEE_CODES` | קודי הכניסה לעובדים. ריק: מסך העובד סגור (503) | `E01:1111,E02:2222` |
+| `REP_PASSCODE` | הסיסמה למסך הנציג. ריק: מסך הנציג סגור | כל מחרוזת |
+| `JWT_SECRET` | לא חובה מקומית. בלעדיו כל הכניסות נגמרות כשהשרת עולה מחדש | `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
+| `DATABASE_URL` | לא חובה. ריק: הכול בזיכרון, ונמחק כשהשרת עולה מחדש | כתובת מ-Neon |
+
+מפעילים:
 
 ```bash
-cd backend
-.venv/Scripts/python -m pytest -q
+.venv/Scripts/python -m uvicorn app.api.server:app --reload --port 8000
 ```
 
-הבדיקות לא צריכות מפתחות. המודל מוחלף במודל מזויף, ומספרי הייחוס נקראים מגיליון "חישובים" ב-`backend/data/strauss-data.xlsx`.
+- **בדיקה שהשרת עלה:** `http://localhost:8000/health` מחזיר 200.
+- **בעלייה:** קובץ רשות המסים נטען לזיכרון, וזה לוקח שנייה. המפרט של הרכבים נטען מהאינטרנט ברקע, ובלי רשת נטען מהגיבוי שבגיט (`backend/cache/specs-snapshot.json`).
 
-### שיחה בקונסול
+### 2. הממשק (frontend)
 
-1. מעתיקים את `backend/.env.example` ל-`backend/.env`, וממלאים לפחות `GOOGLE_API_KEY`.
-2. מריצים:
+בחלון נוסף:
+
+```bash
+cd strauss-car-advisor/frontend
+npm ci
+cp .env.example .env
+npm run dev
+```
+
+- **`VITE_API_URL`:** כתובת השרת. ריק בפיתוח פירושו `http://localhost:8000`. ב-build לפרודקשן (Render) חובה למלא אותו, אחרת הממשק לא מוצא את השרת.
+- **הכתובות:** עובד ב-`http://localhost:5173` (מקלידים קוד מ-`EMPLOYEE_CODES`), נציג ב-`http://localhost:5173/rep` (`REP_PASSCODE`).
+- **בדיקת הזרימה עם נציג:** שואלים כעובד על הסדר השתתפות אישי ("יש לי הסדר השתתפות אישי ל-EV3"). השאלה מופיעה בתור הנציג. עונים בלשונית אחרת, והכרטיס אצל העובד מתעדכן בלי לרענן.
+
+### 3. בדיקות
+
+```bash
+cd backend && .venv/Scripts/python -m pytest -q     # השרת, בלי מפתחות: המודל מזויף
+cd frontend && npm test                             # הממשק (vitest)
+cd frontend && npm run build                        # בנייה לפרודקשן
+cd phonefrontend && npm install && npm test         # אפליקציית הטלפון (jest)
+```
+
+- **מספרי הייחוס** נקראים מגיליון "חישובים" ב-`backend/data/strauss-data.xlsx`, ולא כתובים בקוד.
+- **אבלואציות מול המודל האמיתי** (`backend/evals/`) עולות כסף ולכן לא חלק מ-pytest: `.venv/Scripts/python -m evals.run_off_topic main_flow`. התוצאות נכתבות ל-`backend/evals/results/`.
+- **בדיקות מול האתרים החיצוניים** (קישורי היבואנים ו-EEA): `pytest -m network`. לא רצות בהרצה הרגילה.
+
+### 4. שיחה בקונסול (בלי ממשק)
 
 ```bash
 cd backend
@@ -68,6 +109,15 @@ cd backend
 | `/rep 1 carGroup=ב companyCost=3500 participation=250` | עונה על שאלה 1, והבוט מחשב מחדש |
 | `/card` | מציגה את כרטיס ההשוואה האחרון |
 | `/exit` | יציאה |
+
+### 5. אפליקציית הטלפון ופריסה לאוויר
+
+- **טלפון:** [phonefrontend/README.md](phonefrontend/README.md).
+- **Render ו-Neon:** [docs/deploy.md](docs/deploy.md).
+
+## סיכום: מה עובד, מגבלות, מה נדרש לפיילוט
+
+[docs/summary.md](docs/summary.md)
 
 ## החלטות ארכיטקטורה
 
