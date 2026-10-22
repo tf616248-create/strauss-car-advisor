@@ -18,8 +18,8 @@ from app.api.main import create_app
 from app.threads import InMemoryThreads
 from tests.auth_helpers import authed, make_auth
 from tests.conftest import BACKEND_DIR
-from tests.test_agent_graph import ScriptedModel
-from tests.test_api import PASS, chat, rachel_script
+from tests.agent.test_agent_graph import ScriptedModel
+from tests.api.test_api import PASS, chat, rachel_script
 
 ANSWER = {"values": {"carGroup": "ב", "companyCost": 3500, "participation": 250}}
 H = {"X-Rep-Passcode": PASS}

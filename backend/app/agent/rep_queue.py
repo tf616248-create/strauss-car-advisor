@@ -2,7 +2,7 @@
 
 The rep never talks to the employee; they only answer field questions.
 In memory for tests and local development; app/db.py has the Postgres (Neon)
-version behind the same methods (tests/test_rep_repository.py runs on both).
+version behind the same methods (tests/agent/test_rep_repository.py runs on both).
 """
 from __future__ import annotations
 

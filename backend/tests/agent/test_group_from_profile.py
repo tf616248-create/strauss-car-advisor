@@ -14,7 +14,7 @@ from app.agent.graph import TOOL_NAMES, make_tools
 from app.agent.rep_queue import InMemoryRepQueue
 from app.profile import InMemoryProfiles
 from tests.conftest import BACKEND_DIR
-from tests.test_agent_graph import call
+from tests.agent.test_agent_graph import call
 from tests.test_profile import FULL
 from tests.test_profile_agent import RecordingModel, agent_with, ask
 

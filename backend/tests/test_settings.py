@@ -19,7 +19,7 @@ from app.profile import InMemoryProfiles, validate_settings
 from evals.run_off_topic import judge_main
 from tests.auth_helpers import authed, make_auth
 from tests.conftest import BACKEND_DIR
-from tests.test_agent_graph import call
+from tests.agent.test_agent_graph import call
 from tests.test_profile import FULL
 from tests.test_profile_agent import RecordingModel, agent_with, ask
 

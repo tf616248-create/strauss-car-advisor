@@ -10,7 +10,7 @@ from app.agent.car_options import CarOptions
 from app.agent.rep_queue import InMemoryRepQueue
 from app.data.specs_store import SpecsStore, load_specs_config, snapshot_store
 from tests.conftest import BACKEND_DIR
-from tests.test_agent_advisor import employee_args
+from tests.agent.test_agent_advisor import employee_args
 
 ELECTRIC = {"BYD DOLPHIN", "MG4", "KONA EV", "ATTO 3", "EV3", "MODEL 3", "SEAL"}
 
@@ -415,8 +415,8 @@ def test_the_ranking_card_goes_to_the_screen_and_not_to_the_rep():
 def test_the_ranking_card_reaches_the_screen_over_sse(data, cfg):
     from langchain_core.messages import AIMessage
 
-    from tests.test_agent_graph import call
-    from tests.test_api import chat, make as make_client
+    from tests.agent.test_agent_graph import call
+    from tests.api.test_api import chat, make as make_client
 
     args = employee(data, "E-006")
     client, _, _ = make_client(data, cfg, [call("rank_options", {**args, "sort_by": "safety"}),

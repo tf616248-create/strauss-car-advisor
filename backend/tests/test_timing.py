@@ -6,8 +6,8 @@ from langchain_core.messages import AIMessage
 
 from app.agent.models import WithTimeout
 from app.timing import timed
-from tests.test_agent_advisor import employee_args
-from tests.test_agent_graph import call, run
+from tests.agent.test_agent_advisor import employee_args
+from tests.agent.test_agent_graph import call, run
 
 TIMING = "app.timing"
 

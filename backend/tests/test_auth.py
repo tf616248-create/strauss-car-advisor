@@ -17,9 +17,9 @@ from app.employees import InMemoryEmployees, load_seed
 from app.threads import InMemoryThreads
 from tests.auth_helpers import CODES, SECRET, authed, make_auth
 from tests.conftest import BACKEND_DIR
-from tests.test_agent_advisor import employee_args
-from tests.test_agent_graph import ScriptedModel, call
-from tests.test_api import events
+from tests.agent.test_agent_advisor import employee_args
+from tests.agent.test_agent_graph import ScriptedModel, call
+from tests.api.test_api import events
 
 
 @pytest.fixture(scope="module")

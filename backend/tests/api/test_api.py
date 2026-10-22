@@ -12,9 +12,9 @@ from app.api.events import InMemoryNotifier
 from app.api.main import create_app
 from tests.auth_helpers import authed, make_auth
 from tests.conftest import BACKEND_DIR
-from tests.test_agent_advisor import employee_args
-from tests.test_agent_graph import ScriptedModel, call
-from tests.test_agent_models import Hanging, Overloaded, _release_hanging_calls  # noqa: F401 (autouse)
+from tests.agent.test_agent_advisor import employee_args
+from tests.agent.test_agent_graph import ScriptedModel, call
+from tests.agent.test_agent_models import Hanging, Overloaded, _release_hanging_calls  # noqa: F401 (autouse)
 
 PASS = "test-pass"
 

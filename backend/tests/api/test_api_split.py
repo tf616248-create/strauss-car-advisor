@@ -13,8 +13,8 @@ from app.usage_limit import InMemoryUsage, UsageMeter
 from app.payslip import InMemoryPayslips, PayslipReader
 from app.threads import InMemoryThreads
 from tests.auth_helpers import make_auth
-from tests.test_agent_graph import ScriptedModel
-from tests.test_api import PASS, cfg, make  # noqa: F401 (cfg is a fixture)
+from tests.agent.test_agent_graph import ScriptedModel
+from tests.api.test_api import PASS, cfg, make  # noqa: F401 (cfg is a fixture)
 
 
 def paths(router):

@@ -355,8 +355,11 @@ backend/
   scripts/build_specs_snapshot.py  יוצר את הגיבוי מה-API
   config/agent.json       ספים (maxAttempts, טווחים) וטקסטים לעובד (כולל המשפט הקבוע מחוץ לתחום)
   evals/                  שאלות בתחום, מחוץ לתחום והמלצה (recommend.json), ו-run_off_topic.py שמריץ אותן מול המודל האמיתי
-  tests/                  בדיקות ייחוס (6 עובדים), זכאות, שליפה מה-CSV, כלים, גרף (מודל מזויף), מודלים, API, אירועים.
-                          test_rep_repository.py: אותן בדיקות לתור בזיכרון ול-Postgres (Postgres מדולג בלי DATABASE_URL)
+  tests/                  כל הבדיקות, באותן תיקיות כמו בקוד: tests/agent/ (כלים, גרף עם מודל מזויף, מודלים, תור הנציג),
+                          tests/api/ (API, אירועים, העלאה), tests/data/ (שליפה מה-CSV, מפרט), tests/engine/ (ייחוס 6 עובדים,
+                          זכאות, כללים), tests/evals/ (שיפוט האבלואציות). בדיקות של app/*.py ישירות ב-tests/.
+                          העזרים (conftest.py, auth_helpers.py, payslip_fixture.py) ב-tests/. pytest.ini: testpaths=tests.
+                          agent/test_rep_repository.py: אותן בדיקות לתור בזיכרון ול-Postgres (Postgres מדולג בלי DATABASE_URL)
 render.yaml               הפעלה ב-Render: frankfurt, free, uvicorn עם --workers 1. סודות רק כשמות (sync: false)
 netlify.toml              בניית הממשק ב-Netlify: base=frontend, publish=dist, הפניה של כל נתיב ל-index.html
 docs/deploy.md            סדר ההעלאה, ומה ממלאים ב-Render וב-Netlify

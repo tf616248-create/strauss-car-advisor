@@ -14,7 +14,7 @@ from app.agent.rep_queue import InMemoryRepQueue
 from app.engine.net import compute_net
 from app.engine.scenario import Choice, build_scenario
 from tests.conftest import BACKEND_DIR
-from tests.test_reference_employees import employee_input
+from tests.engine.test_reference_employees import employee_input
 
 TOL = 1
 

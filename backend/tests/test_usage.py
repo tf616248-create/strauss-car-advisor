@@ -11,8 +11,8 @@ from app.api.events import InMemoryNotifier
 from app.api.main import create_app
 from app.usage import append_row, turn_usage
 from tests.auth_helpers import authed, make_auth
-from tests.test_agent_graph import ScriptedModel, call
-from tests.test_api import cfg  # noqa: F401 (fixture)
+from tests.agent.test_agent_graph import ScriptedModel, call
+from tests.api.test_api import cfg  # noqa: F401 (fixture)
 
 PRICES = {"gemini": {"inputPerMillionUsd": 0.75, "outputPerMillionUsd": 3.75}}
 
@@ -89,7 +89,7 @@ class Metered(ScriptedModel):
 
 def test_each_question_is_logged_and_written_to_the_csv(data, cfg, tmp_path, caplog):  # noqa: F811
     from app.agent.models import with_fallbacks
-    from tests.test_agent_advisor import employee_args
+    from tests.agent.test_agent_advisor import employee_args
 
     model = with_fallbacks([Metered(messages=iter([call("calculate", employee_args(data, "E-001")),
                                                    AIMessage(content="סיום")]))], 5, ["gemini"])

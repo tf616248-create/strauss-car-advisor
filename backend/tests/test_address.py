@@ -19,7 +19,7 @@ from app.names import NameFiller, fill, first_name
 from app.profile import InMemoryProfiles, validate_settings
 from tests.auth_helpers import authed, make_auth
 from tests.conftest import BACKEND_DIR
-from tests.test_api import events
+from tests.api.test_api import events
 from tests.test_profile_agent import RecordingModel
 
 

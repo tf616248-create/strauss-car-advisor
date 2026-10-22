@@ -9,7 +9,7 @@ from langsmith.utils import tracing_is_enabled
 from app import tracing
 from app.agent.models import with_fallbacks
 from app.api.common import thread_config
-from tests.test_agent_models import Fake, Overloaded
+from tests.agent.test_agent_models import Fake, Overloaded
 
 
 @pytest.fixture(autouse=True)
@@ -107,7 +107,7 @@ def senders(monkeypatch):
 def ask(data):
     from app.agent.advisor import load_agent_config
     from tests.conftest import BACKEND_DIR
-    from tests.test_api import chat, make
+    from tests.api.test_api import chat, make
     client, _, _ = make(data, load_agent_config(BACKEND_DIR), script=[AIMessage(content="שלום, אני כובי")])
     return chat(client, "שלום")
 

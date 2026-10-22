@@ -15,9 +15,9 @@ from app.payslip import InMemoryPayslips, PayslipReader
 from tests import payslip_fixture as dummy
 from tests.auth_helpers import authed, make_auth
 from tests.conftest import BACKEND_DIR
-from tests.test_agent_advisor import employee_args
-from tests.test_agent_graph import ScriptedModel, call
-from tests.test_api import chat, events, kinds
+from tests.agent.test_agent_advisor import employee_args
+from tests.agent.test_agent_graph import ScriptedModel, call
+from tests.api.test_api import chat, events, kinds
 from tests.test_payslip import Broken, reader_model
 
 

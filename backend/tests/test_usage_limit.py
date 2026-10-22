@@ -21,8 +21,8 @@ from app.usage_limit import InMemoryUsage, UsageMeter, week_start
 from tests import payslip_fixture as dummy
 from tests.auth_helpers import authed, make_auth
 from tests.conftest import BACKEND_DIR
-from tests.test_agent_graph import ScriptedModel
-from tests.test_api import events, kinds
+from tests.agent.test_agent_graph import ScriptedModel
+from tests.api.test_api import events, kinds
 from tests.test_payslip import reader_model
 
 load_dotenv(BACKEND_DIR / ".env")

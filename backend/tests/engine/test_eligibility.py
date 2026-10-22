@@ -1,6 +1,6 @@
 """Eligibility edge cases from stage 3. Rules come from the JSON / Excel only."""
 from app.engine.scenario import Choice, build_scenario
-from tests.test_reference_employees import employee_input
+from tests.engine.test_reference_employees import employee_input
 
 
 def emp(data, emp_id):

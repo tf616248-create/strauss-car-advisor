@@ -18,8 +18,8 @@ from app.profile import InMemoryProfiles
 from tests import payslip_fixture as dummy
 from tests.auth_helpers import authed, make_auth
 from tests.conftest import BACKEND_DIR
-from tests.test_agent_graph import ScriptedModel, call
-from tests.test_api import chat, events
+from tests.agent.test_agent_graph import ScriptedModel, call
+from tests.api.test_api import chat, events
 from tests.test_payslip import reader_model
 from tests.test_profile import FULL
 

@@ -12,7 +12,7 @@ from app.agent.graph import TOOL_NAMES, build_agent
 from app.agent.prompt import build_prompt
 from app.agent.rep_queue import InMemoryRepQueue
 from tests.conftest import BACKEND_DIR
-from tests.test_agent_advisor import employee_args
+from tests.agent.test_agent_advisor import employee_args
 
 
 class ScriptedModel(GenericFakeChatModel):

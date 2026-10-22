@@ -447,7 +447,7 @@ def test_debug_mot_check_is_gone(data):
     from app.agent.rep_queue import InMemoryRepQueue
     from app.api.events import InMemoryNotifier
     from app.api.main import create_app
-    from tests.test_agent_graph import ScriptedModel
+    from tests.agent.test_agent_graph import ScriptedModel
 
     app = create_app(data=data, model=ScriptedModel(messages=iter([])), rep_queue=InMemoryRepQueue(),
                      notifier=InMemoryNotifier(), cfg=load_agent_config(BACKEND_DIR), rep_passcode=None)

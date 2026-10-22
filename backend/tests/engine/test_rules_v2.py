@@ -11,9 +11,9 @@ import pytest
 from app.data.loader import check_family_track
 from app.engine.net import compute_net
 from app.engine.scenario import Choice, build_scenario
-from tests.test_reference_employees import employee_input
+from tests.engine.test_reference_employees import employee_input
 
-BACKEND_DIR = Path(__file__).resolve().parent.parent
+from tests.conftest import BACKEND_DIR  # noqa: E402 (the project's root, from conftest)
 
 
 def test_no_separate_assumptions_file(data):

@@ -60,7 +60,7 @@ def _id(request_id: str) -> Optional[int]:
 
 
 class PostgresRepQueue:
-    """Same methods and behaviour as InMemoryRepQueue (see tests/test_rep_repository.py)."""
+    """Same methods and behaviour as InMemoryRepQueue (see tests/agent/test_rep_repository.py)."""
 
     def __init__(self, pool: ConnectionPool):
         self.pool = pool
