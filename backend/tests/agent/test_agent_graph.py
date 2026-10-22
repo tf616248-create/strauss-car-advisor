@@ -209,6 +209,12 @@ def test_prompt_no_tables_in_the_chat(prompt):
     assert "בכרטיס" in prompt
 
 
+def test_prompt_list_items_start_with_a_bold_label(prompt):
+    """In lists only: each item opens with a short bold label and a colon; in the base prompt, so every tone keeps it."""
+    assert "ברשימות, כל סעיף מתחיל בכותרת קצרה מודגשת ונקודתיים (למשל: **החזר חשמל:** 250 ₪ נטו בחודש)" in prompt
+    assert "רק ברשימות, לא בכל משפט" in prompt
+
+
 def test_prompt_kobi_is_a_bot_and_says_so(prompt):
     assert "אתה כובי, בוט הרכב של שטראוס. אתה בוט, ואם שואלים – אומר זאת." in prompt
     assert "יועץ הרכב של שטראוס" not in prompt

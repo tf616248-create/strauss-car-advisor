@@ -284,6 +284,7 @@ describe('contrast (WCAG 1.4.3: 4.5:1 for text, 3:1 for large text and controls)
   const PAIRS = [
     ['text', 'bg', 4.5], ['text', 'surface', 4.5], ['text', 'surface2', 4.5],
     ['muted', 'bg', 4.5], ['muted', 'surface', 4.5], ['muted', 'surface2', 4.5],
+    ['reading-text', 'bg', 4.5], ['reading-text', 'surface', 4.5], ['reading-text', 'surface2', 4.5],
     ['brand-cyan-text', 'bg', 4.5], ['brand-cyan-text', 'surface', 4.5],
     ['error', 'bg', 4.5], ['error', 'surface', 4.5],
     ['on-brand', 'cyan', 4.5], ['on-brand', 'green', 4.5], ['on-brand', 'orange', 4.5],
