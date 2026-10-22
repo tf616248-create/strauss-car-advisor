@@ -58,12 +58,13 @@ def test_the_fixed_texts_to_the_employee_are_neutral(cfg):
     assert found == []
 
 
-# a version per form of address: the catalog's participation speaks to the employee ("תגיד/י לי")
-PER_ADDRESS = "texts.catalogParticipation."
+# a version per form of address: these speak to the employee ("תגיד/י לי", "רוצה/רוצים")
+PER_ADDRESS = ("texts.catalogParticipation.", "texts.notInCatalog.offerRep.")
 
 
 def test_a_text_with_a_version_per_form_of_address_has_all_three(cfg):
     assert set(cfg["texts"]["catalogParticipation"]) == set(cfg["address"]["options"])
+    assert set(cfg["texts"]["notInCatalog"]["offerRep"]) == set(cfg["address"]["options"])
 
 
 def test_the_out_of_scope_sentence_is_still_one_fixed_sentence(cfg):

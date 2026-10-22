@@ -172,6 +172,12 @@ def judge_main(messages: list, case: dict, sentence: str, car_names: list[str],
             guessed = [f for f in fields if tc["name"] == name and tc["args"].get(f) not in (None, "")]
             if guessed:
                 return False, f"{name} guessed {guessed}"
+    for name, want in expect.get("results", {}).items():  # e.g. ask_rep: sent (not refused by the code)
+        got = [r.get("status") for r in _results_of(scope, name)]
+        if not got:
+            return False, f"no {name} result"
+        if got[-1] != want:
+            return False, f"{name} gave {got[-1]}, expected {want}"
     for name in expect.get("not_ok", []):  # e.g. calculate before the missing details were given
         if any(r.get("status") == "ok" for r in _results_of(scope, name)):
             return False, f"{name} gave a result (status ok)"

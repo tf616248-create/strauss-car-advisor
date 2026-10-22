@@ -25,6 +25,8 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Iterable, Optional
 
+from langchain_core.messages import HumanMessage, ToolMessage
+
 from app import profile as profile_mod
 from app.engine.net import compute_net
 from app.engine.scenario import Choice, EmployeeInput, build_scenario
@@ -230,7 +232,8 @@ class Advisor:
             cars.sort(key=lambda c: c["drive"] != electric)  # stable: the catalog's order otherwise
         return [{"name": c["name"], "drive": c["drive"], "group": c["group"]} for c in cars]
 
-    def _alternative_problem(self, kind: str, found, name: str, group: Optional[str]) -> Optional[dict]:
+    def _alternative_problem(self, kind: str, found, name: str, group: Optional[str],
+                             employee_id: Optional[str] = None, thread_id: Optional[str] = None) -> Optional[dict]:
         if kind == "did_you_mean":
             return {"status": "did_you_mean", "car": name, "suggestions": found,
                     "instruction": "השם לא כתוב כמו ברשימת רכבי החברה. שאל את העובד אם התכוון לרכב מ-suggestions, "
@@ -240,33 +243,84 @@ class Advisor:
                    "message_to_employee": self.cfg["texts"]["notInCatalog"]["message"],
                    "options": self._options(group, found["electric"]), "electric_first": found["electric"],
                    "instruction": "הרכב לא ברשימת רכבי החברה. כתוב לעובד את message_to_employee, והצע לו את "
-                                  "הרכבים שב-options (אם electric_first, החשמליים ראשונים), ושאל אם לחשב אחד מהם. "
-                                  "אל תחשב שווי שימוש או נטו לרכב הזה, ואל תשלח לנציג."}
+                                  "הרכבים שב-options (אם electric_first, החשמליים ראשונים). "
+                                  "אל תחשב שווי שימוש או נטו לרכב הזה."}
             if group is None:
                 res["instruction"] += (" אין עדיין עיסוק, ולכן אין רשימה: שאל את העובד מה העיסוק שלו (occupation), "
                                        "ואז קרא שוב.")
+            key = self._exception_key(name)
+            answers = self.queue.answers(thread_id) if thread_id else {}
+            pending = self.queue.pending_fields(thread_id) if thread_id else set()
+            if ("catalog_exception", key) in answers:  # the rep answered: relayed as it is, still nothing calculated
+                res["rep_answer"] = answers[("catalog_exception", key)]
+                res["after_rep"] = self.cfg["texts"]["notInCatalog"]["repAnswered"]
+                res["instruction"] += " הנציג ענה על הבקשה: כתוב לעובד את rep_answer כמו שהוא, ואחריו את after_rep."
+            elif ("catalog_exception", key) in pending:
+                res["rep_question"] = "waiting"
+                res["instruction"] += " השאלה על הרכב הזה כבר אצל הנציג: אמור זאת, ואל תציע לשאול שוב."
+            else:
+                res["offer_rep"] = self._by_address(self.cfg["texts"]["notInCatalog"]["offerRep"], employee_id)
+                res["instruction"] += (" בסוף ההודעה שאל את offer_rep. אל תשלח לנציג עד שהעובד הסכים במפורש "
+                                       "בהודעה הבאה שלו.")
             return res
         return None
 
-    def _check_alternative(self, args: dict, employee_id: Optional[str]) -> Optional[dict]:
+    def _check_alternative(self, args: dict, employee_id: Optional[str],
+                           thread_id: Optional[str] = None) -> Optional[dict]:
         """Before anything else: an alternative outside the catalog has nothing to calculate."""
         if args.get("alternative_kind") not in ("car", "family_car") or not args.get("alternative_car"):
             return None
         kind, found = self._resolve_alternative(args["alternative_car"])
         if kind == "catalog":
             return None
-        return self._alternative_problem(kind, found, args["alternative_car"], self._group_of(args, employee_id))
+        return self._alternative_problem(kind, found, args["alternative_car"], self._group_of(args, employee_id),
+                                         employee_id, thread_id)
+
+    @staticmethod
+    def _exception_key(name: str) -> str:
+        """A car outside the catalog, in the rep queue: by its name as asked."""
+        return " ".join(name.split()).upper()
+
+    def _consented(self, history: Iterable, car: str) -> bool:
+        """The employee agreed to ask the rep about this car outside the catalog: the latest not_in_catalog result
+        for it carried the offer (offer_rep), and the employee's next message says yes (agent.json consent)."""
+        messages = list(history)
+        key = self._exception_key(car)
+        offer_at = None
+        for i, m in enumerate(messages):
+            if isinstance(m, ToolMessage):
+                try:
+                    res = json.loads(m.content)
+                except (TypeError, ValueError):
+                    continue
+                if (isinstance(res, dict) and res.get("status") == "not_in_catalog" and res.get("offer_rep")
+                        and self._exception_key(res.get("car") or "") == key):
+                    offer_at = i
+        if offer_at is None:
+            return False
+        reply = next((m for m in messages[offer_at + 1:] if isinstance(m, HumanMessage)), None)
+        if reply is None:
+            return False
+        text = " ".join(re.findall(r"\w+", str(reply.content).lower()))
+        words = set(text.split())
+        consent = self.cfg["texts"]["notInCatalog"]["consent"]
+
+        def says(phrases):
+            return any((p in words) if " " not in p else (f" {p} " in f" {text} ") for p in phrases)
+
+        return says(consent["yes"]) and not says(consent["no"])
 
     # ---------------------------------------------------------- tool: lookup
 
     def lookup_vehicle(self, name: str, registration_year: Optional[int] = None,
                        model_code: Optional[str] = None, history: Iterable = (), alternative: bool = False,
-                       employee_id: Optional[str] = None) -> dict:
+                       employee_id: Optional[str] = None, thread_id: Optional[str] = None) -> dict:
         """alternative: a car the employee wants to move to - only from the catalog."""
         if alternative:
             kind, found = self._resolve_alternative(name)
             if kind != "catalog":
-                return self._alternative_problem(kind, found, name, self._group_of({}, employee_id))
+                return self._alternative_problem(kind, found, name, self._group_of({}, employee_id), employee_id,
+                                                 thread_id)
         else:
             kind, found = self._resolve_car(name, registration_year, model_code)
         if kind == "catalog":
@@ -537,7 +591,7 @@ class Advisor:
 
     def _check_eligibility(self, args, history, thread_id, employee_id, updated, info) -> dict:
         args = {k: args.get(k) for k in self.ELIGIBILITY_FIELDS}
-        problem = self._check_alternative(args, employee_id)
+        problem = self._check_alternative(args, employee_id, thread_id)
         if problem:
             return problem
         problem, args, _ = self._check_employee(args, history, thread_id, False, employee_id, updated, info)
@@ -561,7 +615,7 @@ class Advisor:
 
     def _calculate(self, args, history, thread_id, employee_id, updated, info) -> dict:
         args = {k: args.get(k) for k in self.CALCULATE_FIELDS}
-        problem = self._check_alternative(args, employee_id)  # outside the catalog: say so before any question
+        problem = self._check_alternative(args, employee_id, thread_id)  # outside the catalog: before any question
         if problem:
             return problem
         problem, args, emp_sources = self._check_employee(args, history, thread_id, True, employee_id, updated, info)
@@ -606,12 +660,15 @@ class Advisor:
         return res
 
     def _catalog_note(self, employee_id: Optional[str], amount) -> str:
-        """Where the participation comes from, and an invitation to correct it - in the employee's form of address
-        (plural until chosen, and without a profile)."""
+        """Where the participation comes from, and an invitation to correct it."""
+        return self._by_address(self.cfg["texts"]["catalogParticipation"], employee_id).format(amount=f"{amount:,}")
+
+    def _by_address(self, versions: dict, employee_id: Optional[str]) -> str:
+        """A text with a version per form of address: the employee's (plural until chosen, and without a profile)."""
         address = self.cfg["settings"]["defaults"]["address"]
         if self.profiles is not None and employee_id:
             address = self.profiles.settings(employee_id).get("address") or address
-        return self.cfg["texts"]["catalogParticipation"][address].format(amount=f"{amount:,}")
+        return versions[address]
 
     def _side(self, emp, res, car, car_sources: dict, reason_code: str, kind: str) -> dict:
         rules = self.data.rules
@@ -672,11 +729,13 @@ class Advisor:
 
     def ask_rep(self, fields: list[str], question: str, car: Optional[str] = None,
                 registration_year: Optional[int] = None, thread_id: str = "default",
-                about: Optional[str] = None, confirm: bool = False) -> dict:
+                about: Optional[str] = None, confirm: bool = False, history: Iterable = ()) -> dict:
         """about: "current" (today's car) or "alternative" (a car to move to). A question about an alternative
         outside the catalog is refused; today's car (e.g. not found in the Tax Authority file) goes as before.
         confirm: the employee only asks to check the catalog's participation - meanwhile calculate uses it,
-        marked awaiting confirmation (a personal arrangement, without confirm: nothing calculated meanwhile)."""
+        marked awaiting confirmation (a personal arrangement, without confirm: nothing calculated meanwhile).
+        history: the conversation - a car outside the catalog goes to the rep only after the employee agreed to the
+        offer (_consented), as a fixed question; otherwise refused."""
         salary = [f for f in fields if f in EMPLOYEE_FIELDS and f != "group"]
         if salary:  # an anonymous employee's data: the rep cannot know it
             return {"status": "not_for_rep", "fields": salary,
@@ -685,10 +744,18 @@ class Advisor:
         # the company's details of a car (group, cost, participation) are asked only about an alternative
         about_alternative = about == "alternative" or bool(set(fields) & set(COMPANY_FIELDS))
         if car and about_alternative and self._resolve_alternative(car)[0] != "catalog":
+            if self._consented(history, car):
+                texts = self.cfg["texts"]["notInCatalog"]
+                req = self.queue.add(thread_id, ["catalog_exception"], texts["repQuestion"].format(car=car),
+                                     self._exception_key(car))
+                return {"status": "sent", "request_id": req["id"], "fields": req["fields"],
+                        "message_to_employee": self.cfg["texts"]["repSent"],
+                        "instruction": "השאלה נשלחה. גם אם הנציג יאשר, לא מחשבים שווי שימוש או נטו לרכב הזה."}
             return {"status": "not_in_catalog", "car": car,
                     "message_to_employee": self.cfg["texts"]["notInCatalog"]["message"],
-                    "instruction": "לא שולחים לנציג שאלה על רכב חלופה שלא ברשימת רכבי החברה. "
-                                   "קרא ל-calculate או ל-check_eligibility עם הרכב, כדי לקבל את הרכבים שהעובד זכאי להם."}
+                    "instruction": "לא שולחים לנציג שאלה על רכב חלופה שלא ברשימת רכבי החברה, אלא אם העובד הסכים "
+                                   "במפורש להצעה (offer_rep) בהודעה האחרונה שלו. קרא ל-calculate או ל-check_eligibility "
+                                   "עם הרכב, כדי לקבל את הרכבים שהעובד זכאי להם ואת ההצעה."}
         car_key = None
         if car:
             kind, found = self._resolve_car(car, registration_year)

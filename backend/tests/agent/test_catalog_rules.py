@@ -183,9 +183,11 @@ def test_an_unknown_alternative_is_not_in_the_catalog_even_twice(advisor):
 
 
 def test_ask_rep_refuses_an_alternative_outside_the_catalog(advisor, queue):
+    """Without the employee's consent to the offer (no history): refused, in code."""
     for fields, about in ((["carGroup", "companyCost", "participation"], None), (["car"], "alternative")):
         res = advisor.ask_rep(fields, "?", car="PORSCHE TAYCAN", about=about, thread_id="t")
         assert res["status"] == "not_in_catalog"
+        assert "הסכים" in res["instruction"]
     assert queue.pending("t") == []
 
 
@@ -195,6 +197,115 @@ def test_porsche_through_the_graph(data, cfg):
     [res] = tool_results(out, "calculate")
     assert res["status"] == "not_in_catalog"
     assert tool_results(out, "ask_rep") == [] and queue.pending("t") == []
+
+
+# --- 2b. outside the catalog: an offer to ask the rep, sent only after the employee agrees -----------
+
+PORSCHE = group_c(alternative_kind="car", alternative_car="PORSCHE TAYCAN")
+
+
+def offered(advisor, reply, car="PORSCHE TAYCAN"):
+    """The conversation so far: the question, the not_in_catalog result with its offer, Kobi's answer ending
+    with the offer, and the employee's reply."""
+    from langchain_core.messages import HumanMessage
+
+    res = advisor.calculate(group_c(alternative_kind="car", alternative_car=car), thread_id="t")
+    return [HumanMessage(content=f"מה יקרה לנטו אם אעבור ל-{car}?"), tool_msg("calculate", res),
+            AIMessage(content=f'{res["message_to_employee"]} {res["offer_rep"]}'), HumanMessage(content=reply)]
+
+
+def ask(advisor, history, car="PORSCHE TAYCAN"):
+    return advisor.ask_rep(["car"], "אפשר?", car=car, about="alternative", thread_id="t", history=history)
+
+
+def test_not_in_catalog_offers_to_ask_the_rep_and_sends_nothing(advisor, queue, cfg):
+    res = advisor.calculate(PORSCHE, thread_id="t")
+    assert res["status"] == "not_in_catalog" and res["options"]  # the polite message and the options, as before
+    assert res["offer_rep"] == cfg["texts"]["notInCatalog"]["offerRep"]["plural"]
+    assert "offer_rep" in res["instruction"] and "הסכים" in res["instruction"]
+    assert queue.pending("t") == []
+
+
+@pytest.mark.parametrize("address, offer", [("male", "רוצה שאשאל את הנציג אם יש אפשרות לרכב הזה?"),
+                                            ("female", "רוצה שאשאל את הנציג אם יש אפשרות לרכב הזה?"),
+                                            ("plural", "רוצים שאשאל את הנציג אם יש אפשרות לרכב הזה?")])
+def test_the_offer_is_in_the_employees_form_of_address(data, cfg, address, offer):
+    from app.profile import InMemoryProfiles
+
+    profiles = InMemoryProfiles(cfg["settings"]["defaults"])
+    profiles.update_settings("E01", {"address": address})
+    advisor = Advisor(data, InMemoryRepQueue(), cfg, profiles=profiles)
+    assert advisor.calculate(PORSCHE, employee_id="E01")["offer_rep"] == offer
+    assert advisor.lookup_vehicle("PORSCHE TAYCAN", alternative=True, employee_id="E01")["offer_rep"] == offer
+
+
+@pytest.mark.parametrize("reply", ["כן", "כן, תשאל", "תשאלי בבקשה", "בטח", "אשמח"])
+def test_after_the_employee_agrees_the_question_goes_to_the_rep(advisor, queue, cfg, reply):
+    res = ask(advisor, offered(advisor, reply))
+    assert res["status"] == "sent" and res["message_to_employee"] == cfg["texts"]["repSent"]
+    [req] = queue.pending("t")
+    assert req["fields"] == ["catalog_exception"]
+    assert req["question"] == cfg["texts"]["notInCatalog"]["repQuestion"].format(car="PORSCHE TAYCAN")
+    assert req["question"] == "העובד/ת מבקש/ת לבדוק אפשרות לרכב PORSCHE TAYCAN שלא נמצא בקטלוג"
+
+
+@pytest.mark.parametrize("reply", ["לא", "לא, תודה", "אין צורך", "עזוב", "תחשב לי את EV3"])
+def test_without_a_yes_nothing_is_sent(advisor, queue, reply):
+    assert ask(advisor, offered(advisor, reply))["status"] == "not_in_catalog"
+    assert queue.pending("t") == []
+
+
+def test_consent_is_for_that_car_only_and_only_after_the_offer(advisor, queue):
+    from langchain_core.messages import HumanMessage
+
+    assert ask(advisor, offered(advisor, "כן"), car="ATTO 2")["status"] == "not_in_catalog"  # another car
+    history = offered(advisor, "כן")
+    early_yes = [HumanMessage(content="כן")] + history[:-1]  # a yes before the offer is not an answer to it
+    assert ask(advisor, early_yes)["status"] == "not_in_catalog"
+    assert queue.pending("t") == []
+
+
+def test_while_the_rep_checks_no_offer_again_and_after_the_answer_it_is_relayed_without_a_net(advisor, queue,
+                                                                                              cfg):
+    ask(advisor, offered(advisor, "כן"))
+    waiting = advisor.calculate(PORSCHE, thread_id="t")
+    assert waiting["status"] == "not_in_catalog" and waiting["rep_question"] == "waiting"
+    assert "offer_rep" not in waiting
+
+    queue.answer(queue.pending("t")[0]["id"], {"catalog_exception": "אפשר, באישור ועדת רכב"})
+    done = advisor.calculate(PORSCHE, thread_id="t")
+    assert done["status"] == "not_in_catalog"
+    assert done["rep_answer"] == "אפשר, באישור ועדת רכב"
+    assert done["after_rep"] == cfg["texts"]["notInCatalog"]["repAnswered"]
+    assert "offer_rep" not in done and "rep_question" not in done
+    assert not has_number(done) and "valueOfUse" not in json.dumps(done) and "card" not in done
+    assert advisor.lookup_vehicle("PORSCHE TAYCAN", alternative=True, thread_id="t")["rep_answer"] == \
+        "אפשר, באישור ועדת רכב"
+
+
+def test_consent_through_the_graph(data, cfg):
+    """The employee says "כן" after the offer: the tool, given the conversation, sends the question."""
+    from langchain_core.messages import HumanMessage
+
+    from app.agent.graph import build_agent
+    from tests.agent.test_agent_graph import ScriptedModel
+
+    queue = InMemoryRepQueue()
+    history = offered(Advisor(data, InMemoryRepQueue(), cfg), "כן, תשאל")
+    agent = build_agent(ScriptedModel(messages=iter([
+        call("ask_rep", {"fields": ["car"], "question": "אפשר?", "car": "PORSCHE TAYCAN", "about": "alternative"}),
+        AIMessage(content=cfg["texts"]["repSent"])])), data, queue, cfg)
+    out = agent.invoke({"messages": history}, {"configurable": {"thread_id": "t"}})
+    assert tool_results(out, "ask_rep")[0]["status"] == "sent"
+    assert queue.pending("t")[0]["fields"] == ["catalog_exception"]
+    assert isinstance(history[-1], HumanMessage)
+
+
+def test_without_consent_the_graph_blocks_it(data, cfg):
+    out, queue = run(data, [
+        call("ask_rep", {"fields": ["car"], "question": "אפשר?", "car": "PORSCHE TAYCAN", "about": "alternative"}),
+        AIMessage(content="...")], user_text="תשאל את הנציג על פורשה")
+    assert tool_results(out, "ask_rep")[0]["status"] == "not_in_catalog" and queue.pending("t") == []
 
 
 # --- 3. a personal arrangement, or a catalog car without a participation: the rep ---------------
@@ -370,6 +481,7 @@ def test_the_prompt_has_both_sections(data, cfg):
     assert "## השתתפות עובד ברכב" in prompt and "## רכב חלופה שלא נמצא בקטלוג" in prompt
     assert "participation_note" in prompt and "פעם אחת בשיחה לכל רכב" in prompt  # not in every message
     assert "confirm=true" in prompt and "awaiting_confirmation" in prompt
+    assert "offer_rep" in prompt and "rep_answer" in prompt and "after_rep" in prompt  # the offer, the answer
     assert "not_in_catalog" in prompt and "did_you_mean" in prompt
 
 
@@ -381,4 +493,7 @@ def test_the_texts_are_in_agent_json(cfg):
         "plural": "לפי קטלוג החברה, ההשתתפות ברכב הזה היא {amount} ₪. אם אצלכם סוכם אחרת, תגידו לי ואשאל את הנציג.",
     }
     assert t["awaitingConfirmation"]["label"] == "ממתין לאישור"
+    assert t["notInCatalog"]["offerRep"]["female"] == "רוצה שאשאל את הנציג אם יש אפשרות לרכב הזה?"
+    assert t["notInCatalog"]["repQuestion"] == "העובד/ת מבקש/ת לבדוק אפשרות לרכב {car} שלא נמצא בקטלוג"
+    assert "יתאפשר אם הרכב ייכנס לקטלוג" in t["notInCatalog"]["repAnswered"]
     assert "לא נמצא כרגע ברשימת רכבי החברה" in t["notInCatalog"]["message"]

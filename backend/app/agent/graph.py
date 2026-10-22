@@ -67,7 +67,8 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
         רכב לעבור אליו (alternative=true): רק מהקטלוג, עם ההשתתפות שבקטלוג."""
         with timed("tool lookup_vehicle"):
             return _dump(advisor.lookup_vehicle(name, registration_year, model_code, history=state["messages"],
-                                                alternative=alternative, employee_id=_employee(config)))
+                                                alternative=alternative, employee_id=_employee(config),
+                                                thread_id=_thread(config)))
 
     @tool
     def check_eligibility(
@@ -120,6 +121,7 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
     def ask_rep(
         fields: Annotated[list[str], "השדות שחסרים, כפי שהופיעו ב-fields של הכלי"],
         question: Annotated[str, "השאלה לנציג, משפט אחד"],
+        state: Annotated[dict, InjectedState],
         config: RunnableConfig,
         car: Annotated[Optional[str], "שם הרכב, אם השאלה על רכב"] = None,
         registration_year: Annotated[Optional[int], "שנת רישום של הרכב"] = None,
@@ -131,7 +133,7 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
         """שולח שאלה לנציג התחבורה. הנציג לא מדבר עם העובד - רק עונה על השאלה."""
         with timed("tool ask_rep"):
             return _dump(advisor.ask_rep(fields, question, car, registration_year, thread_id=_thread(config),
-                                         about=about, confirm=confirm))
+                                         about=about, confirm=confirm, history=state["messages"]))
 
     @tool(response_format="content_and_artifact")
     def car_specs(car: Annotated[str, "שם הרכב בקטלוג, באנגלית כמו ברשימה (למשל BYD DOLPHIN)"]

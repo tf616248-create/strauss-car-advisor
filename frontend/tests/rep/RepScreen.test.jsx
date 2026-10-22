@@ -99,4 +99,19 @@ describe('RepScreen', () => {
     await user.click(screen.getByRole('button', { name: 'כניסה' }))
     expect(await screen.findByText('סיסמה שגויה')).toBeInTheDocument()
   })
+
+  it('a car outside the catalog: a named field for the rep\'s answer, in words, sent as typed', async () => {
+    const api = fakeApi()
+    api.repList.mockResolvedValue([{ id: '2', thread_id: 't', fields: ['catalog_exception'], car_key: 'PORSCHE TAYCAN',
+      question: 'העובד/ת מבקש/ת לבדוק אפשרות לרכב PORSCHE TAYCAN שלא נמצא בקטלוג', card: null }])
+    const user = userEvent.setup()
+    render(<RepScreen api={api} />)
+    await user.type(screen.getByLabelText('סיסמת נציג'), 'pw')
+    await user.click(screen.getByRole('button', { name: 'כניסה' }))
+    const field = await screen.findByLabelText('תשובה לעובד על הרכב שלא בקטלוג')
+    expect(field).not.toHaveAttribute('inputmode') // words, not an amount
+    await user.type(field, 'אפשר לבדוק בוועדת רכב')
+    await user.click(screen.getByRole('button', { name: 'שליחת תשובה' }))
+    await waitFor(() => expect(api.repAnswer).toHaveBeenCalledWith('pw', '2', { catalog_exception: 'אפשר לבדוק בוועדת רכב' }))
+  }, 15000)
 })

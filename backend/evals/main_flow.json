@@ -22,9 +22,9 @@
     }
   },
   {
-    "id": "demo-pdf-not-in-catalog",
+    "id": "demo-not-in-catalog",
     "kind": "demo",
-    "why": "The PDF's ATTO 2 step, by the catalog rules (22/10): ATTO 2 is not in the catalog - the bot says so politely, offers catalog cars, calculates nothing and sends nothing to the rep",
+    "why": "An electric car that is not in the catalog (BYD ATTO 2: in the Tax Authority file, not among the company's cars). Our rule (22/10), not the PDF's script: the bot says so politely, offers catalog cars and offers to ask the rep, calculates nothing, and sends nothing without the employee's yes",
     "judge_on": "conversation",
     "turns": [
       "היום אני מקבלת אחזקת רכב. אני שוקלת לעבור ל-BYD ATTO 2 החשמלי. כמה זה ישנה לי בנטו?",
@@ -314,12 +314,13 @@
   {
     "id": "catalog-porsche",
     "kind": "catalog",
-    "why": "A Porsche Taycan is not in the catalog: a polite answer, electric cars from the catalog, no net, no rep",
+    "why": "A Porsche Taycan is not in the catalog: a polite answer, electric cars from the catalog, the offer to ask the rep, no net, nothing sent to the rep",
     "question": "אני מנהל אזור מכירות, קבוצה ג. שכר בסיס 14,200, עמלות 1,000, בלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי TUCSON ואני משלם 400 השתתפות. מה יקרה לנטו אם אעבור לפורשה טייקאן?",
     "expect": {
       "no_tools": ["ask_rep"],
       "not_ok": ["calculate"],
-      "text_any": [["לא נמצא", "רשימת רכבי החברה"], ["BYD DOLPHIN", "MG4", "KONA EV", "ATTO 3", "EV3"]],
+      "text_any": [["לא נמצא", "רשימת רכבי החברה"], ["BYD DOLPHIN", "MG4", "KONA EV", "ATTO 3", "EV3"],
+                   ["שאשאל את הנציג"]],
       "numbers_from_tools": true,
       "not_refused": true
     }
@@ -429,6 +430,79 @@
           "השתתפות"
         ]
       ],
+      "not_refused": true
+    }
+  },
+  {
+    "id": "exception-yes",
+    "kind": "exception",
+    "why": "A car outside the catalog, and the employee says yes to the offer: the question goes to the rep, still no net",
+    "turns": [
+      "אני מנהל אזור מכירות, קבוצה ג. שכר בסיס 14,200, עמלות 1,000, בלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי TUCSON ואני משלם 400 השתתפות. מה יקרה לנטו אם אעבור לפורשה טייקאן?",
+      "כן, תשאל"
+    ],
+    "expect": {
+      "tools": [
+        "ask_rep"
+      ],
+      "results": {
+        "ask_rep": "sent"
+      },
+      "not_ok": [
+        "calculate"
+      ],
+      "text_any": [
+        [
+          "נציג"
+        ]
+      ],
+      "numbers_from_tools": true,
+      "not_refused": true
+    }
+  },
+  {
+    "id": "exception-no",
+    "kind": "exception",
+    "why": "A car outside the catalog, and the employee says no to the offer: nothing is sent to the rep",
+    "turns": [
+      "אני מנהל אזור מכירות, קבוצה ג. שכר בסיס 14,200, עמלות 1,000, בלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי TUCSON ואני משלם 400 השתתפות. מה יקרה לנטו אם אעבור לפורשה טייקאן?",
+      "לא, תודה"
+    ],
+    "judge_on": "conversation",
+    "expect": {
+      "no_tools": [
+        "ask_rep"
+      ],
+      "not_ok": [
+        "calculate"
+      ],
+      "not_refused": true
+    }
+  },
+  {
+    "id": "exception-rep-answer",
+    "kind": "exception",
+    "why": "The rep answers the request for a car outside the catalog: Kobi relays the answer as it is, says the calculation is possible only if the car enters the catalog, and calculates nothing",
+    "turns": [
+      "אני מנהל אזור מכירות, קבוצה ג. שכר בסיס 14,200, עמלות 1,000, בלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי TUCSON ואני משלם 400 השתתפות. מה יקרה לנטו אם אעבור לפורשה טייקאן?",
+      "כן, תשאל"
+    ],
+    "rep_answer": {
+      "catalog_exception": "אפשר לבדוק בוועדת רכב"
+    },
+    "expect": {
+      "not_ok": [
+        "calculate"
+      ],
+      "text_any": [
+        [
+          "ועדת רכב"
+        ],
+        [
+          "קטלוג"
+        ]
+      ],
+      "numbers_from_tools": true,
       "not_refused": true
     }
   }

@@ -36,8 +36,8 @@ def test_cases_cover_the_five_groups():
     kinds = [c["kind"] for c in cases]
     assert {k: kinds.count(k) for k in set(kinds)} == {
         "demo": 4, "matrix": 5, "missing": 3, "rep_after_two": 2, "injection": 3, "profile": 3, "catalog": 4,
-        "participation": 3}
-    assert len({c["id"] for c in cases}) == len(cases) == 27
+        "participation": 3, "exception": 3}
+    assert len({c["id"] for c in cases}) == len(cases) == 30
     assert all(c["expect"] for c in cases)
     # every net question names its expected calculation; the number comes from the engine, not from the file
     for c in cases:
@@ -215,13 +215,14 @@ NOT_IN_CATALOG = {"status": "not_in_catalog", "message_to_employee": "הרכב �
 
 def test_the_porsche_case_passes_a_polite_answer_and_fails_a_rep_or_a_net():
     expect = catalog_cases()["catalog-porsche"]["expect"]
-    good = turn("פורשה טייקאן?", "הרכב הזה לא נמצא כרגע ברשימת רכבי החברה. יש את EV3 ו-MG4. לחשב אחד מהם?",
+    good = turn("פורשה טייקאן?", "הרכב הזה לא נמצא כרגע ברשימת רכבי החברה. יש את EV3 ו-MG4. לחשב אחד מהם? "
+                "רוצה שאשאל את הנציג אם יש אפשרות לרכב הזה?",
                 [("calculate", {"alternative_car": "PORSCHE TAYCAN"}, NOT_IN_CATALOG)])
     assert judge(good, expect) == (True, "")
     rep = turn("פורשה טייקאן?", "הרכב הזה לא נמצא כרגע ברשימת רכבי החברה. שלחתי לנציג, EV3 בינתיים.",
                [("calculate", {}, NOT_IN_CATALOG), ("ask_rep", {"fields": ["car"]}, {"status": "sent"})])
     assert judge(rep, expect) == (False, "called ask_rep")
-    net = turn("פורשה טייקאן?", "לא נמצא ברשימת רכבי החברה, אבל לפי EV3 הנטו עולה ב-1,153.",
+    net = turn("פורשה טייקאן?", "לא נמצא ברשימת רכבי החברה, אבל לפי EV3 הנטו עולה ב-1,153. רוצה שאשאל את הנציג?",
                [("calculate", {}, calc_ok(1153))])
     assert judge(net, expect) == (False, "calculate gave a result (status ok)")
 
@@ -318,3 +319,47 @@ def test_the_cases_match_what_the_tools_return(data):
     assert done["card"]["alternative"]["values"]["participation"]["value"] == 450
     without = {k: v for k, v in args.items() if k != "current_participation"}
     assert engine.calculate(without)["status"] == "missing"
+
+
+# --- a car outside the catalog: the offer, the employee's yes or no, the rep's answer -------------------
+
+def exception_cases():
+    return {c["id"]: c for c in json.loads(MAIN_FLOW_FILE.read_text(encoding="utf-8")) if c["kind"] == "exception"}
+
+
+NOT_IN = {"status": "not_in_catalog", "options": [{"name": "EV3"}]}
+
+
+def test_the_not_in_catalog_cases_want_the_offer_and_the_atto2_case_no_longer_credits_the_pdf():
+    cases = {c["id"]: c for c in json.loads(MAIN_FLOW_FILE.read_text(encoding="utf-8"))}
+    assert ["שאשאל את הנציג"] in cases["catalog-porsche"]["expect"]["text_any"]
+    atto2 = cases["demo-not-in-catalog"]
+    assert "not the PDF" in atto2["why"] and "ATTO 2" in atto2["why"]
+
+
+def test_results_wants_the_tools_status():
+    expect = exception_cases()["exception-yes"]["expect"]
+    sent = turn("כן, תשאל", "שלחתי שאלה לנציג התחבורה.",
+                [("ask_rep", {"car": "PORSCHE TAYCAN"}, {"status": "sent"})])
+    assert judge(sent, expect) == (True, "")
+    blocked = turn("כן, תשאל", "שלחתי שאלה לנציג התחבורה.",
+                   [("ask_rep", {"car": "PORSCHE TAYCAN"}, NOT_IN)])
+    assert judge(blocked, expect) == (False, "ask_rep gave not_in_catalog, expected sent")
+
+
+def test_the_no_case_fails_when_the_rep_is_asked():
+    expect = exception_cases()["exception-no"]["expect"]
+    assert judge(turn("לא, תודה", "בסדר. לחשב לך את EV3?"), expect) == (True, "")
+    asked = turn("לא, תודה", "שלחתי בכל זאת.", [("ask_rep", {}, {"status": "sent"})])
+    assert judge(asked, expect) == (False, "called ask_rep")
+
+
+def test_the_rep_answer_case_wants_the_answer_relayed_and_no_net():
+    case = exception_cases()["exception-rep-answer"]
+    assert case["rep_answer"] == {"catalog_exception": "אפשר לבדוק בוועדת רכב"}
+    relayed = turn("[הנציג ענה]", "הנציג ענה: אפשר לבדוק בוועדת רכב. החישוב יתאפשר אם הרכב ייכנס לקטלוג.",
+                   [("calculate", {}, dict(NOT_IN, rep_answer="אפשר לבדוק בוועדת רכב"))])
+    assert judge(relayed, case["expect"]) == (True, "")
+    netted = turn("[הנציג ענה]", "הנציג אישר ועדת רכב. לפי הקטלוג הנטו עולה ב-1,153.",
+                  [("calculate", {}, calc_ok(1153))])
+    assert judge(netted, case["expect"]) == (False, "calculate gave a result (status ok)")

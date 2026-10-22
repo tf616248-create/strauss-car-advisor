@@ -13,6 +13,8 @@ const FIELD_LABELS = {
   group: 'קבוצת העובד', car: 'הרכב', base: 'שכר בסיס', commission: 'עמלות', bonus: 'בונוס',
   pension_pct: 'פנסיה %', keren_pct: 'קרן השתלמות %', credit_points: 'נקודות זיכוי',
   children: 'ילדים עד 23', current_participation: 'השתתפות היום',
+  // a car outside the catalog, asked only after the employee agreed: an answer in words, relayed as it is
+  catalog_exception: 'תשובה לעובד על הרכב שלא בקטלוג',
 }
 const MONEY_FIELDS = new Set(['companyCost', 'participation', 'base', 'commission', 'bonus', 'current_participation'])
 const NUMBER = /^-?\d+(\.\d+)?$/
