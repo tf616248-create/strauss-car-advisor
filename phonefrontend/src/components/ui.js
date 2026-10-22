@@ -1,4 +1,4 @@
-// Small building blocks: text in Assistant, right-aligned (the app's root is direction: rtl), and buttons.
+// Small building blocks: text in Rubik, right-aligned (the app's root is direction: rtl), and buttons.
 import { Pressable, Text, View } from 'react-native'
 import { FONTS, useColors } from '../theme'
 

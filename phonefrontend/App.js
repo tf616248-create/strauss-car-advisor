@@ -3,13 +3,14 @@
 import { StatusBar } from 'expo-status-bar'
 import { View } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
-import { useFonts, Assistant_400Regular, Assistant_600SemiBold, Assistant_700Bold, Assistant_800ExtraBold } from '@expo-google-fonts/assistant'
+import { useFonts, Rubik_400Regular, Rubik_500Medium, Rubik_700Bold } from '@expo-google-fonts/rubik'
 import EmployeeApp from './src/employee/EmployeeApp'
 import { useColors } from './src/theme'
 
 export default function App() {
   const c = useColors()
-  const [fontsLoaded] = useFonts({ Assistant_400Regular, Assistant_600SemiBold, Assistant_700Bold, Assistant_800ExtraBold })
+  // one font, like the website: Rubik 400, 500 and 700 (theme.js FONTS)
+  const [fontsLoaded] = useFonts({ Rubik_400Regular, Rubik_500Medium, Rubik_700Bold })
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
