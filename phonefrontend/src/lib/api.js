@@ -95,6 +95,33 @@ async function employeeJson(url, init = {}, fetchImpl = fetch) {
 export const login = (code, fetchImpl = fetch) => json(`${API_URL}/login`, {
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }),
 }, fetchImpl)
+// the logged-in employee: { employee_id, name }
+export const me = (fetchImpl = fetch) => employeeJson(`${API_URL}/me`, {}, fetchImpl)
+// the employee's profile: { employee_id, fields, sources, group, address } (group: read only, from the occupation)
+export const profile = (fetchImpl = fetch) => employeeJson(`${API_URL}/profile`, {}, fetchImpl)
+
+// some fields (null clears one), and the form of address if it changed -> { profile } once kept,
+// or { invalid: { field: why } } (422: nothing kept)
+export async function saveProfile(fields, { address, fetchImpl = fetch } = {}) {
+  const body = address ? { fields, address } : { fields }
+  const res = await fetchImpl(`${API_URL}/profile`, {
+    method: 'PATCH', headers: withToken({ 'Content-Type': 'application/json' }), body: JSON.stringify(body),
+  })
+  if (res.status === 401) unauthorized()
+  if (res.status === 422) {
+    const detail = (await res.json().catch(() => ({}))).detail
+    if (detail?.invalid) return { invalid: detail.invalid }
+  }
+  if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status })
+  return { profile: await res.json() }
+}
+// "התאמה אישית": { theme, tone, address }, kept with the profile on the server
+export const settings = (fetchImpl = fetch) => employeeJson(`${API_URL}/settings`, {}, fetchImpl)
+export const saveSettings = (values, fetchImpl = fetch) => employeeJson(`${API_URL}/settings`, {
+  method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values),
+}, fetchImpl)
+// this week's usage: { used, limit, remaining, avg_tokens_per_conversation, conversations_left, blocked, resets_on }
+export const usage = (fetchImpl = fetch) => employeeJson(`${API_URL}/usage`, {}, fetchImpl)
 // my conversations, newest first: [{ thread_id, title, updated_at }]
 export const threads = async (fetchImpl = fetch) => (await employeeJson(`${API_URL}/threads`, {}, fetchImpl)).threads
 // the conversation's current state: messages, cards, rep { pending, new_answers }

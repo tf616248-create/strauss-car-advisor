@@ -17,6 +17,7 @@ import ContactRep from '../components/ContactRep'
 import Answer from '../components/Answer'
 import EmptyPanel from '../components/EmptyPanel'
 import PayslipViewer from '../components/PayslipViewer'
+import ProfileScreen from './ProfileScreen'
 import { pickPayslip as realPickPayslip } from '../lib/payslip'
 import payslipCfg from '../config/payslip.json'
 import logo from '../assets/logo'
@@ -64,6 +65,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const [attachError, setAttachError] = useState(null)
   const [choosing, setChoosing] = useState(false) // 📎 open: camera, gallery, file
   const [viewing, setViewing] = useState(null) // the payslip shown large: an image source
+  const [profileOpen, setProfileOpen] = useState(false) // the profile screen, over the conversation
 
   // a new comparison (or a rep answer) marks the comparison tab, unless it is open
   useEffect(() => { if (cards.length && tab !== 'cards') setUnseenCard(true) }, [cards]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -363,7 +365,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
                 <T size={13} muted style={{ textAlign: 'center' }}>לא בטוחים מה זה "שווי שימוש" או "השתתפות עצמית"? פשוט שאלו אותי.</T>
               </View>
             )}
-            {messages.map((m) => <Message key={m.id} m={m} onOpen={setViewing} />)}
+            {messages.map((m) => <Message key={m.id} m={m} onOpen={setViewing} onProfile={() => setProfileOpen(true)} />)}
           </ScrollView>
           {/* a new key per answer: the car starts each trip from the start line */}
           {roadPhase && <Road key={currentId ?? 'idle'} phase={roadPhase} stops={stops} label={step} />}
@@ -404,6 +406,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         </KeyboardAvoidingView>
       )}
       {viewing && <PayslipViewer source={viewing} onClose={() => setViewing(null)} />}
+      {profileOpen && <ProfileScreen api={api} onClose={() => setProfileOpen(false)} />}
     </View>
   )
 }
@@ -419,7 +422,7 @@ function TabButton({ active, label, onPress, children }) {
   )
 }
 
-function Message({ m, onOpen }) {
+function Message({ m, onOpen, onProfile }) {
   const c = useColors()
   if (m.role === 'system') return <T size={14} weight={700} color={c.cyanText} style={{ textAlign: 'center' }}>{REP_ANSWERED}</T>
   if (m.role === 'error') return <T weight={600} color={c.error} accessibilityRole="alert">{m.text}</T>
@@ -449,7 +452,7 @@ function Message({ m, onOpen }) {
     return (
       <View style={{ alignSelf: 'stretch', gap: 2 }}>
         <T size={12} weight={700} muted>כובי · בוט</T>
-        <Answer text={m.text} />
+        <Answer text={m.text} onProfile={onProfile} />
       </View>
     )
   }
