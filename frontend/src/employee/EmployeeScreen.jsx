@@ -117,11 +117,28 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // the list starts (and stays) at its last message - scrolled itself: scrollIntoView would scroll the page too
+  // the list starts (and stays) at its last message - scrolled itself: scrollIntoView would scroll the page too.
+  // "Sticky bottom": it follows the answer only while the employee is at the end; scrolled up, it stays put and
+  // "↓ תשובה חדשה" shows. A new question or conversation sticks it again.
+  const stickRef = useRef(true)
+  const [newBelow, setNewBelow] = useState(false)
   useLayoutEffect(() => {
     const list = listRef.current
-    if (list) list.scrollTop = list.scrollHeight
+    if (!list) return
+    if (stickRef.current) list.scrollTop = list.scrollHeight
+    else if (messages.length) setNewBelow(true)
   }, [messages])
+  function onListScroll() {
+    const list = listRef.current
+    stickRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 40
+    if (stickRef.current) setNewBelow(false)
+  }
+  function toBottom() {
+    const list = listRef.current
+    stickRef.current = true
+    setNewBelow(false)
+    list?.scrollTo?.({ top: list.scrollHeight, behavior: reduceMotion ? 'auto' : 'smooth' })
+  }
 
   // the screen's visible height (above a phone keyboard): the fixed layout's height (styles.css --app-h)
   useEffect(() => {
@@ -300,7 +317,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   function removeAttachment() {
     dropAttachment()
     setAttachError(null)
-    boxRef.current?.focus()
+    boxRef.current?.focus({ preventScroll: true })
   }
 
   // Ctrl+V (or paste from a long press on a phone): an image becomes the payslip; text stays text
@@ -447,6 +464,10 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   async function ask(text) {
     if (busyRef.current) return
     notifier.setUnread(0)
+    stickRef.current = true
+    setNewBelow(false)
+    // a welcome choice unmounts the button that had the focus: back to the box, without scrolling the page
+    boxRef.current?.focus({ preventScroll: true })
     append({ role: 'user', text })
     await run((onEvent) => api.streamChat({ message: text, threadId }, onEvent))
   }
@@ -606,7 +627,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
         {/* not a live region (it would read the answer letter by letter): the status line below speaks.
             Focusable, so the keyboard can scroll it */}
         <ol ref={listRef} className={`chat__messages ${messages.length ? '' : 'chat__messages--empty'}`} aria-label="השיחה"
-          tabIndex={0} aria-busy={loading ? 'true' : undefined}>
+          tabIndex={0} aria-busy={loading ? 'true' : undefined} onScroll={onListScroll}>
           {messages.map((m) => m.role === 'limit' ? (
             <li key={m.id} className="msg msg--limit"><LimitText text={m.text} email={m.email} /></li>
           ) : m.role === 'payslip' ? (
@@ -630,6 +651,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
             </li>
           ))}
         </ol>
+        {newBelow && <button type="button" className="chat__new-below" onClick={toBottom}>{chatCfg.texts.newBelow}</button>}
         <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true" aria-label={A11Y.live.name}>{announcement}</p>
         {/* a new key per answer: the car starts each trip from the start line */}
         {roadPhase && <Road key={currentId ?? 'idle'} phase={roadPhase} stops={stops} label={step} />}
