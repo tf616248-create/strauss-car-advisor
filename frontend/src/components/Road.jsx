@@ -1,6 +1,13 @@
 // The little road under the chat. It is built while the answer runs: every tool the
 // model really calls adds a stop, and the finish lights only with a real result (a card).
 // View only - it never decides anything and never guesses the next step.
+//
+// While a step runs the car drives on its own, slowly, toward the next stop and slows down as it
+// gets closer, but it never goes past SHARE of the way: it reaches a stop only when that step
+// really ended (a tool was called), so what it shows is never ahead of what happened. Then it
+// catches up to the stop, and drives on slowly. Reduced motion: no animation, the car stands at
+// the stop of the current step. The scene is aria-hidden; the status line says what is going on.
+import { useEffect, useState } from 'react'
 import logo from '../assets/strauss-logo.svg'
 
 // short stop names for the known tools (backend/app/agent/graph.py)
@@ -13,22 +20,37 @@ const NAMES = {
 const MAX_STOPS = 3
 const WAITING = 'כובי שלח שאלה לנציג התחבורה ⏳'
 // distance from the right edge (RTL: the car drives right to left), in %
-const SLOTS = [12, 34, 56]
-const START = 2
-const FINISH = 84
+export const SLOTS = [12, 34, 56]
+export const START = 2
+export const FINISH = 84
 const PARK = 96
 const WAIT_AT = 62 // stopped at the light, before the finish
-const PAST_STOP = 60 // px: the car waits just past the stop it reached, never heading to a stop it can't know
+export const SHARE = 0.8 // how far toward the next stop the car may drive before its step really ends
+const CRUISE_S = 4 // the slow drive on: its time constant, in seconds (slower and slower near the cap)
+const CATCH_UP = 15 // % a second: a step really ended, so the car speeds up to its stop (under 1.5s)
+const MOVING = 0.05 // % a second: below it the car counts as standing (no wheels, no bobbing)
+const REDUCE = '(prefers-reduced-motion: reduce)'
+const reducedMotion = () => Boolean(window.matchMedia?.(REDUCE)?.matches)
 
 export function stopName({ tool, label }) {
   return NAMES[tool] ?? (label ?? '').replace(/…$/, '')
 }
 
-function carPosition(phase, count) {
-  if (phase === 'arrived') return `${PARK}%`
-  if (phase === 'waiting') return `${WAIT_AT}%`
-  if (count === 0) return `${START}%`
-  return `calc(${SLOTS[count - 1]}% + ${PAST_STOP}px)`
+// where the car may be: "at" is the stop the answer really reached, "upTo" the furthest it may drive
+export function legOf(phase, count) {
+  if (phase === 'arrived') return { at: PARK, upTo: PARK }
+  if (phase === 'waiting') return { at: WAIT_AT, upTo: WAIT_AT }
+  const at = count === 0 ? START : SLOTS[count - 1]
+  const next = count < SLOTS.length ? SLOTS[count] : FINISH
+  return { at, upTo: at + SHARE * (next - at) }
+}
+
+// one frame of dt seconds: catch up to the stop really reached, then on toward upTo, never past it.
+// A car already past upTo (e.g. stopped at the light) stays where it is: it never drives back
+export function drive(pos, { at, upTo }, dt) {
+  if (pos < at) return Math.min(at, pos + CATCH_UP * dt)
+  if (pos >= upTo) return pos
+  return Math.min(upTo, pos + (upTo - pos) * (1 - Math.exp(-dt / CRUISE_S)))
 }
 
 // the white car with the Strauss logo is Kobi, the bot (also parked on the welcome screen).
@@ -57,6 +79,24 @@ export function CarBody() {
 
 export default function Road({ phase, stops = [], label }) {
   const shown = stops.slice(-MAX_STOPS)
+  const [reduce] = useState(reducedMotion)
+  const { at, upTo } = legOf(phase, shown.length)
+  const [car, setCar] = useState({ pos: at, speed: 0 })
+  useEffect(() => {
+    if (reduce) return undefined
+    let frame
+    let last
+    const tick = (now) => {
+      const dt = last === undefined ? 0 : Math.min((now - last) / 1000, 0.25) // a background tab: no jump
+      last = now
+      if (dt > 0) setCar(({ pos }) => { const next = drive(pos, { at, upTo }, dt); return { pos: next, speed: (next - pos) / dt } })
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [reduce, at, upTo])
+  const pos = reduce ? at : car.pos
+  const moving = !reduce && car.speed > MOVING
   const note = phase === 'waiting' ? WAITING : phase === 'arrived' ? 'התשובה מוכנה' : (label || 'כובי חושב…')
   const stopState = (i) => (phase === 'driving' && i === shown.length - 1 ? 'active' : 'done')
   return (
@@ -80,8 +120,8 @@ export default function Road({ phase, stops = [], label }) {
           </div>
         )}
         {/* at the start line the whole car (and its note) stays inside the road, not half past the edge */}
-        <div className={`road__car ${phase === 'driving' && !shown.length ? 'road__car--start' : ''}`}
-          style={{ right: carPosition(phase, shown.length) }}>
+        <div className={`road__car${phase === 'driving' && !shown.length ? ' road__car--start' : ''}${moving ? ' road__car--moving' : ''}`}
+          style={{ right: `${pos}%` }}>
           {/* the stop itself names the running step; above the car only "thinking" or "waiting" */}
           {(phase === 'waiting' || (phase === 'driving' && !shown.length)) && <span className="road__note">{note}</span>}
           <CarBody />

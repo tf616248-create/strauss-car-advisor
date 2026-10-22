@@ -222,11 +222,11 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 .finish--done .finish__label { color: var(--text); font-weight: 700; }
 .finish--done .finish__flag { opacity: 1; border-color: var(--text); background: repeating-conic-gradient(var(--text) 0 25%, var(--bg) 0 50%) 0 0 / 7px 7px; }
 
-.road__car { position: absolute; bottom: 10px; transform: translateX(50%); transition: right 7s cubic-bezier(.2, .7, .3, 1), transform 7s cubic-bezier(.2, .7, .3, 1); }
+/* its position is driven frame by frame (Road.jsx); only leaving the start line's edge is a transition */
+.road__car { position: absolute; bottom: 10px; transform: translateX(50%); transition: transform .8s ease; }
 /* at the start line: the car's right edge on the line, and its note grows leftwards - nothing cut off */
 .road__car--start { transform: none; }
 .road__car--start .road__note { left: auto; right: 0; transform: none; }
-.road--arrived .road__car { transition-duration: .6s; }
 .road__note { position: absolute; bottom: 66px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 0.82rem; font-weight: 700; }
 .road__body { position: relative; width: 92px; }
 .road__body svg { display: block; }
@@ -242,8 +242,9 @@ a { color: inherit; text-decoration-color: var(--cyan); text-decoration-thicknes
 
 @media (prefers-reduced-motion: no-preference) {
   .road--driving .road__lane::after { animation: lane .5s linear infinite; }
-  .road--driving .road__wheel { animation: spin .5s linear infinite; }
-  .road--driving .road__body { animation: bob .45s ease-in-out infinite alternate; }
+  /* wheels and a gentle bob only while the car really moves; standing: still */
+  .road__car--moving .road__wheel { animation: spin .5s linear infinite; }
+  .road__car--moving .road__body { animation: bob .45s ease-in-out infinite alternate; }
   .road--arrived .road__body { animation: hop .45s ease-out 1; }
   .road__lamp { animation: blink 1.6s ease-in-out infinite; }
   .card { animation: appear .25s ease-out; }

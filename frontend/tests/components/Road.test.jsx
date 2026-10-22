@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
-import Road, { stopName } from '@/components/Road'
+import { act, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import Road, { FINISH, SHARE, SLOTS, START, stopName } from '@/components/Road'
 
 const stop = (tool, label) => ({ tool, label })
 const LOOKUP = stop('lookup_vehicle', 'כובי מחפש את הרכב…')
@@ -66,5 +66,90 @@ describe('Road', () => {
   it('leaves the start line once a stop is reached', () => {
     const { container } = render(<Road phase="driving" stops={[ELIG]} label="כובי בודק זכאות…" />)
     expect(container.querySelector('.road__car')).not.toHaveClass('road__car--start')
+  })
+})
+
+// --- the car drives on its own while a step runs, and never shows more than really happened ---
+
+describe('Road: the car keeps driving', () => {
+  const carAt = (container) => parseFloat(container.querySelector('.road__car').style.right)
+  const isMoving = (container) => container.querySelector('.road__car').classList.contains('road__car--moving')
+  const frames = (ms) => act(() => { vi.advanceTimersByTime(ms) })
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'setTimeout', 'clearTimeout', 'performance', 'Date'] })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    delete window.matchMedia
+  })
+
+  it('moves before any tool is called, slowing down, and stops short of the first stop (80% of the way)', () => {
+    const { container } = render(<Road phase="driving" stops={[]} />)
+    const start = carAt(container)
+    frames(1000)
+    const after1s = carAt(container)
+    expect(after1s).toBeGreaterThan(start)
+    expect(isMoving(container)).toBe(true)
+    frames(1000)
+    expect(carAt(container) - after1s).toBeLessThan(after1s - start) // slower as it gets closer
+    frames(120000)
+    expect(carAt(container)).toBeLessThanOrEqual(START + SHARE * (SLOTS[0] - START))
+  })
+
+  it('the shown progress never passes the real one: sampled all along, the car stays under the cap', () => {
+    const { container } = render(<Road phase="driving" stops={[]} />)
+    for (let i = 0; i < 300; i += 1) {
+      frames(100)
+      expect(carAt(container)).toBeLessThanOrEqual(START + SHARE * (SLOTS[0] - START))
+    }
+  })
+
+  it('when a step really ends, it catches up to that stop, then drives on slowly toward the next', () => {
+    const { container, rerender } = render(<Road phase="driving" stops={[]} />)
+    frames(3000)
+    rerender(<Road phase="driving" stops={[ELIG]} label="כובי בודק זכאות…" />)
+    frames(1500)
+    expect(carAt(container)).toBeGreaterThanOrEqual(SLOTS[0])
+    expect(isMoving(container)).toBe(true)
+    frames(120000)
+    expect(carAt(container)).toBeLessThanOrEqual(SLOTS[0] + SHARE * (SLOTS[1] - SLOTS[0]))
+  })
+
+  it('after the last stop it heads for the finish, but reaches it only with a real result', () => {
+    const { container, rerender } = render(<Road phase="driving" stops={[LOOKUP, ELIG, CALC]} />)
+    frames(120000)
+    expect(carAt(container)).toBeLessThan(FINISH)
+    rerender(<Road phase="arrived" stops={[LOOKUP, ELIG, CALC]} />)
+    frames(3000)
+    expect(carAt(container)).toBeGreaterThan(FINISH)
+  })
+
+  it('stopped (waiting for the rep): no wheels turning, no bobbing, and it does not move', () => {
+    const { container } = render(<Road phase="waiting" stops={[LOOKUP, stop('ask_rep', 'כובי שלח שאלה לנציג התחבורה ⏳')]} />)
+    frames(3000)
+    const at = carAt(container)
+    frames(3000)
+    expect(carAt(container)).toBe(at)
+    expect(isMoving(container)).toBe(false)
+  })
+
+  it('reduced motion: no animation - the car stands at the stop of the current step', () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener() {}, removeEventListener() {} })
+    const { container, rerender } = render(<Road phase="driving" stops={[]} />)
+    frames(5000)
+    expect(carAt(container)).toBe(START)
+    expect(isMoving(container)).toBe(false)
+    rerender(<Road phase="driving" stops={[ELIG]} label="כובי בודק זכאות…" />)
+    expect(carAt(container)).toBe(SLOTS[0])
+    frames(5000)
+    expect(carAt(container)).toBe(SLOTS[0])
+  })
+
+  it('the screen reader still hears the status only; the moving scene is hidden from it', () => {
+    const { container } = render(<Road phase="driving" stops={[]} />)
+    frames(2000)
+    expect(screen.getByRole('status')).toHaveTextContent('כובי חושב…')
+    expect(container.querySelector('.road__scene')).toHaveAttribute('aria-hidden', 'true')
   })
 })
