@@ -3,7 +3,11 @@
 import { StatusBar } from 'expo-status-bar'
 import { View } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
-import { useFonts, Rubik_400Regular, Rubik_500Medium, Rubik_700Bold } from '@expo-google-fonts/rubik'
+import { useFonts } from 'expo-font'
+// each weight from its own path: only these three files go into the app, not all 18 of the family
+import { Rubik_400Regular } from '@expo-google-fonts/rubik/400Regular'
+import { Rubik_500Medium } from '@expo-google-fonts/rubik/500Medium'
+import { Rubik_700Bold } from '@expo-google-fonts/rubik/700Bold'
 import EmployeeApp from './src/employee/EmployeeApp'
 import { useColors } from './src/theme'
 
