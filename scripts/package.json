@@ -1,7 +1,7 @@
 {
   "name": "strauss-car-advisor-scripts",
   "private": true,
-  "description": "Build-time tools that are not part of the website (kept out of frontend/, so Netlify does not install them).",
+  "description": "Build-time tools that are not part of the website (kept out of frontend/, so the frontend build does not install them).",
   "type": "module",
   "scripts": {
     "build-hero-media": "node build-hero-media.mjs"

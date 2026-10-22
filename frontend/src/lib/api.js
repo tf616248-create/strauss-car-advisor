@@ -2,7 +2,7 @@ import { createSSEParser } from './sse'
 import { getToken, unauthorized } from './session'
 
 // The server's address, for requests and for the events stream (EventSource).
-// Production (Netlify) must set VITE_API_URL; localhost is only a development fallback.
+// Production (the Render Static Site) must set VITE_API_URL; localhost is only a development fallback.
 export function apiBase(env) {
   return (env.VITE_API_URL || (env.DEV ? 'http://localhost:8000' : '')).replace(/\/$/, '')
 }

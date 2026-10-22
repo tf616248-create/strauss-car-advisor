@@ -1,6 +1,6 @@
 # העלאה לאוויר
 
-שלושה שירותים: **Neon** (מסד נתונים), **Render** (השרת, `render.yaml`), **Netlify** (הממשק, `frontend/`, לפי `netlify.toml`). הממשק הוא אתר סטטי, ולכן הוא עולה לבד ולא נרדם.
+שלושה שירותים: **Neon** (מסד נתונים), **Render** (השרת, `render.yaml`), **Render Static Site** (הממשק, `frontend/`). הממשק הוא אתר סטטי, ולכן הוא עולה בנפרד מהשרת ולא נרדם.
 סודות לא נכנסים ל-Git. ממלאים אותם רק באתרים עצמם.
 
 ## הסדר
@@ -9,8 +9,8 @@
 
 1. **Neon** (כבר קיים): מעתיקים את כתובת ה-pooler (עם `-pooler` בשם השרת).
 2. **Render** קודם, כדי לקבל את כתובת השרת. בשלב הזה `FRONTEND_ORIGIN` נשאר ריק.
-3. **Netlify**, עם כתובת השרת מ-Render. מקבלים את כתובת הממשק.
-4. **חזרה ל-Render:** ממלאים את `FRONTEND_ORIGIN` בכתובת מ-Netlify, ו-Render מעלה את השרת מחדש.
+3. **Render Static Site** (הממשק), עם כתובת השרת. מקבלים את כתובת הממשק.
+4. **חזרה ל-Render:** ממלאים את `FRONTEND_ORIGIN` בכתובת של הממשק, ו-Render מעלה את השרת מחדש.
 5. **UptimeRobot:** בודק כל 10 דקות את `https://<השרת>/health`, כדי ש-Render לא יירדם. הנתיב הזה לא פונה למסד, ולכן Neon נכבה ומתעורר לבד.
 
 ## Render (השרת)
@@ -23,7 +23,7 @@ New → **Blueprint** → בוחרים את הריפו. Render קורא את `re
 | `GEMINI_API_KEY` | מפתח Gemini | כן (או לפחות אחד ממפתחות המודל) |
 | `GROQ_API_KEY` | מפתח Groq, גיבוי | לא |
 | `OPENROUTER_API_KEY` | מפתח OpenRouter, גיבוי | לא |
-| `FRONTEND_ORIGIN` | כתובת הממשק מ-Netlify, למשל `https://strauss-car-advisor.netlify.app` (בלי `/` בסוף) | כן, אחרי שלב 3 |
+| `FRONTEND_ORIGIN` | כתובת הממשק (ה-Static Site ב-Render), בצורה `https://<הממשק>.onrender.com` (בלי `/` בסוף) | כן, אחרי שלב 3 |
 | `REP_PASSCODE` | סיסמה למסך הנציג. ריק = מסך הנציג סגור | כן, להדגמה |
 | `EMPLOYEE_CODES` | קודי כניסה לעובדים: `E01:1111,E02:2222,...`. ריק = מסך העובד סגור | כן |
 | `JWT_SECRET` | מחרוזת אקראית ארוכה: `python -c "import secrets; print(secrets.token_urlsafe(48))"`. בלעדיה כל עובד מתנתק כש-Render נרדם | כן |
@@ -62,18 +62,25 @@ New → **Blueprint** → בוחרים את הריפו. Render קורא את `re
 
 > **שימו לב:** ה-trace שומר את כל השיחה, כולל נתוני השכר שהעובד הקליד, בשרת של LangSmith. להפעיל רק עם נתוני דמה.
 
-## Netlify (הממשק)
+## Render Static Site (הממשק)
 
-Add new site → Import an existing project → הריפו. Netlify קורא את `netlify.toml` שבשורש, ולא צריך למלא הגדרות בנייה: `base = frontend`, `command = npm run build`, `publish = dist`. כלל ההפניה שולח כל נתיב (גם `/rep`) ל-`index.html`.
+New → **Static Site** → הריפו. ההגדרות לא בקובץ (`render.yaml` מגדיר רק את השרת), וממלאים אותן באתר:
 
-את המשתנים ממלאים ב-Site configuration → Environment variables:
+| הגדרה | ערך |
+|---|---|
+| Root Directory | `frontend` |
+| Build Command | `npm install && npm run build` |
+| Publish Directory | `dist` |
+| Redirects/Rewrites | Source `/*`, Destination `/index.html`, Action **Rewrite**. כך כל נתיב (`/rep`, `/profile`, `/accessibility`) מקבל את `index.html`, כי זו אפליקציית עמוד יחיד |
+
+את המשתנים ממלאים ב-**Environment**:
 
 | משתנה | מה ממלאים | חובה |
 |---|---|---|
 | `VITE_API_URL` | כתובת השרת מ-Render, למשל `https://strauss-car-advisor-api.onrender.com` | כן. בלעדיו הממשק לא יודע לאן לפנות |
 | `VITE_SUPPORT_EMAIL` | מייל לכפתור "שיחה עם נציג". ריק = `support@strauss-in.com` | לא |
 
-- משתני `VITE_` נכנסים לממשק בזמן הבנייה. אחרי שינוי משתנה צריך לבנות מחדש (Deploys → Trigger deploy).
+- משתני `VITE_` נכנסים לממשק בזמן הבנייה. אחרי שינוי משתנה צריך לבנות מחדש (Manual Deploy → Deploy latest commit).
 - **בדיקה:** פותחים את הכתובת, שולחים הודעה, ובודקים שהתשובה זורמת. אם מופיעה "אין חיבור לשרת", בודקים את `VITE_API_URL` ואת `FRONTEND_ORIGIN`.
 
 ## אחרי ההעלאה

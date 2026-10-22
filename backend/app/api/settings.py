@@ -8,7 +8,7 @@ LOCAL_FRONTEND = ["http://localhost:5173", "http://127.0.0.1:5173",  # Vite (fro
 
 
 def cors_origins(env: Mapping[str, str]) -> list[str]:
-    """Only the frontend (FRONTEND_ORIGIN, e.g. the Netlify domain). Off Render (development),
+    """Only the frontend (FRONTEND_ORIGIN, e.g. the frontend's Render Static Site domain). Off Render (development),
     the local Vite server too. Render sets RENDER=true in every service."""
     origins = []
     if env.get("FRONTEND_ORIGIN"):

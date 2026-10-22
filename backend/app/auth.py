@@ -7,7 +7,7 @@ add nothing. For a pilot this layer is replaced by Strauss SSO; the rest of the 
 an employee id.
 
 The browser keeps the token in sessionStorage (gone when the tab closes - a shared computer)
-and sends it as "Authorization: Bearer ...", not as a cookie: the screen (Netlify) and the
+and sends it as "Authorization: Bearer ...", not as a cookie: the screen (a Render Static Site) and the
 server (Render) are on different domains, and cross-site cookies are blocked by some browsers.
 """
 from __future__ import annotations
