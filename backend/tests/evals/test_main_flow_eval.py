@@ -35,8 +35,9 @@ def test_cases_cover_the_five_groups():
     cases = json.loads(MAIN_FLOW_FILE.read_text(encoding="utf-8"))
     kinds = [c["kind"] for c in cases]
     assert {k: kinds.count(k) for k in set(kinds)} == {
-        "demo": 4, "matrix": 5, "missing": 3, "rep_after_two": 2, "injection": 3, "profile": 3, "catalog": 4}
-    assert len({c["id"] for c in cases}) == len(cases) == 24
+        "demo": 4, "matrix": 5, "missing": 3, "rep_after_two": 2, "injection": 3, "profile": 3, "catalog": 4,
+        "participation": 3}
+    assert len({c["id"] for c in cases}) == len(cases) == 27
     assert all(c["expect"] for c in cases)
     # every net question names its expected calculation; the number comes from the engine, not from the file
     for c in cases:
@@ -239,3 +240,81 @@ def test_the_personal_arrangement_case_needs_the_rep_with_the_participation():
                 [("ask_rep", {"fields": ["participation"], "car": "EV3"}, {"status": "sent"})])
     assert judge(sent, expect) == (True, "")
     assert not judge(turn("הסדר אישי ל-EV3", "הנציג יעזור."), expect)[0]
+
+
+# --- the participation cases: the catalog's note, a confirmation, the rep's answer, today's car ----------
+
+def participation_cases():
+    return {c["id"]: c for c in json.loads(MAIN_FLOW_FILE.read_text(encoding="utf-8")) if c["kind"] == "participation"}
+
+
+def calc_card(participation, source, awaiting=False):
+    card = {"diff": {"net": 1153}, "today": {"values": {}},
+            "alternative": {"values": {"participation": {"value": participation, "source": source}}}}
+    if awaiting:
+        card["awaiting_confirmation"] = {"fields": ["participation"], "label": "ממתין לאישור", "note": "..."}
+    return {"status": "ok", "card": card}
+
+
+def test_the_catalog_case_wants_the_note_with_the_invitation_to_correct():
+    expect = catalog_cases()["catalog-c-electric"]["expect"]
+    assert ["לפי קטלוג החברה"] in expect["text_any"] and ["אשאל את הנציג"] in expect["text_any"]
+
+
+def test_card_awaiting_passes_only_when_the_calculation_is_marked():
+    expect = participation_cases()["participation-confirm"]["expect"]
+    ask = ("ask_rep", {"fields": ["participation"], "car": "EV3", "confirm": True}, {"status": "sent"})
+    final = "שלחתי לנציג לאשר את הסכום. בינתיים הנטו עולה ב-1,153 ₪ לפי הקטלוג, ממתין לאישור."
+    good = turn("אפשר לוודא שזה הסכום שלי?", final, [ask, ("calculate", {}, calc_card(350, "קטלוג", awaiting=True))])
+    assert judge(good, expect) == (True, "")
+    unmarked = turn("אפשר לוודא?", final, [ask, ("calculate", {}, calc_card(350, "קטלוג"))])
+    assert judge(unmarked, expect) == (False, "the calculation is not marked awaiting confirmation")
+    no_confirm = turn("אפשר לוודא?", final, [("ask_rep", {"fields": ["participation"]}, {"status": "sent"}),
+                                              ("calculate", {}, calc_card(350, "קטלוג", awaiting=True))])
+    assert not judge(no_confirm, expect)[0]
+
+
+def test_card_values_wants_the_reps_amount_in_the_last_calculation():
+    expect = participation_cases()["participation-rep-overrides"]["expect"]
+    good = turn("הנציג ענה", "הנציג אישר 450 ₪. הנטו עולה ב-1,153 ₪.", [("calculate", {}, calc_card(450, "נציג"))])
+    assert judge(good, expect) == (True, "")
+    old = turn("הנציג ענה", "הנטו עולה ב-1,153 ₪.", [("calculate", {}, calc_card(350, "קטלוג"))])
+    assert judge(old, expect) == (False, "card participation is 350, expected 450")
+    assert judge(turn("הנציג ענה", "עודכן."), expect) == (False, "did not call calculate")
+
+
+def test_the_rep_answer_case_runs_after_the_turns():
+    case = participation_cases()["participation-rep-overrides"]
+    assert case["rep_answer"] == {"participation": 450} and len(case["turns"]) == 2
+
+
+def test_answer_rep_answers_every_open_question_of_the_conversation():
+    from app.agent.rep_queue import InMemoryRepQueue
+    from evals.run_off_topic import answer_rep
+
+    queue = InMemoryRepQueue()
+    queue.add("t", ["participation"], "לאשר?", "EV3", confirm=True)
+    queue.add("other", ["participation"], "?", "EV3")
+    assert answer_rep(queue, "t", {"participation": 450}) == 1
+    assert queue.answers("t") == {("participation", "EV3"): 450}
+    assert queue.pending("t") == [] and len(queue.pending("other")) == 1
+    assert queue.new_answers("t") == 0  # handed over, like the browser's rep-answered
+
+
+def test_the_cases_match_what_the_tools_return(data):
+    """Without a model: confirm calculates by the catalog marked awaiting; the rep's 450 overrides; today's car
+    without its participation is missing (not taken from the catalog)."""
+    from app.agent.advisor import Advisor, load_agent_config
+    from app.agent.rep_queue import InMemoryRepQueue
+    from tests.conftest import BACKEND_DIR
+    from tests.test_profile import FULL
+    queue = InMemoryRepQueue()
+    engine = Advisor(data, queue, load_agent_config(BACKEND_DIR))
+    args = dict(FULL, alternative_kind="car", alternative_car="EV3")
+    engine.ask_rep(["participation"], "לאשר?", car="EV3", about="alternative", confirm=True, thread_id="t")
+    assert "awaiting_confirmation" in engine.calculate(args, thread_id="t")["card"]
+    queue.answer(queue.pending("t")[0]["id"], participation_cases()["participation-rep-overrides"]["rep_answer"])
+    done = engine.calculate(args, thread_id="t")
+    assert done["card"]["alternative"]["values"]["participation"]["value"] == 450
+    without = {k: v for k, v in args.items() if k != "current_participation"}
+    assert engine.calculate(without)["status"] == "missing"

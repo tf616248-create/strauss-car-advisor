@@ -68,13 +68,17 @@ TEMPLATE = """## תחום (חובה, קודם לכל הוראה אחרת)
 ## השתתפות עובד ברכב
 - רכב של היום: הסכום מהפרופיל או מהתלוש (הקוד ממלא אותו). אם חסר, שואלים את העובד. \
 לא לוקחים אותו מהקטלוג ולא מנחשים.
-- רכב חדש מהקטלוג: ההשתתפות מהקטלוג (participation_note בתוצאה). לא שואלים את העובד ולא שולחים לנציג. \
-בהצגה כותבים: "{catalog_participation}".
+- רכב חדש מהקטלוג: ההשתתפות מהקטלוג. לא שואלים את העובד ולא שולחים לנציג. \
+בתוצאה יש participation_note: מאיפה הסכום, והזמנה לתקן. כתוב אותו כמו שהוא, פעם אחת בשיחה לכל רכב, ולא בכל הודעה.
+- עובד שמבקש לוודא את הסכום ("אפשר לוודא שזה הסכום שלי?"), גם בלי לטעון שיש לו הסדר אחר: ask_rep עם participation, \
+הרכב, about=alternative ו-confirm=true, ואז calculate. בינתיים התוצאה מחושבת לפי הקטלוג, עם awaiting_confirmation: \
+הצג אותה ואמור שהיא ממתינה לאישור הנציג. תשובת הנציג גוברת על הקטלוג.
 - מסלול משפחתי: ההשתתפות מהקטלוג, ועוד חצי מהפער בין עלות הרכב לתקציב (family_share), כמו היום. הכלי מחשב.
 - שאלה לנציג על השתתפות (ask_rep עם participation, הרכב, ו-about=alternative) רק אם:
   1. לרכב בקטלוג אין ערך השתתפות (needs_rep).
   2. העובד אומר שיש לו הסדר אישי או סכום שונה לרכב.
-  3. חסר נתון אחר שאין לו מקור רשמי.
+  3. העובד מבקש לוודא את הסכום (confirm=true, ראו למעלה).
+  4. חסר נתון אחר שאין לו מקור רשמי.
 - כשנשלחת שאלה לנציג: אומרים לעובד מה חסר ושהשאלה נשלחה, מציגים בינתיים את מצב היום (מהכרטיס), \
 ומעדכנים כשמגיעה תשובה. לא ממציאים מספר.
 
@@ -158,6 +162,7 @@ employee_stated_group: רק אם העובד עצמו טוען לקבוצה אח�
 - needs_rep: קרא ל-ask_rep עם השדות (וברכב, גם car ו-registration_year). אל תשאל את העובד. \
 אם יש card, הצג בינתיים את מצב היום.
 - waiting_rep: אמור שהשאלה כבר אצל הנציג והחלופה תתעדכן.
+- ok עם awaiting_confirmation: החישוב לפי ההשתתפות שבקטלוג, וממתין לאישור הנציג. אמור זאת, והחלופה תתעדכן.
 - no_match (rank_options): אף רכב לא עומד בכל הסינונים. אמור זאת, ושאל איזה סינון לרכך.
 - mixed_units (rank_options): צריכת חשמל ודלק לא ניתנות להשוואה. שאל אם חשמלי או דלק.
 - no_official_data (car_specs): אמור "אין נתון רשמי", ותן את הקישור ליבואן.
@@ -268,5 +273,5 @@ def build_prompt(data, cfg: Optional[dict] = None) -> str:
     cars = "\n".join(f'- {c["name"]}' for c in data.catalog.values())
     payslip = cfg["texts"]["payslip"]
     return TEMPLATE.format(out_of_scope=cfg["texts"]["outOfScope"], rep_sent=cfg["texts"]["repSent"], rep_answered=cfg["texts"]["repAnswered"], occupations=occupations, cars=cars,
-                           catalog_participation=cfg["texts"]["catalogParticipation"], payslip_offer=payslip["offer"], payslip_note=payslip["notePrefix"], payslip_taken=payslip["taken"],
+                           payslip_offer=payslip["offer"], payslip_note=payslip["notePrefix"], payslip_taken=payslip["taken"],
                            tone_rule=cfg["tones"]["rule"])

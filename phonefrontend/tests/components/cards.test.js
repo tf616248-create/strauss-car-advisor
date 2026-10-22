@@ -21,6 +21,19 @@ test('comparison: your data, today vs the alternative, the net difference and th
   has(/טעות באחד הנתונים/)
 })
 
+test('comparison awaiting the rep\'s confirmation: calculated by the catalog, the participation marked', async () => {
+  const awaiting = { fields: ['participation'], label: 'ממתין לאישור', note: 'החישוב לפי סכום ההשתתפות שבקטלוג, עד שהנציג יאשר אותו.' }
+  await render(<CompareCard result={{ ...noa, card: { ...noa.card, awaiting_confirmation: awaiting } }} />)
+  expect(screen.getAllByText('⏳ ממתין לאישור')).toHaveLength(1)
+  has(/החישוב לפי סכום ההשתתפות שבקטלוג/)
+  has(/\+661 ₪/) // the number is shown
+})
+
+test('comparison without a confirmation pending: no mark', async () => {
+  await render(<CompareCard result={noa} />)
+  expect(screen.queryAllByText(/ממתין לאישור/)).toHaveLength(0)
+})
+
 test('comparison waiting for the rep: the hourglass, no net number', async () => {
   await render(<CompareCard result={rachel} />)
   has(/ממתין לנציג/)

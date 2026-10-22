@@ -31,9 +31,10 @@ create table if not exists rep_requests (
     delivered_at timestamptz
 );
 create index if not exists rep_requests_open on rep_requests (thread_id) where answer is null;
+alter table rep_requests add column if not exists confirm boolean not null default false;
 """
 
-COLUMNS = "id::text as id, thread_id, fields, question, car_key, answer"
+COLUMNS = "id::text as id, thread_id, fields, question, car_key, confirm, answer"
 
 
 def make_pool(database_url: str, max_size: int = 5) -> ConnectionPool:
@@ -75,15 +76,16 @@ class PostgresRepQueue:
         with self.pool.connection() as conn:
             return conn.execute(sql, params).fetchall()
 
-    def add(self, thread_id: str, fields: list[str], question: str, car_key: Optional[str] = None) -> dict:
+    def add(self, thread_id: str, fields: list[str], question: str, car_key: Optional[str] = None,
+            confirm: bool = False) -> dict:
         """Add a request, or return the pending one already asking the same thing."""
         for req in self.pending(thread_id):
             if req["car_key"] == car_key and set(fields) <= set(req["fields"]):
                 return req
         [req] = self._all(
-            f"insert into rep_requests (thread_id, fields, question, car_key) values (%s, %s, %s, %s) "
+            f"insert into rep_requests (thread_id, fields, question, car_key, confirm) values (%s, %s, %s, %s, %s) "
             f"returning {COLUMNS}",
-            (thread_id, Jsonb(list(fields)), question, car_key),
+            (thread_id, Jsonb(list(fields)), question, car_key, bool(confirm)),
         )
         return req
 

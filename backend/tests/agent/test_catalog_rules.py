@@ -52,21 +52,46 @@ def electric(data, name):
 
 # --- 1. a catalog car: the participation from the catalog, no rep ------------------------------
 
+def note(cfg, address, amount):
+    """The sentence with the catalog's amount and the invitation to correct it, in the employee's form of address."""
+    return cfg["texts"]["catalogParticipation"][address].format(amount=f"{amount:,}")
+
+
 def test_group_c_electric_from_the_catalog_takes_the_catalogs_participation(advisor, data, cfg, queue):
     res = advisor.calculate(group_c(alternative_kind="car", alternative_car="EV3"))
     assert res["status"] == "ok"
     alt = res["card"]["alternative"]
-    assert val(alt, "participation") == data.find_car("EV3")["defaultParticipation"]
+    amount = data.find_car("EV3")["defaultParticipation"]
+    assert val(alt, "participation") == amount
     assert src(alt, "participation") == cfg["texts"]["sources"]["catalog"]
-    assert res["participation_note"] == cfg["texts"]["catalogParticipation"]
+    assert res["participation_note"] == note(cfg, "plural", amount)  # no form of address chosen: plural
+    assert "awaiting_confirmation" not in res and "awaiting_confirmation" not in res["card"]
     assert queue.pending("default") == []
 
 
 def test_lookup_of_an_alternative_from_the_catalog_gives_its_participation(advisor, data, cfg):
     res = advisor.lookup_vehicle("EV3", alternative=True)
     assert res["status"] == "ok"
-    assert res["car"]["participation"] == data.find_car("EV3")["defaultParticipation"]
-    assert res["car"]["participation_note"] == cfg["texts"]["catalogParticipation"]
+    amount = data.find_car("EV3")["defaultParticipation"]
+    assert res["car"]["participation"] == amount
+    assert res["car"]["participation_note"] == note(cfg, "plural", amount)
+
+
+@pytest.mark.parametrize("address, ask", [("male", "תגיד לי"), ("female", "תגידי לי"), ("plural", "תגידו לי")])
+def test_the_catalog_note_says_where_the_amount_is_from_and_invites_a_correction(data, cfg, address, ask):
+    """The sentence: from the catalog, the amount, and an invitation to correct it (to the rep)."""
+    from app.profile import InMemoryProfiles
+
+    profiles = InMemoryProfiles(cfg["settings"]["defaults"])
+    profiles.update_settings("E01", {"address": address})
+    advisor = Advisor(data, InMemoryRepQueue(), cfg, profiles=profiles)
+    amount = data.find_car("EV3")["defaultParticipation"]
+    calc = advisor.calculate(group_c(alternative_kind="car", alternative_car="EV3"), employee_id="E01")
+    look = advisor.lookup_vehicle("EV3", alternative=True, employee_id="E01")
+    for text in (calc["participation_note"], look["car"]["participation_note"]):
+        assert text == note(cfg, address, amount)
+        assert text.startswith("לפי קטלוג החברה, ההשתתפות ברכב הזה היא ") and f"{amount:,} ₪" in text
+        assert ask in text and text.endswith("ואשאל את הנציג.")
 
 
 def test_the_catalog_car_is_checked_by_manufacturer_and_model_not_only_by_name(advisor, data):
@@ -218,6 +243,73 @@ def test_personal_arrangement_through_the_graph(data):
     assert len(queue.pending("t")) == 1
 
 
+# --- 3b. asking to confirm the catalog's amount: the rep, and meanwhile the catalog's calculation ----
+
+def test_asking_to_confirm_the_amount_sends_the_rep_a_question_and_calculates_by_the_catalog(advisor, data, queue,
+                                                                                              cfg):
+    """"אפשר לוודא שזה הסכום שלי?" - no other arrangement claimed: the calculation by the catalog, awaiting
+    the rep's confirmation (unlike a personal arrangement, where nothing is calculated meanwhile)."""
+    args = group_c(alternative_kind="car", alternative_car="EV3")
+    sent = advisor.ask_rep(["participation"], "העובד מבקש לאשר את סכום ההשתתפות ל-EV3", car="EV3",
+                           about="alternative", confirm=True, thread_id="t")
+    assert sent["status"] == "sent" and queue.pending("t")[0]["confirm"] is True
+
+    res = advisor.calculate(args, thread_id="t")
+    assert res["status"] == "ok" and res["awaiting_confirmation"] == ["participation"]
+    alt = res["card"]["alternative"]
+    amount = data.find_car("EV3")["defaultParticipation"]
+    assert val(alt, "participation") == amount and src(alt, "participation") == cfg["texts"]["sources"]["catalog"]
+    assert isinstance(val(alt, "net"), int)  # a real calculation, by the catalog's amount
+    assert res["card"]["awaiting_confirmation"] == {"fields": ["participation"],
+                                                    "label": cfg["texts"]["awaitingConfirmation"]["label"],
+                                                    "note": cfg["texts"]["awaitingConfirmation"]["note"]}
+    assert res["card"]["diff"]["net"] == advisor.calculate(args)["card"]["diff"]["net"]  # same as the catalog's
+    assert "participation_note" not in res  # the question is already with the rep: no invitation to correct
+    assert "instruction" in res
+
+
+def test_the_reps_answer_overrides_the_catalogs_amount(advisor, data, queue, cfg):
+    args = group_c(alternative_kind="car", alternative_car="EV3")
+    advisor.ask_rep(["participation"], "לאשר את הסכום ל-EV3?", car="EV3", about="alternative", confirm=True,
+                    thread_id="t")
+    queue.answer(queue.pending("t")[0]["id"], {"participation": 450})
+    done = advisor.calculate(args, thread_id="t")
+    assert done["status"] == "ok"
+    alt = done["card"]["alternative"]
+    assert val(alt, "participation") == 450 and src(alt, "participation") == cfg["texts"]["sources"]["rep"]
+    assert "awaiting_confirmation" not in done and "awaiting_confirmation" not in done["card"]
+    assert "participation_note" not in done
+    assert done["card"]["diff"]["net"] != advisor.calculate(args)["card"]["diff"]["net"]
+
+
+def test_a_personal_arrangement_still_calculates_nothing_meanwhile(advisor, queue, cfg):
+    """Without confirm (the employee says the amount is different): as before, no number."""
+    advisor.ask_rep(["participation"], "הסדר אישי ל-EV3", car="EV3", about="alternative", thread_id="t")
+    res = advisor.calculate(group_c(alternative_kind="car", alternative_car="EV3"), thread_id="t")
+    assert res["status"] == "waiting_rep"
+    assert val(res["card"]["alternative"], "net") == cfg["texts"]["pending"]
+
+
+def test_confirm_is_only_for_a_car_to_move_to_from_the_catalog(advisor, queue):
+    """Not for an alternative outside the catalog: refused as before."""
+    res = advisor.ask_rep(["participation"], "לאשר?", car="PORSCHE TAYCAN", about="alternative", confirm=True,
+                          thread_id="t")
+    assert res["status"] == "not_in_catalog" and queue.pending("t") == []
+
+
+def test_confirm_through_the_graph(data):
+    args = group_c(alternative_kind="car", alternative_car="EV3")
+    out, queue = run(data, [
+        call("ask_rep", {"fields": ["participation"], "question": "העובד מבקש לאשר את סכום ההשתתפות ל-EV3",
+                         "car": "EV3", "about": "alternative", "confirm": True}, 0),
+        call("calculate", args, 1),
+        AIMessage(content="שלחתי לנציג לאשר את הסכום. בינתיים החישוב לפי הקטלוג, ממתין לאישור."),
+    ])
+    assert tool_results(out, "ask_rep")[0]["status"] == "sent" and queue.pending("t")[0]["confirm"] is True
+    [res] = tool_results(out, "calculate")
+    assert res["status"] == "ok" and res["card"]["awaiting_confirmation"]["label"] == "ממתין לאישור"
+
+
 # --- 4. a typo of a catalog car: did you mean ----------------------------------------------------
 
 @pytest.mark.parametrize("name, meant", [("atto3", "ATTO 3"), ("ATOO 3", "ATTO 3"), ("TUSCON", "TUCSON"),
@@ -276,11 +368,17 @@ def test_todays_car_through_the_graph(data):
 def test_the_prompt_has_both_sections(data, cfg):
     prompt = build_prompt(data, cfg)
     assert "## השתתפות עובד ברכב" in prompt and "## רכב חלופה שלא נמצא בקטלוג" in prompt
-    assert cfg["texts"]["catalogParticipation"] in prompt
+    assert "participation_note" in prompt and "פעם אחת בשיחה לכל רכב" in prompt  # not in every message
+    assert "confirm=true" in prompt and "awaiting_confirmation" in prompt
     assert "not_in_catalog" in prompt and "did_you_mean" in prompt
 
 
 def test_the_texts_are_in_agent_json(cfg):
     t = cfg["texts"]
-    assert t["catalogParticipation"] == "סכום ההשתתפות הרגיל לרכב הזה לפי קטלוג החברה"
+    assert t["catalogParticipation"] == {
+        "male": "לפי קטלוג החברה, ההשתתפות ברכב הזה היא {amount} ₪. אם אצלך סוכם אחרת, תגיד לי ואשאל את הנציג.",
+        "female": "לפי קטלוג החברה, ההשתתפות ברכב הזה היא {amount} ₪. אם אצלך סוכם אחרת, תגידי לי ואשאל את הנציג.",
+        "plural": "לפי קטלוג החברה, ההשתתפות ברכב הזה היא {amount} ₪. אם אצלכם סוכם אחרת, תגידו לי ואשאל את הנציג.",
+    }
+    assert t["awaitingConfirmation"]["label"] == "ממתין לאישור"
     assert "לא נמצא כרגע ברשימת רכבי החברה" in t["notInCatalog"]["message"]

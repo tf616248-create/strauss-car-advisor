@@ -59,6 +59,8 @@ export default function CompareCard({ result }) {
   const c = useColors()
   const { card, status } = result
   const { your_data: yours, today, alternative: alt, diff, explanation } = card
+  // the rep is asked to confirm the catalog's amount: calculated by it meanwhile, those fields marked
+  const awaiting = card.awaiting_confirmation
   const changed = useChanged(alt)
   const facts = YOUR_DATA.filter(([key]) => yours[key])
   const sources = new Set(facts.map(([key]) => yours[key].source))
@@ -101,7 +103,10 @@ export default function CompareCard({ result }) {
             <T size={13} weight={strong ? 800 : 600} muted={!strong}>{label}</T>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <View style={{ flex: 1 }}><Value v={t?.value} weight={strong ? 800 : 700} /><Source s={t?.source} /></View>
-              <View style={{ flex: 1 }}><Value v={a?.value} weight={strong ? 800 : 700} /><Source s={a?.source} /></View>
+              <View style={{ flex: 1 }}>
+                <Value v={a?.value} weight={strong ? 800 : 700} /><Source s={a?.source} />
+                {awaiting?.fields.includes(key) && <T size={12} weight={700} color={c.orange}>{`⏳ ${awaiting.label}`}</T>}
+              </View>
               <View style={{ flex: 1 }}><T size={14}>{ltr(fmtSigned(diff[key]))}</T></View>
             </View>
           </View>
@@ -114,6 +119,7 @@ export default function CompareCard({ result }) {
           ? <T size={28} weight={800} color={tone}>{`${direction === 'up' ? '▲ ' : direction === 'down' ? '▼ ' : ''}${ltr(net === 0 ? fmtMoney(0) : fmtSigned(net))}`}</T>
           : <T size={28}>⏳</T>}
         {lines.map((line) => <T key={line} size={14}>{line}</T>)}
+        {awaiting && <T size={14} color={c.orange}>{`⏳ ${awaiting.note}`}</T>}
       </View>
     </Card>
   )

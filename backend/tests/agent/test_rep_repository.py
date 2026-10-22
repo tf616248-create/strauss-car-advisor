@@ -70,6 +70,16 @@ def test_same_open_question_is_not_asked_twice(queue, new_tid):
     assert queue.add(tid, ["group"], "no car", None)["id"] != first["id"]
 
 
+def test_a_request_to_confirm_an_amount_is_marked(queue, new_tid):
+    """confirm: the employee only asks to check the catalog's amount (no other arrangement claimed)."""
+    tid = new_tid()
+    plain = queue.add(tid, ["participation"], "הסדר אישי?", "car-1")
+    confirm = queue.add(tid, ["participation"], "לאשר את הסכום?", "car-2", confirm=True)
+    assert plain["confirm"] is False and confirm["confirm"] is True
+    assert {r["car_key"]: r["confirm"] for r in queue.pending(tid)} == {"car-1": False, "car-2": True}
+    assert queue.get(confirm["id"])["confirm"] is True
+
+
 def test_pending_is_per_conversation(queue, new_tid):
     a, b = new_tid(), new_tid()
     ra = queue.add(a, ["group"], "qa")

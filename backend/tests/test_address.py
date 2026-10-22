@@ -54,8 +54,16 @@ def test_the_fixed_texts_to_the_employee_are_neutral(cfg):
     """Refusals, the usage limit, the payslip's messages, eligibility reasons...: one wording fits all three.
     (A text that could not be neutral would get a version per form of address - none needed so far.)"""
     found = [(p, s) for p, s in strings(cfg["texts"], "texts")
-             if NOT_NEUTRAL.search(s) and not p.endswith("extractPrompt")]
+             if NOT_NEUTRAL.search(s) and not p.endswith("extractPrompt") and not p.startswith(PER_ADDRESS)]
     assert found == []
+
+
+# a version per form of address: the catalog's participation speaks to the employee ("תגיד/י לי")
+PER_ADDRESS = "texts.catalogParticipation."
+
+
+def test_a_text_with_a_version_per_form_of_address_has_all_three(cfg):
+    assert set(cfg["texts"]["catalogParticipation"]) == set(cfg["address"]["options"])
 
 
 def test_the_out_of_scope_sentence_is_still_one_fixed_sentence(cfg):

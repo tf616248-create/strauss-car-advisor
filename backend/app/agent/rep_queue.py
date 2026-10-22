@@ -15,8 +15,10 @@ class InMemoryRepQueue:
         self._requests: list[dict] = []
         self._ids = itertools.count(1)
 
-    def add(self, thread_id: str, fields: list[str], question: str, car_key: Optional[str] = None) -> dict:
-        """Add a request, or return the pending one already asking the same thing."""
+    def add(self, thread_id: str, fields: list[str], question: str, car_key: Optional[str] = None,
+            confirm: bool = False) -> dict:
+        """Add a request, or return the pending one already asking the same thing.
+        confirm: the employee only asks to check the catalog's amount (meanwhile it is calculated by it)."""
         for req in self.pending(thread_id):
             if req["car_key"] == car_key and set(fields) <= set(req["fields"]):
                 return req
@@ -26,6 +28,7 @@ class InMemoryRepQueue:
             "fields": list(fields),
             "question": question,
             "car_key": car_key,
+            "confirm": bool(confirm),
             "answer": None,
             "delivered": False,
         }

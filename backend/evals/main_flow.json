@@ -297,7 +297,7 @@
   {
     "id": "catalog-c-electric",
     "kind": "catalog",
-    "why": "Group ג picks an electric car from the catalog: the participation is the catalog's, no question about it, no rep",
+    "why": "Group ג picks an electric car from the catalog: the participation is the catalog's, said with where it is from and an invitation to correct it, no question about it, no rep",
     "question": "אני מנהל אזור מכירות, קבוצה ג. שכר בסיס 14,200, עמלות 1,000, בלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי TUCSON ואני משלם 400 השתתפות. מה יקרה לנטו אם אעבור ל-ATTO 3 החשמלי?",
     "expect": {
       "tools": ["calculate"],
@@ -306,7 +306,7 @@
                              "bonus": 0, "pension_pct": 6, "keren_pct": 2.5, "credit_points": 2.25,
                              "current_kind": "car", "current_car": "TUCSON", "current_participation": 400,
                              "alternative_kind": "car", "alternative_car": "ATTO 3"},
-      "text_any": [["קטלוג"]],
+      "text_any": [["לפי קטלוג החברה"], ["אשאל את הנציג"]],
       "numbers_from_tools": true,
       "not_refused": true
     }
@@ -347,6 +347,88 @@
       "not_ok": ["calculate"],
       "text_any": [["ATTO 3"]],
       "numbers_from_tools": true,
+      "not_refused": true
+    }
+  },
+  {
+    "id": "participation-confirm",
+    "kind": "participation",
+    "why": "Asking to check the catalog's amount, no other arrangement claimed: a question to the rep (confirm), and meanwhile the calculation by the catalog, marked awaiting confirmation",
+    "turns": [
+      "אני מנהל אזור מכירות, קבוצה ג. שכר בסיס 14,200, עמלות 1,000, בלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי TUCSON ואני משלם 400 השתתפות. מה יקרה לנטו אם אעבור ל-EV3?",
+      "אפשר לוודא שזה הסכום שלי?"
+    ],
+    "expect": {
+      "tools": [
+        "ask_rep",
+        "calculate"
+      ],
+      "tool_args": {
+        "ask_rep": {
+          "fields": [
+            "participation"
+          ],
+          "confirm": true
+        }
+      },
+      "card_awaiting": true,
+      "text_any": [
+        [
+          "נציג"
+        ],
+        [
+          "ממתין לאישור",
+          "לאישור"
+        ]
+      ],
+      "numbers_from_tools": true,
+      "not_refused": true
+    }
+  },
+  {
+    "id": "participation-rep-overrides",
+    "kind": "participation",
+    "why": "The rep answers the confirmation with another amount: it overrides the catalog's, and the conversation goes on from there",
+    "turns": [
+      "אני מנהל אזור מכירות, קבוצה ג. שכר בסיס 14,200, עמלות 1,000, בלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי TUCSON ואני משלם 400 השתתפות. מה יקרה לנטו אם אעבור ל-EV3?",
+      "אפשר לוודא שזה הסכום שלי?"
+    ],
+    "rep_answer": {
+      "participation": 450
+    },
+    "expect": {
+      "tools": [
+        "calculate"
+      ],
+      "card_values": {
+        "participation": 450
+      },
+      "numbers_from_tools": true,
+      "not_refused": true
+    }
+  },
+  {
+    "id": "participation-current-not-from-catalog",
+    "kind": "participation",
+    "why": "Today's car is in the catalog, but its participation is the employee's: asked, never taken from the catalog",
+    "question": "אני מנהל אזור מכירות, קבוצה ג. שכר בסיס 14,200, עמלות 1,000, בלי בונוס, פנסיה 6%, קרן השתלמות 2.5%, 2.25 נקודות זיכוי. היום יש לי TUCSON. מה יקרה לנטו אם אעבור ל-EV3?",
+    "expect": {
+      "no_tools": [
+        "ask_rep"
+      ],
+      "not_ok": [
+        "calculate"
+      ],
+      "args_absent": {
+        "calculate": [
+          "current_participation"
+        ]
+      },
+      "text_any": [
+        [
+          "השתתפות"
+        ]
+      ],
       "not_refused": true
     }
   }

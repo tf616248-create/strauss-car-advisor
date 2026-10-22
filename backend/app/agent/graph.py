@@ -125,11 +125,13 @@ def make_tools(data, rep_queue, cfg: dict, specs=None, profiles=None) -> list:
         registration_year: Annotated[Optional[int], "שנת רישום של הרכב"] = None,
         about: Annotated[Optional[Literal["current", "alternative"]],
                          "על איזה רכב השאלה: current (הרכב של היום) או alternative (רכב לעבור אליו)"] = None,
+        confirm: Annotated[bool, "true כשהעובד רק מבקש לוודא שסכום ההשתתפות מהקטלוג הוא שלו, "
+                                 "בלי לטעון שיש לו הסדר אחר"] = False,
     ) -> str:
         """שולח שאלה לנציג התחבורה. הנציג לא מדבר עם העובד - רק עונה על השאלה."""
         with timed("tool ask_rep"):
             return _dump(advisor.ask_rep(fields, question, car, registration_year, thread_id=_thread(config),
-                                         about=about))
+                                         about=about, confirm=confirm))
 
     @tool(response_format="content_and_artifact")
     def car_specs(car: Annotated[str, "שם הרכב בקטלוג, באנגלית כמו ברשימה (למשל BYD DOLPHIN)"]

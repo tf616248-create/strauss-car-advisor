@@ -276,7 +276,7 @@ class Advisor:
                    "inCatalog": True, "source": self.src["catalog"]}
             if alternative and found["defaultParticipation"] is not None:
                 car["participation"] = found["defaultParticipation"]
-                car["participation_note"] = self.cfg["texts"]["catalogParticipation"]
+                car["participation_note"] = self._catalog_note(employee_id, found["defaultParticipation"])
             return {"status": "ok", "car": car}
         if kind == "tax":
             return {
@@ -483,14 +483,19 @@ class Advisor:
                 car_sources["car_cost"] = None
         else:
             # The catalog's participation. The rep's, only when the catalog has none, or the employee has a
-            # personal arrangement (then a question about it is pending or answered for this car).
+            # personal arrangement (then a question about it is pending or answered for this car). A question
+            # that only asks to confirm the catalog's amount: meanwhile calculated by it, marked "awaiting".
             answers = self.queue.answers(thread_id)
             pending = self.queue.pending_fields(thread_id)
+            confirming = {("participation", r["car_key"]) for r in self.queue.pending(thread_id)
+                          if r.get("confirm") and "participation" in r["fields"]}
             car = dict(car)
             car_sources["participation"] = self.src["catalog"]
             if ("participation", key) in answers:
                 car["defaultParticipation"] = answers[("participation", key)]
                 car_sources["participation"] = self.src["rep"]
+            elif ("participation", key) in confirming and car.get("defaultParticipation") is not None:
+                car_sources["awaiting"] = ["participation"]
             elif ("participation", key) in pending:
                 pending_keys.append("participation")
             elif car.get("defaultParticipation") is None:
@@ -589,9 +594,24 @@ class Advisor:
         alt = self._side(emp, alt_res, alt_car, alt_src, alt_res.reason_code, args["alternative_kind"])
         diff = {k: alt["values"][k]["value"] - today["values"][k]["value"] for k in DIFF_KEYS}
         res = {"status": "ok", "card": self._card(args, emp_sources, today, alt, diff)}
-        if alt_car is not None and alt_src.get("participation") == self.src["catalog"]:
-            res["participation_note"] = self.cfg["texts"]["catalogParticipation"]
+        if alt_src.get("awaiting"):  # the rep is asked to confirm the catalog's amount: calculated by it meanwhile
+            awaiting = self.cfg["texts"]["awaitingConfirmation"]
+            res["awaiting_confirmation"] = alt_src["awaiting"]
+            res["card"]["awaiting_confirmation"] = {"fields": alt_src["awaiting"], "label": awaiting["label"],
+                                                    "note": awaiting["note"]}
+            res["instruction"] = ("החישוב לפי סכום ההשתתפות שבקטלוג, וממתין לאישור הנציג. "
+                                  "כתוב זאת לעובד: החלופה תתעדכן כשהנציג יענה.")
+        elif alt_car is not None and alt_src.get("participation") == self.src["catalog"]:
+            res["participation_note"] = self._catalog_note(employee_id, alt["values"]["participation"]["value"])
         return res
+
+    def _catalog_note(self, employee_id: Optional[str], amount) -> str:
+        """Where the participation comes from, and an invitation to correct it - in the employee's form of address
+        (plural until chosen, and without a profile)."""
+        address = self.cfg["settings"]["defaults"]["address"]
+        if self.profiles is not None and employee_id:
+            address = self.profiles.settings(employee_id).get("address") or address
+        return self.cfg["texts"]["catalogParticipation"][address].format(amount=f"{amount:,}")
 
     def _side(self, emp, res, car, car_sources: dict, reason_code: str, kind: str) -> dict:
         rules = self.data.rules
@@ -652,9 +672,11 @@ class Advisor:
 
     def ask_rep(self, fields: list[str], question: str, car: Optional[str] = None,
                 registration_year: Optional[int] = None, thread_id: str = "default",
-                about: Optional[str] = None) -> dict:
+                about: Optional[str] = None, confirm: bool = False) -> dict:
         """about: "current" (today's car) or "alternative" (a car to move to). A question about an alternative
-        outside the catalog is refused; today's car (e.g. not found in the Tax Authority file) goes as before."""
+        outside the catalog is refused; today's car (e.g. not found in the Tax Authority file) goes as before.
+        confirm: the employee only asks to check the catalog's participation - meanwhile calculate uses it,
+        marked awaiting confirmation (a personal arrangement, without confirm: nothing calculated meanwhile)."""
         salary = [f for f in fields if f in EMPLOYEE_FIELDS and f != "group"]
         if salary:  # an anonymous employee's data: the rep cannot know it
             return {"status": "not_for_rep", "fields": salary,
@@ -671,6 +693,6 @@ class Advisor:
         if car:
             kind, found = self._resolve_car(car, registration_year)
             car_key = self._car_key(kind, found) if kind in ("catalog", "tax") else car.strip().upper()
-        req = self.queue.add(thread_id, fields, question, car_key)
+        req = self.queue.add(thread_id, fields, question, car_key, confirm=confirm)
         return {"status": "sent", "request_id": req["id"], "fields": req["fields"],
                 "message_to_employee": self.cfg["texts"]["repSent"]}

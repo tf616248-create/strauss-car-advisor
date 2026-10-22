@@ -184,6 +184,17 @@ def judge_main(messages: list, case: dict, sentence: str, car_names: list[str],
             return False, f"calculate gave {got[-1]:,}, expected {want:,} (other details passed to the tool)"
         if abs(want) not in numbers_in(text):
             return False, f"answer does not show the net difference {abs(want):,}"
+    if expect.get("card_awaiting") or "card_values" in expect:
+        done = [r for r in _results_of(scope, "calculate") if r.get("status") == "ok"]
+        if not done:
+            return False, "no calculate result with status ok"
+        card = done[-1]["card"]
+        if expect.get("card_awaiting") and "awaiting_confirmation" not in card:
+            return False, "the calculation is not marked awaiting confirmation"
+        for field, want in expect.get("card_values", {}).items():
+            got = card["alternative"]["values"].get(field, {}).get("value")
+            if got != want:
+                return False, f"card {field} is {got}, expected {want}"
     if expect.get("numbers_from_tools"):
         given = set()
         for m in messages:
@@ -193,6 +204,16 @@ def judge_main(messages: list, case: dict, sentence: str, car_names: list[str],
         if invented:
             return False, "numbers not from a tool or the employee: " + ", ".join(f"{n:g}" for n in invented)
     return True, ""
+
+
+def answer_rep(queue, thread_id: str, values: dict) -> int:
+    """A case's "rep_answer": the rep answers every open question of the conversation (the fields it asks
+    about), and the answers are handed over - like the browser's rep-answered. Returns how many."""
+    open_ = queue.pending(thread_id)
+    for req in open_:
+        queue.answer(req["id"], {f: values[f] for f in req["fields"] if f in values})
+    queue.take_new_answers(thread_id)
+    return len(open_)
 
 
 def _cell(text: str) -> str:
@@ -235,8 +256,9 @@ def main() -> None:
     sentence = cfg["texts"]["outOfScope"]
     data = load_all(BACKEND_DIR)
     profiles = InMemoryProfiles()  # main flow's profile cases: each one's profile, for a throwaway employee
+    rep_queue = InMemoryRepQueue()  # a case's "rep_answer" answers its questions (answer_rep)
     agent = build_agent(build_model(cfg["modelTimeoutSeconds"], thinking_level=cfg["geminiThinkingLevel"]),
-                        data, InMemoryRepQueue(), cfg, profiles=profiles)  # car specs: the snapshot in git
+                        data, rep_queue, cfg, profiles=profiles)  # car specs: the snapshot in git
     cars = [c["name"] for c in data.catalog.values()]
     engine = Advisor(data, InMemoryRepQueue(), cfg)  # the expected numbers: the same code, no model
 
@@ -270,6 +292,11 @@ def main() -> None:
                     # the server's clock for each question, and every model's error (app/agent/models.py)
                     question_run = config["configurable"][QUESTION_KEY] = Question.start(cfg["questionTimeoutSeconds"])
                     out = agent.invoke({"messages": [("user", question)]}, config)
+                if "rep_answer" in case and answer_rep(rep_queue, config["configurable"]["thread_id"],
+                                                       case["rep_answer"]):
+                    # the rep answered: the same note the browser sends (rep-answered), and the bot recalculates
+                    question_run = config["configurable"][QUESTION_KEY] = Question.start(cfg["questionTimeoutSeconds"])
+                    out = agent.invoke({"messages": [("user", cfg["texts"]["repAnswered"])]}, config)
                 # main flow judges the whole conversation itself; the others the last turn
                 msgs = out["messages"] if path == MAIN_FLOW_FILE else last_turn(out["messages"])
                 ok, why = check(msgs, sentence, case)

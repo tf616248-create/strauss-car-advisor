@@ -67,6 +67,8 @@ function useChanged(alt) {
 export default function CompareCard({ result, importerLink = true }) {
   const { card, status } = result
   const { your_data: yours, today, alternative: alt, diff, explanation } = card
+  // the rep is asked to confirm the catalog's amount: calculated by it meanwhile, those fields marked
+  const awaiting = card.awaiting_confirmation
   const changed = useChanged(alt)
   const facts = YOUR_DATA.filter(([key]) => yours[key])
   const sources = new Set(facts.map(([key]) => yours[key].source))
@@ -111,7 +113,10 @@ export default function CompareCard({ result, importerLink = true }) {
                 <tr key={key} className={cls}>
                   <th scope="row">{label}</th>
                   <td><Value v={t?.value} /><Source s={t?.source} /></td>
-                  <td className="col--alt"><Value v={a?.value} /><Source s={a?.source} /></td>
+                  <td className="col--alt">
+                    <Value v={a?.value} /><Source s={a?.source} />
+                    {awaiting?.fields.includes(key) && <span className="wait">⏳ {awaiting.label}</span>}
+                  </td>
                   <td className="diff"><bdi dir="ltr">{fmtDiff(diff[key])}</bdi></td>
                 </tr>
               )
@@ -134,6 +139,7 @@ export default function CompareCard({ result, importerLink = true }) {
           </span>
           <div className="card__explain">
             {lines.map((line) => <p key={line}>{line}</p>)}
+            {awaiting && <p className="wait">⏳ {awaiting.note}</p>}
           </div>
         </div>
       ) : (
