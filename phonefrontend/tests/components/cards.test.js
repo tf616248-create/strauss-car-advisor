@@ -57,3 +57,26 @@ test('specs: the car and its sources; no official data says so', async () => {
   await render(<SpecsCard result={specsNone} />)
   has(specsNone.card.message)
 })
+
+// the importer link in the comparison card: the new car only, like the website (not today's car, not on the rep screen)
+test('comparison: one importer link, for the new car, named for it; importerLink={false} leaves it out', async () => {
+  const { Linking } = require('react-native')
+  const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true)
+  const withLinks = { ...noa, card: { ...noa.card, today: { ...noa.card.today, importer_url: 'https://t.example/' },
+    alternative: { ...noa.card.alternative, importer_url: 'https://a.example/' } } }
+  const { unmount } = await render(<CompareCard result={withLinks} />)
+  const links = screen.getAllByRole('link')
+  expect(links).toHaveLength(1)
+  expect(links[0].props.accessibilityLabel).toBe(`למפרט המלא אצל היבואן ← ${noa.card.alternative.label} (נפתח בדפדפן)`)
+  await fireEvent.press(links[0])
+  expect(open).toHaveBeenCalledWith('https://a.example/')
+  await unmount()
+  await render(<CompareCard result={withLinks} importerLink={false} />)
+  expect(screen.queryAllByRole('link')).toHaveLength(0)
+  open.mockRestore()
+})
+
+test('comparison: only today\'s car has a page: no link at all', async () => {
+  await render(<CompareCard result={{ ...noa, card: { ...noa.card, today: { ...noa.card.today, importer_url: 'https://t.example/' } } }} />)
+  expect(screen.queryAllByRole('link')).toHaveLength(0)
+})

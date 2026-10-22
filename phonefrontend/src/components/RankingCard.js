@@ -48,12 +48,16 @@ export function SourceLine({ sources }) {
   return <T size={12} muted>{`מקור: ${sources.map((s) => `${s.name}, עודכן ${fmtDay(s.fetched_at)}`).join(' · ')}`}</T>
 }
 
-export function ImporterLink({ url }) {
+// The importer's page, in the phone's browser. car: its name for a screen reader, where a card shows
+// more than one car. No url (a car outside the catalog): no link at all, never a broken one.
+export function ImporterLink({ url, car }) {
   const c = useColors()
   if (!url) return null
+  const text = 'למפרט המלא אצל היבואן ←'
   return (
-    <Pressable accessibilityRole="link" onPress={() => Linking.openURL(url)} hitSlop={8}>
-      <T weight={700} size={14} color={c.cyanText}>למפרט המלא אצל היבואן ←</T>
+    <Pressable accessibilityRole="link" accessibilityLabel={[text, car, '(נפתח בדפדפן)'].filter(Boolean).join(' ')}
+      onPress={() => Linking.openURL(url)} style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}>
+      <T weight={700} size={14} color={c.cyanText}>{text}</T>
     </Pressable>
   )
 }

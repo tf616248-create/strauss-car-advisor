@@ -6,6 +6,7 @@ import { View } from 'react-native'
 import { useColors } from '../theme'
 import { fmtMoney, fmtSigned, ltr } from '../lib/format'
 import { Card, Source, T } from './ui'
+import { ImporterLink } from './RankingCard'
 
 const YOUR_DATA = [
   ['occupation', 'עיסוק'], ['group', 'קבוצה'], ['base', 'שכר בסיס', 'money'],
@@ -55,7 +56,8 @@ function useChanged(alt) {
   return changed
 }
 
-export default function CompareCard({ result }) {
+// importerLink: the employee's card has it (like the website, where the rep screen passes false)
+export default function CompareCard({ result, importerLink = true }) {
   const c = useColors()
   const { card, status } = result
   const { your_data: yours, today, alternative: alt, diff, explanation } = card
@@ -112,6 +114,9 @@ export default function CompareCard({ result }) {
           </View>
         )
       })}
+
+      {/* the importer's page of the new car only - today's car is already known */}
+      {importerLink && <ImporterLink url={alt.importer_url} car={alt.label} />}
 
       <View accessibilityLabel={typeof net === 'number' ? 'הפרש בנטו, לחודש' : 'ממתין לנציג'}
         style={{ borderRadius: 12, padding: 14, gap: 6, backgroundColor: c.surface }}>
