@@ -1,0 +1,49 @@
+{
+  "note": "The chat's texts in the app (welcome, welcomeNamed, loadingDelayMs and texts are as in frontend/src/config/chat.json). byAddress: the screen's texts in the employee's form of address (GET /settings address: male | female | plural - plural until chosen). On the website these stay plural; the app speaks the employee's way.",
+  "welcome": "שלום, אני כובי",
+  "welcomeNamed": "שלום {name}, אני כובי",
+  "loadingDelayMs": 300,
+  "texts": {
+    "loading": "טוען שיחה…",
+    "loadFailed": "כובי לא הצליח לטעון את השיחה.",
+    "retry": "לנסות שוב",
+    "newBelow": "↓ תשובה חדשה"
+  },
+  "byAddress": {
+    "notice": {
+      "male": "רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלך",
+      "female": "רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלך",
+      "plural": "רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלכם"
+    },
+    "sub1": {
+      "male": "רכב חברה משפיע על המשכורת שלך, גם אם לא שמת לב.",
+      "female": "רכב חברה משפיע על המשכורת שלך, גם אם לא שמת לב.",
+      "plural": "רכב חברה משפיע על המשכורת שלכם, גם אם לא שמתם לב."
+    },
+    "sub2": {
+      "male": "אני מראה בדיוק כמה כסף יישאר לך בכל חודש, היום ואחרי שינוי ברכב.",
+      "female": "אני מראה בדיוק כמה כסף יישאר לך בכל חודש, היום ואחרי שינוי ברכב.",
+      "plural": "אני מראה בדיוק כמה כסף יישאר לכם בכל חודש, היום ואחרי שינוי ברכב."
+    },
+    "ask": {
+      "male": "מה תרצה לבדוק?",
+      "female": "מה תרצי לבדוק?",
+      "plural": "מה תרצו לבדוק?"
+    },
+    "more": {
+      "male": "לא בטוח מה זה \"שווי שימוש\" או \"השתתפות עצמית\"? פשוט שאל אותי.",
+      "female": "לא בטוחה מה זה \"שווי שימוש\" או \"השתתפות עצמית\"? פשוט שאלי אותי.",
+      "plural": "לא בטוחים מה זה \"שווי שימוש\" או \"השתתפות עצמית\"? פשוט שאלו אותי."
+    },
+    "placeholder": {
+      "male": "כתוב שאלה…",
+      "female": "כתבי שאלה…",
+      "plural": "כתבו שאלה…"
+    },
+    "cardHint": {
+      "male": "טעות באחד הנתונים? כתוב את הנכון בשיחה, והחישוב יתעדכן.",
+      "female": "טעות באחד הנתונים? כתבי את הנכון בשיחה, והחישוב יתעדכן.",
+      "plural": "טעות באחד הנתונים? כתבו את הנכון בשיחה, והחישוב יתעדכן."
+    }
+  }
+}

@@ -23,7 +23,8 @@ import sidebarCfg from '../config/sidebar.json'
 import { pickPayslip as realPickPayslip } from '../lib/payslip'
 import payslipCfg from '../config/payslip.json'
 import logo from '../assets/logo'
-import { FONTS, ThemeMode, useColors } from '../theme'
+import { Address, FONTS, ThemeMode, useColors } from '../theme'
+import chatCfg from '../config/chat.json'
 import Customize from './Customize'
 import UsageBar from '../components/UsageBar'
 import settingsCfg from '../config/settings.json'
@@ -42,7 +43,6 @@ const CHOICES = [
   ['מסלול משפחתי', 'מה יקרה לנטו שלי אם אעבור למסלול המשפחתי?'],
   ['לוותר על הרכב', 'מה יקרה לנטו שלי אם אוותר על הרכב?'],
 ]
-const WELCOME = 'שלום, אני כובי'
 
 // The employee's settings ("התאמה אישית": design, tone; GET /settings) wrap the chat: its colors follow them.
 export default function EmployeeScreen(props) {
@@ -53,7 +53,9 @@ export default function EmployeeScreen(props) {
   }, [api])
   return (
     <ThemeMode.Provider value={settings.theme}>
-      <EmployeeChat {...props} settings={settings} onSettings={setSettings} />
+      <Address.Provider value={settings.address ?? 'plural'}>
+        <EmployeeChat {...props} settings={settings} onSettings={setSettings} />
+      </Address.Provider>
     </ThemeMode.Provider>
   )
 }
@@ -61,6 +63,8 @@ export default function EmployeeScreen(props) {
 function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = realNotifier, onLogout,
   pickPayslip = realPickPayslip, settings, onSettings }) {
   const c = useColors()
+  // the screen's texts in the employee's form of address (plural until chosen)
+  const say = (key) => chatCfg.byAddress[key][settings.address ?? 'plural']
   // the open conversation, kept while the app is open; the list is on the server
   const [threadId, setThreadId] = useState(() => getCurrentThread())
   const [history, setHistory] = useState([])
@@ -68,6 +72,9 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [me, setMe] = useState(null) // { employee_id, name } (GET /me)
   const [usage, setUsage] = useState(null) // this week's usage (GET /usage), for the side menu
+  // "שלום נועה, אני כובי": the first name from GET /me; without one, the welcome as it was
+  const firstName = me?.name?.trim().split(/\s+/)[0]
+  const welcome = firstName ? chatCfg.welcomeNamed.replace('{name}', firstName) : chatCfg.welcome
   const [messages, setMessages] = useState([])
   const [cards, setCards] = useState([])
   const [step, setStep] = useState(null)
@@ -334,7 +341,7 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
             <T size={24} weight={700}>☰</T>
           </Pressable>
         </View>
-        <T size={12} muted><T size={12} weight={700}>רק בדיקה, שום דבר לא משתנה בשכר או ברכב שלכם</T> · לפי כללי שטראוס ורשות המסים</T>
+        <T size={12} muted><T size={12} weight={700}>{say('notice')}</T> · לפי כללי שטראוס ורשות המסים</T>
       </View>
 
       <View accessibilityRole="tablist" style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: c.line }}>
@@ -367,10 +374,10 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
             {messages.length === 0 && (
               <View style={{ alignItems: 'center', gap: 8, paddingTop: 12 }}>
                 <CarBody />
-                <T weight={800} size={24} style={{ textAlign: 'center' }} accessibilityRole="header">{WELCOME}</T>
-                <T muted style={{ textAlign: 'center' }}>רכב חברה משפיע על המשכורת שלכם, גם אם לא שמתם לב.</T>
-                <T muted style={{ textAlign: 'center' }}>אני מראה בדיוק כמה כסף יישאר לכם בכל חודש, היום ואחרי שינוי ברכב.</T>
-                <T weight={700} style={{ textAlign: 'center', marginTop: 8 }}>מה תרצו לבדוק?</T>
+                <T weight={800} size={24} style={{ textAlign: 'center' }} accessibilityRole="header">{welcome}</T>
+                <T muted style={{ textAlign: 'center' }}>{say('sub1')}</T>
+                <T muted style={{ textAlign: 'center' }}>{say('sub2')}</T>
+                <T weight={700} style={{ textAlign: 'center', marginTop: 8 }}>{say('ask')}</T>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
                   {CHOICES.map(([label, question]) => (
                     <Pressable key={label} accessibilityRole="button" onPress={() => ask(question)}
@@ -379,7 +386,7 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
                     </Pressable>
                   ))}
                 </View>
-                <T size={13} muted style={{ textAlign: 'center' }}>לא בטוחים מה זה "שווי שימוש" או "השתתפות עצמית"? פשוט שאלו אותי.</T>
+                <T size={13} muted style={{ textAlign: 'center' }}>{say('more')}</T>
               </View>
             )}
             {messages.map((m) => <Message key={m.id} m={m} onOpen={setViewing} onProfile={() => setProfileOpen(true)} />)}
@@ -416,14 +423,15 @@ function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = 
                 <T size={20}>📎</T>
               </Pressable>
             )}
-            <TextInput accessibilityLabel="הודעה" value={input} onChangeText={setInput} placeholder="כתבו שאלה…" placeholderTextColor={c.muted}
+            <TextInput accessibilityLabel="הודעה" value={input} onChangeText={setInput} placeholder={say('placeholder')} placeholderTextColor={c.muted}
               multiline style={{ flex: 1, minHeight: 44, maxHeight: 160, borderWidth: 1, borderColor: c.line, borderRadius: 22, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, fontFamily: FONTS[400], fontSize: 16, color: c.text, backgroundColor: c.surface2, textAlign: 'right' }} />
             <Btn title="שליחה" onPress={send} disabled={busy} />
           </View>
         </KeyboardAvoidingView>
       )}
       {viewing && <PayslipViewer source={viewing} onClose={() => setViewing(null)} />}
-      {profileOpen && <ProfileScreen api={api} onClose={() => setProfileOpen(false)} />}
+      {profileOpen && <ProfileScreen api={api} onClose={() => setProfileOpen(false)}
+        onAddress={(address) => onSettings((s) => ({ ...s, address }))} />}
       {customizeOpen && <Customize api={api} settings={settings} onChange={onSettings} onClose={() => setCustomizeOpen(false)} />}
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} busy={busy} threadId={threadId} history={history} name={me?.name}
         usage={<UsageBar usage={usage} />}

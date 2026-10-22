@@ -18,5 +18,9 @@ export function useColors() {
   return mode === 'dark' || (mode === 'system' && phone === 'dark') ? dark : light
 }
 
+// the employee's form of address ('male' | 'female' | 'plural'), for the texts that speak to them
+export const Address = createContext('plural')
+export const useAddress = () => useContext(Address)
+
 // one font on every screen: Assistant (loaded in App.js)
 export const FONTS = { 400: 'Assistant_400Regular', 600: 'Assistant_600SemiBold', 700: 'Assistant_700Bold', 800: 'Assistant_800ExtraBold' }

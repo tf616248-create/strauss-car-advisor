@@ -32,7 +32,7 @@ test('login: a wrong code says so; a right one keeps the token and goes in', asy
   await render(<Login api={api} onLogin={onLogin} />)
   await fireEvent.changeText(screen.getByLabelText('קוד עובד'), '9')
   await fireEvent.press(screen.getByText('כניסה'))
-  await screen.findByText('הקוד לא נכון. נסו שוב.')
+  await screen.findByText('הקוד לא נכון. אפשר לנסות שוב.')
   await fireEvent.changeText(screen.getByLabelText('קוד עובד'), '1111')
   await fireEvent.press(screen.getByText('כניסה'))
   await waitFor(() => expect(onLogin).toHaveBeenCalled())

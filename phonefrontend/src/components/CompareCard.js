@@ -3,7 +3,8 @@
 // the name, then today | the alternative | the difference.
 import { useEffect, useRef, useState } from 'react'
 import { View } from 'react-native'
-import { useColors } from '../theme'
+import { useAddress, useColors } from '../theme'
+import chatCfg from '../config/chat.json'
 import { fmtMoney, fmtSigned, ltr } from '../lib/format'
 import { Card, Source, T } from './ui'
 import { ImporterLink } from './RankingCard'
@@ -63,6 +64,7 @@ export default function CompareCard({ result, importerLink = true }) {
   const { your_data: yours, today, alternative: alt, diff, explanation } = card
   // the rep is asked to confirm the catalog's amount: calculated by it meanwhile, those fields marked
   const awaiting = card.awaiting_confirmation
+  const address = useAddress()
   const changed = useChanged(alt)
   const facts = YOUR_DATA.filter(([key]) => yours[key])
   const sources = new Set(facts.map(([key]) => yours[key].source))
@@ -87,7 +89,7 @@ export default function CompareCard({ result, importerLink = true }) {
             </View>
           ))}
         </View>
-        <T size={13} muted>טעות באחד הנתונים? כתבו את הנכון בשיחה, והחישוב יתעדכן.</T>
+        <T size={13} muted>{chatCfg.byAddress.cardHint[address]}</T>
       </View>
 
       <View style={{ flexDirection: 'row', gap: 8, borderBottomWidth: 1, borderColor: c.line, paddingBottom: 6 }}>

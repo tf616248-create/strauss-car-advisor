@@ -41,7 +41,8 @@ export function Choice({ label, checked, onPress }) {
   )
 }
 
-export default function ProfileScreen({ api, onClose }) {
+// onAddress: a new form of address was saved (the screen's texts follow it at once)
+export default function ProfileScreen({ api, onClose, onAddress }) {
   const c = useColors()
   const [view, setView] = useState(null)
   const [form, setForm] = useState({})
@@ -83,6 +84,7 @@ export default function ProfileScreen({ api, onClose }) {
         setNotice({ kind: 'alert', text: TX.fixErrors })
       } else {
         take(res.profile)
+        if (newAddress) onAddress?.(res.profile.address ?? newAddress)
         setNotice({ kind: 'saved', text: TX.saved })
       }
     } catch {

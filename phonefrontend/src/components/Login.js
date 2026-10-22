@@ -11,10 +11,10 @@ import { Btn, T } from './ui'
 
 // errors always say what to do next
 function errorText(err) {
-  if (err?.status === 401) return 'הקוד לא נכון. נסו שוב.'
-  if (err?.status === 429) return 'יותר מדי ניסיונות. נסו שוב בעוד כמה דקות.'
+  if (err?.status === 401) return 'הקוד לא נכון. אפשר לנסות שוב.'
+  if (err?.status === 429) return 'יותר מדי ניסיונות. אפשר לנסות שוב בעוד כמה דקות.'
   if (err?.status === 503) return 'הכניסה סגורה כרגע: לא הוגדרו קודים בשרת.'
-  return 'כובי לא מצליח להתחבר כרגע. נסו שוב בעוד דקה.'
+  return 'כובי לא מצליח להתחבר כרגע. אפשר לנסות שוב בעוד דקה.'
 }
 
 // Demo login: an employee code -> a token for while the app is open (app/auth.py). A pilot replaces it with SSO.

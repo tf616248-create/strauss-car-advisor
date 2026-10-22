@@ -45,7 +45,7 @@ test('401 logs out with no message; 429 and a network error say what to do', asy
   expect(out).toHaveBeenCalled(); expect(getToken()).toBeNull(); expect(events).toEqual([])
   await streamChat({ message: 'x' }, (e, d) => events.push(d.message), fakeFetch({ ok: false, status: 429 }))
   await streamChat({ message: 'x' }, (e, d) => events.push(d.message), jest.fn(async () => { throw new Error('offline') }))
-  expect(events).toEqual(['כובי עמוס כרגע. נסו שוב בעוד רגע.', 'כובי לא מצליח להתחבר כרגע. נסו שוב בעוד דקה.'])
+  expect(events).toEqual(['כובי עמוס כרגע. אפשר לנסות שוב בעוד רגע.', 'כובי לא מצליח להתחבר כרגע. אפשר לנסות שוב בעוד דקה.'])
 })
 
 test('login and threads', async () => {

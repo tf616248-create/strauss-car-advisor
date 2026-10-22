@@ -8,9 +8,9 @@ export function apiBase(env, dev) {
 }
 
 export const API_URL = apiBase({ EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL }, __DEV__)
-// errors always say what to do next
-const NETWORK_ERROR = 'כובי לא מצליח להתחבר כרגע. נסו שוב בעוד דקה.'
-const BUSY = 'כובי עמוס כרגע. נסו שוב בעוד רגע.'
+// errors always say what to do next, in one wording for anyone (no "נסו": the form of address)
+const NETWORK_ERROR = 'כובי לא מצליח להתחבר כרגע. אפשר לנסות שוב בעוד דקה.'
+const BUSY = 'כובי עמוס כרגע. אפשר לנסות שוב בעוד רגע.' // the same as the server's (agent.json)
 
 // the employee's login token on every request (lib/session.js)
 function withToken(headers = {}) {
