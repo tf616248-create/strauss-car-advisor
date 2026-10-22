@@ -222,7 +222,7 @@ def main() -> None:
     from app.agent.advisor import Advisor, load_agent_config
     from app.tracing import eval_config
     from app.agent.graph import build_agent
-    from app.agent.models import ModelStalledError, build_model
+    from app.agent.models import QUESTION_KEY, ModelStalledError, Question, build_model
     from app.agent.rep_queue import InMemoryRepQueue
     from app.data.loader import load_all
     from app.profile import InMemoryProfiles
@@ -264,8 +264,11 @@ def main() -> None:
                 employee = f"eval-{uuid.uuid4().hex[:8]}"
                 profiles.update(employee, case["profile"])
                 config["configurable"]["employee_id"] = employee
+            question_run = None
             try:
                 for question in questions_of(case):
+                    # the server's clock for each question, and every model's error (app/agent/models.py)
+                    question_run = config["configurable"][QUESTION_KEY] = Question.start(cfg["questionTimeoutSeconds"])
                     out = agent.invoke({"messages": [("user", question)]}, config)
                 # main flow judges the whole conversation itself; the others the last turn
                 msgs = out["messages"] if path == MAIN_FLOW_FILE else last_turn(out["messages"])
@@ -273,7 +276,8 @@ def main() -> None:
                 answer = _final_text(out["messages"])
                 usage = turn_usage(out["messages"], prices)
             except (Exception, ModelStalledError) as e:  # e.g. every model failed: counts as a fail, with the reason
-                ok, why, answer = False, f"error: {type(e).__name__}: {e}", ""
+                every = f" (every model: {question_run.summary()})" if question_run and question_run.errors else ""
+                ok, why, answer = False, f"error: {type(e).__name__}: {e}{every}", ""
                 usage = {"calls": 0, "cost_usd": None}
             passed += ok
             rows.append({"set": title, "kind": case.get("kind", title), "id": case["id"], "ok": ok, "why": why,

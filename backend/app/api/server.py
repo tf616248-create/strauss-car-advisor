@@ -83,7 +83,7 @@ specs = build_specs_store(data.catalog, BACKEND_DIR)
 
 model = build_model(cfg["modelTimeoutSeconds"], thinking_level=cfg["geminiThinkingLevel"])
 # a payslip photo: only the models that read images (payslip.visionModels); pasted text: any model
-vision = build_vision_model(cfg["modelTimeoutSeconds"], cfg["payslip"]["visionModels"],
+vision = build_vision_model(cfg["payslip"]["modelTimeoutSeconds"], cfg["payslip"]["visionModels"],
                             thinking_level=cfg["geminiThinkingLevel"])
 
 app = create_app(

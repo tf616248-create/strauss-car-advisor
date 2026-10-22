@@ -14,15 +14,24 @@ replaced - its words are on the employee's screen. If it then goes silent for th
 answer ends with an error (ModelStalledError), not with a second answer from another model.
 An abandoned call runs without callbacks, so its words can't reach the screen.
 
+The whole question has a clock too (questionTimeoutSeconds): the server puts a Question in the run's
+config (QUESTION_KEY), and every model call waits for a first word only until the question's time is
+up - after that no model is called (QuestionTimeoutError). So the employee gets the calm message in
+time however many models are left. The Question also keeps each model's error: the fallbacks raise
+only the first one, and the log then says why every provider failed (Question.summary).
+
 Gemini's "thinking" is turned down (geminiThinkingLevel in config/agent.json): the agent only
 calls tools and copies their numbers, so thinking adds latency without adding accuracy.
 """
 from __future__ import annotations
 
+import contextvars
+import logging
 import os
 import queue
 import threading
 import time
+from dataclasses import dataclass, field
 from typing import Any, Iterator, Mapping, Optional
 
 from langchain_core.language_models import BaseChatModel
@@ -34,9 +43,47 @@ from pydantic import ConfigDict
 
 from app.timing import log as timing_log
 
+log = logging.getLogger(__name__)
+
+# the Question's key in the run's configurable; an object, so it never reaches a checkpoint or a trace
+QUESTION_KEY = "kobi_question"
+MAX_ERROR_CHARS = 300  # a provider's error can be a whole JSON body
+
 
 class ModelTimeoutError(TimeoutError):
     """A model didn't start answering within modelTimeoutSeconds."""
+
+
+class QuestionTimeoutError(ModelTimeoutError):
+    """The question's time (questionTimeoutSeconds) is up before a model started answering."""
+
+
+@dataclass
+class Question:
+    """One employee question: when its time is up, and each model's error on the way."""
+
+    deadline: Optional[float] = None  # time.monotonic()
+    errors: list = field(default_factory=list)  # (model label, "ErrorType: message")
+
+    @classmethod
+    def start(cls, seconds: float) -> "Question":
+        return cls(deadline=time.monotonic() + seconds)
+
+    def remaining(self) -> Optional[float]:
+        return None if self.deadline is None else self.deadline - time.monotonic()
+
+    def summary(self) -> str:
+        return "; ".join(f"{label}: {error}" for label, error in self.errors)
+
+
+# the Question of the model call running in this thread: set around each call (invoke/stream),
+# since a chat model's _stream does not see the run's config
+_question: contextvars.ContextVar[Optional[Question]] = contextvars.ContextVar("kobi_question", default=None)
+
+
+def _question_of(config) -> Optional[Question]:
+    q = ((config or {}).get("configurable") or {}).get(QUESTION_KEY)
+    return q if isinstance(q, Question) else None
 
 
 class ModelStalledError(BaseException):
@@ -129,8 +176,36 @@ class WithTimeout(BaseChatModel):
         return WithTimeout(self.model.bind_tools(tools, **kwargs), self.seconds, self.label,
                            fallback=self.metadata["kobi_fallback"])
 
+    def invoke(self, input, config=None, **kwargs: Any):
+        token = _question.set(_question_of(config))
+        try:
+            return super().invoke(input, config, **kwargs)
+        finally:
+            _question.reset(token)
+
+    def stream(self, input, config=None, **kwargs: Any):
+        question = _question_of(config)
+        inner = super().stream(input, config, **kwargs)
+        while True:  # set only while this call runs: the caller's context is left as it was
+            token = _question.set(question)
+            try:
+                chunk = next(inner)
+            except StopIteration:
+                return
+            finally:
+                _question.reset(token)
+            yield chunk
+
     def _stream(self, messages: list[BaseMessage], stop: Optional[list[str]] = None,
                 run_manager=None, **kwargs: Any) -> Iterator[ChatGenerationChunk]:
+        question = _question.get()
+        remaining = question.remaining() if question else None
+        if remaining is not None and remaining <= 0:
+            error = QuestionTimeoutError("the question's time is up")
+            self._record(question, error)
+            raise error
+        # waiting for the first word: this model's clock, or what is left of the question's
+        first_wait = self.seconds if remaining is None else min(self.seconds, remaining)
         inbox: queue.Queue = queue.Queue()
         abandoned = threading.Event()
 
@@ -152,17 +227,24 @@ class WithTimeout(BaseChatModel):
         try:
             while True:
                 try:
-                    item = inbox.get(timeout=self.seconds)
+                    item = inbox.get(timeout=self.seconds if first_word is not None else first_wait)
                 except queue.Empty:
                     if first_word is None:
                         outcome = "no first word"
-                        raise ModelTimeoutError(f"no answer within {self.seconds}s") from None
+                        if first_wait < self.seconds:
+                            error = QuestionTimeoutError(f"the question's time ran out waiting for {self.label}")
+                        else:
+                            error = ModelTimeoutError(f"no answer within {self.seconds}s")
+                        self._record(question, error)
+                        raise error from None
                     outcome = "went silent mid-answer"
                     raise ModelStalledError(f"silent for {self.seconds}s mid-answer") from None
                 if item is _DONE:
                     return
                 if isinstance(item, BaseException):
                     outcome = type(item).__name__
+                    if isinstance(item, Exception):  # not a stall: that one never switches models
+                        self._record(question, item)
                     raise item
                 if first_word is None:
                     first_word = time.perf_counter() - started
@@ -175,6 +257,13 @@ class WithTimeout(BaseChatModel):
             first = "-" if first_word is None else f"{first_word:.3f}s"
             timing_log.info("⏱ model %s: first output %s, total %.3fs (%s)",
                             self.label, first, time.perf_counter() - started, outcome)
+
+    def _record(self, question: Optional[Question], error: Exception) -> None:
+        """Every model's error, in the log and on the question - not only the first, which the fallbacks raise."""
+        reason = f"{type(error).__name__}: {error}"[:MAX_ERROR_CHARS]
+        log.warning("model %s failed: %s", self.label, reason)
+        if question is not None:
+            question.errors.append((self.label, reason))
 
     def _generate(self, messages: list[BaseMessage], stop: Optional[list[str]] = None,
                   run_manager=None, **kwargs: Any) -> ChatResult:

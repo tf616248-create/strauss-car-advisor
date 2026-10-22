@@ -43,7 +43,7 @@ from pydantic import BaseModel, Field
 from app import payslip as payslip_mod
 from app import profile as profile_mod
 from app.names import NameFiller, fill, first_name
-from app.agent.models import ModelStalledError
+from app.agent.models import QUESTION_KEY, ModelStalledError, Question
 from app.api.common import (SSE_HEADERS, UUID_RE, EventStreamResponse, cards_of, messages_of, sse,
                             text_of, thread_config, title_of)
 from app.api.events import conversation_events
@@ -179,9 +179,11 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
         item = ("user", message) if isinstance(message, str) else message
         filler = NameFiller(name_of(employee))  # the model writes {name}; the employee sees their name
         address = profiles.settings(employee).get("address")
+        config = thread_config(thread_id, employee, address)
+        # one clock for the whole question, and each model's error on record (app/agent/models.py)
+        question_run = config["configurable"][QUESTION_KEY] = Question.start(cfg["questionTimeoutSeconds"])
         try:
-            for mode, chunk in agent.stream({"messages": [item]}, thread_config(thread_id, employee, address),
-                                            stream_mode=["messages", "updates"]):
+            for mode, chunk in agent.stream({"messages": [item]}, config, stream_mode=["messages", "updates"]):
                 if mode == "messages":
                     msg, meta = chunk
                     if isinstance(msg, AIMessageChunk) and meta.get("langgraph_node") == "agent":
@@ -210,6 +212,8 @@ def router(*, agent, rep_queue, notifier, cfg: dict, threads, payslips, payslip_
         except (Exception, ModelStalledError):  # every model failed, one went silent, or a bug -
             # the employee gets a calm message
             timing_log.info("⏱ answer: failed after %.3fs", time.perf_counter() - start)
+            if question_run.errors:  # the exception below is only the first model's
+                log.error("every model failed (thread %s): %s", thread_id, question_run.summary())
             log.exception("chat failed (thread %s)", thread_id)
             yield sse("error", {"message": texts["overloaded"]})
         finally:

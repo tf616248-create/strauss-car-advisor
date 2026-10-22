@@ -2,7 +2,9 @@
   "note": "Agent thresholds and employee-facing texts. Rules for when to ask the rep live in code (app/agent/advisor.py); the thresholds live here.",
   "maxAttempts": 2,
   "maxCandidates": 10,
-  "modelTimeoutSeconds": 30,
+  "modelTimeoutSeconds": 15,
+  "questionTimeoutSeconds": 60,
+  "timeoutNote": "modelTimeoutSeconds: how long one model may take to its first word before the next is tried. questionTimeoutSeconds: the whole question (every model and tool call) - after it, the calm 'overloaded' message (the challenge: an answer within a minute). A model already writing is never cut off. Reading a payslip image has its own model clock (payslip.modelTimeoutSeconds).",
   "geminiThinkingLevel": "low",
   "sseHeartbeatSeconds": 20,
   "auth": {
@@ -144,7 +146,8 @@
     "extractLongSide": 2000,
     "maxTextChars": 8000,
     "fields": ["base", "commission", "bonus", "pension_pct", "keren_pct", "credit_points", "current_participation"],
-    "visionModels": ["gemini", "gemma-3", "gemma-4", "llama-4"]
+    "visionModels": ["gemini", "gemma-3", "gemma-4", "llama-4"],
+    "modelTimeoutSeconds": 30
   },
   "profile": {
     "note": "The employee's profile (app/profile.py): the details calculate needs from the employee, kept per employee (table employee_profile), filled in by the code in every conversation. No group: it is computed from the occupation, in code (the prompt's profile shows it, \"לפי העיסוק\"). linkWhenMissing: from this many missing details, the profile link instead of one question at a time.",

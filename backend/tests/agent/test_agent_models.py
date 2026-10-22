@@ -315,3 +315,119 @@ def test_no_model_that_reads_images_is_not_an_error():
 
     assert build_vision_model(30, ["gemini"], {"GROQ_API_KEY": "q"}) is None
     assert build_vision_model(30, ["gemini"], {"GOOGLE_API_KEY": "g"}) is not None
+
+
+# --- one clock for the whole question, and every model's error on record -----------
+
+
+def test_question_time_limit_comes_from_agent_config():
+    """The challenge: an answer within a minute. One model's clock is well below the question's."""
+    from app.agent.advisor import load_agent_config
+    from tests.conftest import BACKEND_DIR
+
+    cfg = load_agent_config(BACKEND_DIR)
+    assert 0 < cfg["questionTimeoutSeconds"] <= 60
+    assert cfg["modelTimeoutSeconds"] <= 15
+    assert cfg["modelTimeoutSeconds"] < cfg["questionTimeoutSeconds"]
+    assert 0 < cfg["payslip"]["modelTimeoutSeconds"] <= 60  # reading an image: its own clock
+
+
+def with_question(question) -> dict:
+    from app.agent.models import QUESTION_KEY
+
+    return {"configurable": {QUESTION_KEY: question}}
+
+
+def test_the_question_clock_caps_a_model_clock():
+    from app.agent.models import Question, QuestionTimeoutError
+
+    first, second = Hanging(messages=iter([])), Hanging(messages=iter([]))
+    chain = with_fallbacks([first, second], timeout_seconds=5)
+    start = time.monotonic()
+    with pytest.raises(QuestionTimeoutError):
+        chain.invoke("שלום", with_question(Question.start(0.3)))
+    assert time.monotonic() - start < 2
+    assert (first.calls, second.calls) == (1, 0)  # no time left: the next model is not even called
+
+
+def test_after_the_question_clock_no_model_is_called():
+    from app.agent.models import Question, QuestionTimeoutError
+
+    class Counting(Fake):
+        calls: int = 0
+
+        def _stream(self, *args, **kwargs):
+            self.calls += 1
+            yield from super()._stream(*args, **kwargs)
+
+    model = Counting(messages=iter([AIMessage(content="מאוחר")]))
+    with pytest.raises(QuestionTimeoutError):
+        with_fallbacks([model], timeout_seconds=5).invoke("שלום", with_question(Question.start(-1)))
+    assert model.calls == 0
+
+
+class SlowWriter(Fake):
+    """Starts at once, then takes its time between words."""
+
+    def _stream(self, *args, **kwargs):
+        for i, chunk in enumerate(super()._stream(*args, **kwargs)):
+            if i:
+                time.sleep(0.15)
+            yield chunk
+
+
+def test_a_model_already_writing_is_not_cut_by_the_question_clock():
+    """Its words are on the employee's screen: the question's clock only limits waiting for a first word."""
+    from app.agent.models import Question
+
+    chain = with_fallbacks([SlowWriter(messages=iter([AIMessage(content="אחת שתיים שלוש ארבע")]))], 2)
+    assert chain.invoke("שלום", with_question(Question.start(0.2))).content == "אחת שתיים שלוש ארבע"
+
+
+def test_every_model_error_is_kept_and_logged(caplog):
+    """Not only the first one: when all fail, each provider's reason is in the log."""
+    import logging
+
+    from app.agent.models import Question
+
+    question = Question.start(30)
+    chain = with_fallbacks([BadKey(messages=iter([])), Broken(messages=iter([]))], 5, ["gemini", "groq"])
+    with caplog.at_level(logging.WARNING, logger="app.agent.models"), pytest.raises(PermissionError):
+        chain.invoke("שלום", with_question(question))
+    assert [label for label, _ in question.errors] == ["gemini", "groq"]
+    assert "401 UNAUTHENTICATED" in question.errors[0][1] and "400 bad request" in question.errors[1][1]
+    assert "PermissionError: 401 UNAUTHENTICATED" in caplog.text and "ValueError: 400 bad request" in caplog.text
+    assert question.summary() == ("gemini: PermissionError: 401 UNAUTHENTICATED: API key not valid; "
+                                  "groq: ValueError: 400 bad request")
+
+
+def test_a_long_error_is_cut_in_the_log():
+    from app.agent.models import Question
+
+    class Wordy(Fake):
+        def _generate(self, *args, **kwargs):
+            raise ValueError("x" * 5000)
+
+    question = Question.start(30)
+    with pytest.raises(ValueError):
+        with_fallbacks([Wordy(messages=iter([]))], 5).invoke("שלום", with_question(question))
+    assert len(question.errors[0][1]) <= 300
+
+
+def test_the_question_survives_binding_tools(data):
+    """create_react_agent binds tools on the chain: the question still reaches each model."""
+    from app.agent.advisor import load_agent_config
+    from app.agent.graph import make_tools
+    from app.agent.models import Question, QuestionTimeoutError
+    from app.agent.rep_queue import InMemoryRepQueue
+    from tests.conftest import BACKEND_DIR
+
+    tools = make_tools(data, InMemoryRepQueue(), load_agent_config(BACKEND_DIR))
+    bound = with_fallbacks([Hanging(messages=iter([])), Hanging(messages=iter([]))], 5).bind_tools(tools)
+    with pytest.raises(QuestionTimeoutError):
+        bound.invoke("שלום", with_question(Question.start(0.2)))
+
+
+def test_without_a_question_only_the_model_clock_counts():
+    chain = with_fallbacks([SlowWriter(messages=iter([AIMessage(content="בלי שעון")]))], 2)
+    assert chain.invoke("שלום").content == "בלי שעון"

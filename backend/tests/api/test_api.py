@@ -121,6 +121,38 @@ def test_hanging_models_switch_then_give_a_friendly_error(data, cfg):
     assert evs[-1] == ("error", {"message": cfg["texts"]["overloaded"]})
 
 
+def test_the_whole_question_has_one_clock(data, cfg):
+    """questionTimeoutSeconds: the employee gets the calm message in time, however many models are left."""
+    import time
+
+    from app.agent.models import with_fallbacks
+
+    first, second = Hanging(messages=iter([])), Hanging(messages=iter([]))
+    client, _, _ = make(data, dict(cfg, questionTimeoutSeconds=0.3),
+                        model=with_fallbacks([first, second], timeout_seconds=5))
+    start = time.monotonic()
+    evs = chat(client, "שלום")
+    assert time.monotonic() - start < 3
+    assert (first.calls, second.calls) == (1, 0)
+    assert evs[-1] == ("error", {"message": cfg["texts"]["overloaded"]})
+
+
+def test_when_every_model_fails_each_reason_is_logged(data, cfg, caplog):
+    import logging
+
+    from app.agent.models import with_fallbacks
+    from tests.agent.test_agent_models import BadKey, Broken
+
+    chain = with_fallbacks([BadKey(messages=iter([])), Broken(messages=iter([]))], 5, ["gemini", "groq"])
+    client, _, _ = make(data, cfg, model=chain)
+    with caplog.at_level(logging.ERROR, logger="app.api.employee"):
+        evs = chat(client, "שלום")
+    assert evs[-1] == ("error", {"message": cfg["texts"]["overloaded"]})
+    line = next(r.getMessage() for r in caplog.records if "every model failed" in r.getMessage())
+    assert "gemini: PermissionError: 401" in line and "groq: ValueError: 400 bad request" in line
+    assert "401" not in json.dumps(evs, ensure_ascii=False)  # the employee never sees the reason
+
+
 def test_tokens_still_stream_after_switching_from_a_hanging_model(data, cfg):
     from app.agent.models import with_fallbacks
 
