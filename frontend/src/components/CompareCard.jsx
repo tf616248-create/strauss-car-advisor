@@ -63,7 +63,8 @@ function useChanged(alt) {
   return changed
 }
 
-export default function CompareCard({ result }) {
+// importerLink: the employee's card has it; the rep screen passes false (the rep does not need it)
+export default function CompareCard({ result, importerLink = true }) {
   const { card, status } = result
   const { your_data: yours, today, alternative: alt, diff, explanation } = card
   const changed = useChanged(alt)
@@ -119,7 +120,7 @@ export default function CompareCard({ result }) {
         </table>
       </div>
       {/* the importer's page of the new car only - today's car is already known (the server adds it; none outside the catalog) */}
-      {alt?.importer_url && (
+      {importerLink && alt?.importer_url && (
         <p className="card__importers">
           <ImporterLink url={alt.importer_url} car={alt.label} />
         </p>

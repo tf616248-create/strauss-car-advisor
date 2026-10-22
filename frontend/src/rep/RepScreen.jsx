@@ -221,7 +221,7 @@ export default function RepScreen({ api = realApi }) {
         {selected?.card && (
           <>
             <h2 className="rep__cardtitle">כרטיס ההשוואה של העובד</h2>
-            <CompareCard result={{ status: 'waiting_rep', card: selected.card }} />
+            <CompareCard result={{ status: 'waiting_rep', card: selected.card }} importerLink={false} />
           </>
         )}
       </aside>

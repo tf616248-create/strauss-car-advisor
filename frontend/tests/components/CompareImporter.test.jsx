@@ -32,4 +32,13 @@ describe('the importer link in the comparison card', () => {
     const { container } = render(<CompareCard result={noa} />)
     expect(container.querySelector('a, .card__importers')).toBeNull()
   })
+
+  it('the employee gets it by default; importerLink={false} (the rep screen) leaves it out', () => {
+    const result = withLinks(undefined, 'https://a.example/')
+    const { container, unmount } = render(<CompareCard result={result} />)
+    expect(container.querySelector('a[href="https://a.example/"]')).not.toBeNull()
+    unmount()
+    const rep = render(<CompareCard result={result} importerLink={false} />)
+    expect(rep.container.querySelector('a, .card__importers')).toBeNull()
+  })
 })

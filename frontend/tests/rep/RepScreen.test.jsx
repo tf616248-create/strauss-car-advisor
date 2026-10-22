@@ -48,6 +48,19 @@ describe('RepScreen', () => {
       { carGroup: 'ב', companyCost: 3500, participation: 250 }))
   }, 15000) // much typing: past the 5s default when the whole suite runs in parallel
 
+  it('the employee card has no importer link here: the rep does not need it', async () => {
+    const card = { ...rachel.card, alternative: { ...rachel.card.alternative, importer_url: 'https://importer.example/mg4' } }
+    const api = fakeApi()
+    api.repList.mockResolvedValue([{ ...request, card }])
+    const user = userEvent.setup()
+    const { container } = render(<RepScreen api={api} />)
+    await user.type(screen.getByLabelText('סיסמת נציג'), 'pw')
+    await user.click(screen.getByRole('button', { name: 'כניסה' }))
+    await screen.findByRole('region', { name: 'הנתונים שלך' })
+    expect(container.querySelector('a[href="https://importer.example/mg4"], .card__importers')).toBeNull()
+    expect(screen.queryByText(/אצל היבואן/)).toBeNull()
+  })
+
   it('confirms the sent answer, then shows the empty queue', async () => {
     const api = fakeApi()
     const user = userEvent.setup()
