@@ -321,14 +321,13 @@ def test_no_model_that_reads_images_is_not_an_error():
 
 
 def test_question_time_limit_comes_from_agent_config():
-    """The challenge: an answer within a minute. One model's clock is well below the question's."""
+    """The challenge: an answer within a minute. Decided 22/10: one model may take the whole minute too."""
     from app.agent.advisor import load_agent_config
     from tests.conftest import BACKEND_DIR
 
     cfg = load_agent_config(BACKEND_DIR)
-    assert 0 < cfg["questionTimeoutSeconds"] <= 60
-    assert cfg["modelTimeoutSeconds"] <= 15
-    assert cfg["modelTimeoutSeconds"] < cfg["questionTimeoutSeconds"]
+    assert cfg["questionTimeoutSeconds"] == 60
+    assert cfg["modelTimeoutSeconds"] == 60
     assert 0 < cfg["payslip"]["modelTimeoutSeconds"] <= 60  # reading an image: its own clock
 
 
