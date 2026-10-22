@@ -18,7 +18,8 @@ function errorText(err) {
 }
 
 // Demo login: an employee code -> a token for while the app is open (app/auth.py). A pilot replaces it with SSO.
-export default function Login({ api = realApi, onLogin }) {
+// embedded: the card of the opening scene (Intro.js), not a screen of its own
+export default function Login({ api = realApi, onLogin, embedded = false }) {
   const c = useColors()
   const [code, setCode] = useState('')
   const [error, setError] = useState(null)
@@ -39,9 +40,7 @@ export default function Login({ api = realApi, onLogin }) {
     }
   }
 
-  return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }} keyboardShouldPersistTaps="handled">
+  const card = (
         <View style={{ backgroundColor: c.surface, borderRadius: 18, padding: 24, gap: 12, alignItems: 'stretch' }}>
           <View accessibilityLabel="שטראוס" accessibilityRole="image" style={{ alignSelf: 'center' }}>
             <SvgXml xml={logo} width={88} height={60} />
@@ -61,6 +60,12 @@ export default function Login({ api = realApi, onLogin }) {
             <T size={12} muted>הקודים יימחקו לפני השימוש האמיתי.</T>
           </View>
         </View>
+  )
+  if (embedded) return card
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.bg }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }} keyboardShouldPersistTaps="handled">
+        {card}
       </ScrollView>
     </KeyboardAvoidingView>
   )

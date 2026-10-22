@@ -1,0 +1,18 @@
+{
+  "note": "The opening scene before the chat (components/Intro.js), like frontend/src/config/intro.json: the same video and times (seconds of the video), copied to assets/media. loadTimeoutSeconds: no playback by then (slow or blocked) = the final picture at once.",
+  "times": {
+    "slogan": 2,
+    "answer": 6,
+    "card": 7,
+    "end": 9
+  },
+  "loadTimeoutSeconds": 4,
+  "texts": {
+    "slogan": "שוברים את הבלבול.",
+    "answer": "מקבלים תשובה.",
+    "skip": "דלג",
+    "skipLabel": "דלג על הפתיחה",
+    "soundOn": "הפעלת הקול",
+    "soundOff": "השתקת הקול"
+  }
+}
