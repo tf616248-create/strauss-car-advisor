@@ -23,7 +23,9 @@ import sidebarCfg from '../config/sidebar.json'
 import { pickPayslip as realPickPayslip } from '../lib/payslip'
 import payslipCfg from '../config/payslip.json'
 import logo from '../assets/logo'
-import { FONTS, useColors } from '../theme'
+import { FONTS, ThemeMode, useColors } from '../theme'
+import Customize from './Customize'
+import settingsCfg from '../config/settings.json'
 import { Btn, T } from '../components/ui'
 
 const PT = payslipCfg.texts
@@ -41,8 +43,22 @@ const CHOICES = [
 ]
 const WELCOME = 'שלום, אני כובי'
 
-export default function EmployeeScreen({ api = realApi, subscribe = subscribeChanges, notifier = realNotifier, onLogout,
-  pickPayslip = realPickPayslip }) {
+// The employee's settings ("התאמה אישית": design, tone; GET /settings) wrap the chat: its colors follow them.
+export default function EmployeeScreen(props) {
+  const api = props.api ?? realApi
+  const [settings, setSettings] = useState(settingsCfg.defaults)
+  useEffect(() => {
+    Promise.resolve(api.settings?.()).then((v) => { if (v) setSettings((s) => ({ ...s, ...v })) }).catch(() => {})
+  }, [api])
+  return (
+    <ThemeMode.Provider value={settings.theme}>
+      <EmployeeChat {...props} settings={settings} onSettings={setSettings} />
+    </ThemeMode.Provider>
+  )
+}
+
+function EmployeeChat({ api = realApi, subscribe = subscribeChanges, notifier = realNotifier, onLogout,
+  pickPayslip = realPickPayslip, settings, onSettings }) {
   const c = useColors()
   // the open conversation, kept while the app is open; the list is on the server
   const [threadId, setThreadId] = useState(() => getCurrentThread())
@@ -288,7 +304,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
   const nets = cards.map((card) => card.card?.diff?.net).filter((v) => typeof v === 'number' && v !== 0)
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
+    <View testID="employee-root" style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6, borderBottomWidth: 1, borderColor: c.line, gap: 2 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View accessibilityLabel="שטראוס" accessibilityRole="image"><SvgXml xml={logo} width={44} height={30} /></View>
@@ -392,6 +408,7 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
       )}
       {viewing && <PayslipViewer source={viewing} onClose={() => setViewing(null)} />}
       {profileOpen && <ProfileScreen api={api} onClose={() => setProfileOpen(false)} />}
+      {customizeOpen && <Customize api={api} settings={settings} onChange={onSettings} onClose={() => setCustomizeOpen(false)} />}
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} busy={busy} threadId={threadId} history={history} name={me?.name}
         onNewConversation={newConversation} onProfile={() => setProfileOpen(true)} onCustomize={() => setCustomizeOpen(true)}
         onOpenThread={openThread} onLogout={() => onLogout?.()} />

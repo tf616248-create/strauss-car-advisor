@@ -1,0 +1,27 @@
+{
+  "texts": {
+    "title": "התאמה אישית",
+    "close": "סגירת ההתאמה האישית",
+    "theme": "עיצוב",
+    "themes": {
+      "light": "בהיר",
+      "dark": "כהה",
+      "system": "מערכת"
+    },
+    "tone": "הטון של כובי",
+    "tones": {
+      "professional": "מקצועי",
+      "friendly": "חברותי",
+      "funny": "מצחיק"
+    },
+    "toneHint": "הטון משתנה מההודעה הבאה. המספרים, הכללים וההסברים נשארים אותו דבר.",
+    "saved": "נשמר",
+    "saveError": "כובי לא הצליח לשמור כרגע. אפשר לנסות שוב בעוד דקה.",
+    "loading": "טוען…"
+  },
+  "defaults": {
+    "theme": "light",
+    "tone": "professional",
+    "address": "plural"
+  }
+}
