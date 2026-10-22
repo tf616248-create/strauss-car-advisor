@@ -6,7 +6,7 @@ import { useModalFocus, useOutsideClick } from '../lib/dialog'
 const T = cfg.texts
 
 // "התאמה אישית": a small window over the conversation with two settings, kept on the server with the
-// profile. Light or dark applies at once; the tone from Kobi's next message (the server reads it at
+// profile. Light, dark or the computer's (system) applies at once; the tone from Kobi's next message (the server reads it at
 // every model call). A change is saved when it is chosen; a save that fails goes back and says so.
 // settings: { theme, tone }; onChange(next): the parent applies the theme.
 export default function CustomizeDialog({ api, settings, onChange, onClose }) {

@@ -519,7 +519,20 @@ export default function EmployeeScreen({ api = realApi, subscribe = subscribeCha
 
   // light or dark: on <html>, where the color tokens are (styles.css). Light again when the employee
   // screen goes (logout): the opening scene and the statement are light
-  useEffect(() => { document.documentElement.dataset.theme = settings.theme }, [settings.theme])
+  // "system" follows the computer (prefers-color-scheme), also when it changes while the page is open;
+  // <html> always gets light or dark, so the CSS has only those two. An old kept value works as it was.
+  useEffect(() => {
+    const html = document.documentElement
+    if (settings.theme !== 'system') {
+      html.dataset.theme = settings.theme
+      return
+    }
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)')
+    const apply = () => { html.dataset.theme = mq?.matches ? 'dark' : 'light' }
+    apply()
+    mq?.addEventListener?.('change', apply)
+    return () => mq?.removeEventListener?.('change', apply)
+  }, [settings.theme])
   useEffect(() => () => { document.documentElement.dataset.theme = settingsCfg.defaults.theme }, [])
 
   function closeCustomize() {

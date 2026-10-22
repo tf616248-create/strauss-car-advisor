@@ -42,15 +42,21 @@ def test_three_tones_in_agent_json_professional_by_default(cfg):
     for name in ("friendly", "funny"):
         assert tones["styles"][name].strip()
     assert "בלי הומור על שכר, מס או סירוב" in tones["rule"]
-    assert cfg["settings"] == {"themes": ["light", "dark"],
+    assert cfg["settings"] == {"themes": ["light", "dark", "system"],
                                "defaults": {"theme": "light", "tone": "professional", "address": "plural"}}
+
+
+def test_system_is_a_theme_and_the_old_values_still_work(cfg):
+    """"system" follows the computer (the browser resolves it); "light" and "dark" kept before stay valid."""
+    for theme in ("light", "dark", "system"):
+        assert validate_settings({"theme": theme}, cfg) == ({"theme": theme}, {})
 
 
 def test_validate_settings(cfg):
     assert validate_settings({"theme": "dark", "tone": "funny"}, cfg) == ({"theme": "dark", "tone": "funny"}, {})
     clean, bad = validate_settings({"theme": "pink", "tone": "rude", "font": "x"}, cfg)
     assert clean == {}
-    assert bad == {"theme": {"options": ["light", "dark"]}, "tone": {"options": ["professional", "friendly", "funny"]},  # noqa: E501
+    assert bad == {"theme": {"options": ["light", "dark", "system"]}, "tone": {"options": ["professional", "friendly", "funny"]},  # noqa: E501
                    "font": {"reason": "unknown_field"}}
 
 

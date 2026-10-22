@@ -144,7 +144,8 @@
   "settings": {
     "themes": [
       "light",
-      "dark"
+      "dark",
+      "system"
     ],
     "defaults": {
       "theme": "light",

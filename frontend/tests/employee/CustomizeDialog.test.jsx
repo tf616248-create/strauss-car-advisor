@@ -1,7 +1,7 @@
 // "התאמה אישית": a click on it in the sidebar opens a small window with two settings, kept on the
 // server: light or dark (light by default, even when the computer is set to dark), and Kobi's tone.
 import { readFileSync } from 'node:fs'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import cfg from '@/config/settings.json'
@@ -144,6 +144,91 @@ describe('the tone', () => {
     expect(await within(dialog).findByText(T.saved)).toBeInTheDocument()
     expect(window.location.href).toBe(before)
     expect(screen.getByLabelText('הודעה')).toBeInTheDocument() // the conversation is still there
+  })
+})
+
+describe('"מערכת": following the computer', () => {
+  // a computer setting that can change while the page is open
+  function computer(dark) {
+    const listeners = new Set()
+    const mq = { media: '(prefers-color-scheme: dark)', matches: dark,
+      addEventListener: (t, f) => listeners.add(f), removeEventListener: (t, f) => listeners.delete(f) }
+    window.matchMedia = (q) => (q.includes('prefers-color-scheme: dark') ? mq
+      : { matches: false, media: q, addEventListener() {}, removeEventListener() {} })
+    return {
+      set(next) { mq.matches = next; act(() => listeners.forEach((f) => f({ matches: next }))) },
+      listening: () => listeners.size,
+    }
+  }
+
+  it('three options in one group, labelled "עיצוב"; light is still the default', async () => {
+    setup()
+    const dialog = await open(userEvent.setup())
+    const look = within(dialog).getByRole('radiogroup', { name: T.theme })
+    expect(T.theme).toBe('עיצוב')
+    expect(within(look).getAllByRole('radio').map((r) => r.value)).toEqual(['light', 'dark', 'system'])
+    expect(within(look).getByRole('radio', { name: T.themes.system })).toHaveAccessibleName('מערכת')
+    expect(within(look).getByRole('radio', { name: T.themes.light })).toBeChecked()
+    expect(cfg.defaults.theme).toBe('light')
+  })
+
+  it('kept "system" on a dark computer: dark', async () => {
+    computer(true)
+    setup({ settings: { theme: 'system', tone: 'professional' } })
+    await waitFor(() => expect(theme()).toBe('dark'))
+  })
+
+  it('kept "system" on a light computer: light', async () => {
+    computer(false)
+    setup({ settings: { theme: 'system', tone: 'professional' } })
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('light'))
+  })
+
+  it('the computer changes while the page is open: it follows at once, without a reload', async () => {
+    const pc = computer(true)
+    setup({ settings: { theme: 'system', tone: 'professional' } })
+    await waitFor(() => expect(theme()).toBe('dark')) // "system" is in effect (light is the default before)
+    const href = window.location.href
+    pc.set(false)
+    expect(theme()).toBe('light')
+    pc.set(true)
+    expect(theme()).toBe('dark')
+    expect(window.location.href).toBe(href)
+  })
+
+  it('choosing "system" saves it and applies the computer setting; another choice stops following', async () => {
+    const pc = computer(true)
+    const { api } = setup()
+    const user = userEvent.setup()
+    const dialog = await open(user)
+    await user.click(within(dialog).getByRole('radio', { name: T.themes.system }))
+    expect(api.saveSettings).toHaveBeenCalledWith({ theme: 'system' })
+    expect(theme()).toBe('dark')
+    await user.click(within(dialog).getByRole('radio', { name: T.themes.light }))
+    expect(theme()).toBe('light')
+    expect(pc.listening()).toBe(0) // light: no longer listening to the computer
+    pc.set(true)
+    expect(theme()).toBe('light')
+  })
+
+  it('an old kept value ("dark") still works, whatever the computer says', async () => {
+    computer(false)
+    setup({ settings: { theme: 'dark', tone: 'professional' } })
+    await waitFor(() => expect(theme()).toBe('dark'))
+  })
+
+  it('the arrow keys move between the three options', async () => {
+    computer(false)
+    const { api } = setup()
+    const user = userEvent.setup()
+    const dialog = await open(user)
+    const look = within(dialog).getByRole('radiogroup', { name: T.theme })
+    within(look).getByRole('radio', { name: T.themes.light }).focus()
+    await user.keyboard('{ArrowDown}')
+    expect(within(look).getByRole('radio', { name: T.themes.dark })).toBeChecked()
+    await user.keyboard('{ArrowDown}')
+    expect(within(look).getByRole('radio', { name: T.themes.system })).toBeChecked()
+    expect(api.saveSettings).toHaveBeenLastCalledWith({ theme: 'system' })
   })
 })
 

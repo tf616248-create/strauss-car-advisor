@@ -207,6 +207,7 @@ describe.each(WIDTHS)('axe at %ipx', (width) => {
     await expectClean()
   })
 
+  // "system" resolves to one of these two on <html>: the CSS has only light and dark
   it.each(['light', 'dark'])('the customize window, in %s mode', async (mode) => {
     viewport(width)
     sessionStorage.setItem('threadId', TID)
